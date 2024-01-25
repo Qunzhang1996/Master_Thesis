@@ -35,9 +35,9 @@ G=np.eye(nx)*dt**2   #process noise matrix, x_iter=F@x_iter+B@u_iter+G@w
 H=np.eye(nx)   #measurement matrix, y=H@x_iter
 #initial state and control input
 x0=x_iter
-u_iter+=np.array([0,0])
+u_iter+=np.array([3.14/180,0.7*9.81])
 u0=u_iter
-sigma_process=0.0001
+sigma_process=1
 sigma_measurement=0.1
 P0=np.eye(nx)*sigma_process**4
 Q0=np.eye(nx)*sigma_process**2
@@ -62,7 +62,7 @@ def update(frame):
     r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
     
     #add noise to the state
-    x_iter = F_x_ADV(x_iter,u_iter)+q
+    x_iter = F_x_ADV(x_iter,u_iter)
     #measurements
     measurement = H @ x_iter + r
 
@@ -113,7 +113,6 @@ plt.xlabel('Time (s)')
 plt.ylabel('x Difference')
 plt.title('Difference in x over Time')
 plt.legend()
-
 # Plot the difference in y
 plt.figure(2)  # Create a new figure for the y difference
 plt.plot(t_axis.flatten(), y_difference[:-1], label='y Difference', color='orange')
