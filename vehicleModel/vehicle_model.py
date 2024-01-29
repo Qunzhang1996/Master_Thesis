@@ -24,6 +24,8 @@ class car_VehicleModel(vehBicycleKinematic):
         self.name = "car_bicycle"
         self.nx = 4                     # State dimensions
         #! rewrite the refx
+        self.nrefx = self.nx
+        self.nrefu = self.nu
         self.refxT = [0,0,60/3.6,0]
         self.refxL = [0,0,60/3.6,0]
         self.refxR = [0,0,60/3.6,0]
@@ -41,9 +43,9 @@ class car_VehicleModel(vehBicycleKinematic):
         self.v = self.x_init[2]
 
 
-        self.refxT = [0,0,60/3.6,0,0]
-        self.refxL = [0,0,60/3.6,0,0]
-        self.refxR = [0,0,60/3.6,0,0]
+        self.refxT = [0,0,60/3.6,0]
+        self.refxL = [0,0,60/3.6,0]
+        self.refxR = [0,0,60/3.6,0]
 
         # System model variables
         self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]

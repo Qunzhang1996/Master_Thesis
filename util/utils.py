@@ -1,6 +1,7 @@
 import math
 import carla
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_state(vehicle):
@@ -63,3 +64,59 @@ def spawn_vehicle(world, blueprint, spawn_point):
     except Exception as e:
         print(f"Error spawning vehicle: {e}")
         return None
+    
+    
+def plot_paths(true_x, true_y,estimated_x, estimated_y,t):
+    plt.figure(1)
+    plt.cla()
+    plt.plot(true_x, true_y, label='True Path', color='blue')
+    plt.plot(estimated_x, estimated_y, label='Estimated Path', color='red')
+    plt.scatter(true_x[-1], true_y[-1], color='blue', s=50)
+    plt.scatter(estimated_x[-1], estimated_y[-1], color='red', s=50)
+    plt.title(f"Time: {t:.2f}s - Paths")
+    plt.legend()
+    plt.gca().invert_xaxis()
+
+
+def plot_diff(t_axis,x_difference,y_difference):
+    # For x difference
+    plt.figure(2, figsize=(5, 5))
+    plt.plot(t_axis.flatten(), x_difference[:-2], label='x Difference', color='green')
+    plt.xlabel('Time (s)')
+    plt.ylabel('x Difference')
+    plt.title('Difference in x over Time')
+    plt.legend()
+    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\x_difference.jpg')
+
+    # For y difference
+    plt.figure(3, figsize=(5, 5))
+    plt.plot(t_axis.flatten(), y_difference[:-2], label='y Difference', color='orange')
+    plt.xlabel('Time (s)')
+    plt.ylabel('y Difference')
+    plt.title('Difference in y over Time')
+    plt.legend()
+    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\y_difference.jpg')
+    plt.show()
+    
+#make sure angle in -pi pi
+def angle_trans(angle):
+    if angle > np.pi:
+        angle = angle - 2*np.pi
+    elif angle < -np.pi:
+        angle = angle + 2*np.pi
+    return angle
+
+def check_dimensions_car(nx, nu):
+    """
+    Check if the dimensions nx and nu are as expected.
+
+    Parameters:
+    - nx (int): The number of state variables.
+    - nu (int): The number of control inputs.
+
+    Raises:
+    - ValueError: If nx is not equal to 4 or nu is not equal to 2.
+    """
+    if nx != 4 or nu != 2:
+        raise ValueError("Error: nx must be equal to 4 and nu must be equal to 2.")
+    

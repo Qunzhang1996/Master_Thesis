@@ -2,7 +2,7 @@
 import numpy as np
 from casadi import *
 
-from helpers import *
+from .helpers import *
 
 class trailing:
     '''

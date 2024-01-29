@@ -1,7 +1,7 @@
 from casadi import *
 import numpy as np
 from matplotlib import pyplot as plt
-from helpers import *
+from .helpers import *
 
 class makeController:
     """
@@ -175,7 +175,7 @@ class makeController:
             self.opti.set_value(self.traffic_x,traffic_x)
             self.opti.set_value(self.traffic_y,traffic_y)
             self.opti.set_value(self.traffic_sign,traffic_sign)
-            self.opti.set_value(self.traffic_shift,traffic_shift)
+            self.opti.set_value(self.traffic_shift,traffic_shift)e
             self.opti.set_value(self.traffic_flip,traffic_flip)
             self.opti.set_value(self.x0,x_iter)
 

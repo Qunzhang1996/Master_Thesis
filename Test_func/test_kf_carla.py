@@ -12,7 +12,7 @@ import matplotlib.animation as animation
 from casadi import DM
 from vehicleModel.vehicle_model import car_VehicleModel
 from kalman_filter.kalman_filter import kalman_filter
-from util.utils import get_state, setup_carla_environment
+from util.utils import get_state, setup_carla_environment,plot_paths,plot_diff
 
 # ----------------- Carla Settings ------------------------
 #! set the initial position of the car and truck
@@ -21,7 +21,7 @@ car,truck = setup_carla_environment()
 velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(15, 0, 0)
 car.set_target_velocity(velocity2)
-car.apply_control(carla.VehicleControl(throttle=0.2, steer=1, brake=0))
+car.apply_control(carla.VehicleControl(throttle=0.0, steer=0.5, brake=0))
 
 
 
@@ -66,11 +66,13 @@ ekf=kalman_filter(F,B,H,x0,P0,Q0,R0)
 
 #list to store the true and estimated state
 true_x = []
+true_x.append(float(x_iter[0]))
 true_y = []
-estimated_x = []
-estimated_y = []
-x_difference = []
-y_difference = []
+true_y.append(float(x_iter[1]))
+estimated_x = [float(x0[0])]
+estimated_y = [float(x0[1])]
+x_difference = [true_x[-1]-estimated_x[-1]]
+y_difference = [true_y[-1]-estimated_y[-1]]
 
 
 # update animation
@@ -96,18 +98,7 @@ def update(frame):
     y_diff = (true_y[-1] - estimated_y[-1])
     x_difference.append(x_diff)
     y_difference.append(y_diff)
-    # Plot for true and estimated paths
-    plt.figure(1)
-    plt.cla()
-    plt.plot(true_x, true_y, label='True Path', color='blue')
-    plt.plot(estimated_x, estimated_y, label='Estimated Path', color='red')
-    plt.scatter(true_x[-1], true_y[-1], color='blue', s=50)
-    plt.scatter(estimated_x[-1], estimated_y[-1], color='red', s=50)
-    plt.title(f"Time: {t:.2f}s - Paths")
-    plt.legend()
-    # Flip the plot horizontally
-    plt.gca().invert_xaxis()
-
+    plot_paths(true_x, true_y,estimated_x, estimated_y,t)
 
 # -------start animation----------------
 fig = plt.figure(figsize=(5, 5))
@@ -115,21 +106,5 @@ ani = animation.FuncAnimation(fig, update, frames=len(t_axis), repeat=False)
 ani.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\animation.gif', writer='imagemagick', fps=30)
 # plt.show()
 # ----------------- check the x, y difference ------------------------
-# For x difference
-plt.figure(2, figsize=(5, 5))
-plt.plot(t_axis.flatten(), x_difference[:-1], label='x Difference', color='green')
-plt.xlabel('Time (s)')
-plt.ylabel('x Difference')
-plt.title('Difference in x over Time')
-plt.legend()
-plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\x_difference.jpg')
+plot_diff(t_axis,x_difference,y_difference)
 
-# For y difference
-plt.figure(3, figsize=(5, 5))
-plt.plot(t_axis.flatten(), y_difference[:-1], label='y Difference', color='orange')
-plt.xlabel('Time (s)')
-plt.ylabel('y Difference')
-plt.title('Difference in y over Time')
-plt.legend()
-plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\y_difference.jpg')
-plt.show()
