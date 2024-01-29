@@ -21,7 +21,7 @@ car,truck = setup_carla_environment()
 velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(15, 0, 0)
 car.set_target_velocity(velocity2)
-car.apply_control(carla.VehicleControl(throttle=0, steer=0.7, brake=0))
+car.apply_control(carla.VehicleControl(throttle=0.2, steer=1, brake=0))
 
 
 
@@ -49,12 +49,14 @@ G=np.eye(nx)*dt**2   #process noise matrix, x_iter=F@x_iter+B@u_iter+G@w
 H=np.eye(nx)   #measurement matrix, y=H@x_iter
 
 #initial state and control input
-x0=x_iter
+print(x_iter)
+x0=x_iter+5
+print(x0)
 u_iter+=np.array([3.14/180,0.7*9.81])
 u0=u_iter
 sigma_process=0.1
 sigma_measurement=0.05
-P0=np.eye(nx)*sigma_process**4
+P0=np.eye(nx)*(sigma_process)**4
 Q0=np.eye(nx)*sigma_process**2
 R0=np.eye(nx)*sigma_measurement**2
 # initial the Kalman Filter
