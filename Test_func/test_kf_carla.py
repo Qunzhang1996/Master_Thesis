@@ -1,5 +1,12 @@
-##change map to Town06
-#python config.py --map Town06
+## change map to Town06
+import subprocess
+# Command to run your script
+command = (
+    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+    r'python config.py --map Town06')
+# Run the command
+subprocess.run(command, shell=True)
+# ----------------- Importing Libraries ------------------------
 import time
 import numpy as np
 import sys
@@ -17,14 +24,22 @@ from util.utils import get_state, setup_carla_environment,plot_paths,plot_diff
 # ----------------- Carla Settings ------------------------
 #! set the initial position of the car and truck
 import carla
-car,truck = setup_carla_environment()
+car,truck = setup_carla_environment(Sameline_ACC=False)
 velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(15, 0, 0)
+
+#get initial state of truck and car,x,y,psi,v, shown seoerately
+#! uncomment the following lines to get the initial state of the car and truck
+#------------------get the initial state of the car and truck---------------------
+# time.sleep(1)
+# truck_state = get_state(truck)
+# car_state = get_state(car)
+# print("truck_state is:","x:",truck_state[0],"y:",truck_state[1],"psi:",truck_state[2],"v:",truck_state[3])
+# print("car_state is:","x:",car_state[0],"y:",car_state[1],"psi:",car_state[2],"v:",car_state[3])
+# exit()
+#---------------------------------------------------------------------------------
 car.set_target_velocity(velocity2)
 car.apply_control(carla.VehicleControl(throttle=0.0, steer=0.5, brake=0))
-
-
-
 # System initialization 
 dt = 0.2
 N=10
@@ -39,7 +54,7 @@ F_x_ADV  = car_model.getIntegrator()
 vx_init_ego = 10   
 car_model.setInit([124,143.318],vx_init_ego)
 x_iter = DM(int(nx),1)
-#get initial state and input
+# get initial state and input
 x_iter[:],u_iter = car_model.getInit()
 
 # ----------------- Ego Vehicle obsver(kalman filter) Settings ------------------------
@@ -48,7 +63,7 @@ F,B=car_model.calculate_AB(dt,init_flag=1)
 G=np.eye(nx)*dt**2   #process noise matrix, x_iter=F@x_iter+B@u_iter+G@w
 H=np.eye(nx)   #measurement matrix, y=H@x_iter
 
-#initial state and control input
+# initial state and control input
 print(x_iter)
 x0=x_iter+5
 print(x0)
@@ -64,7 +79,7 @@ ekf=kalman_filter(F,B,H,x0,P0,Q0,R0)
 
 
 
-#list to store the true and estimated state
+# list to store the true and estimated state
 true_x = []
 true_x.append(float(x_iter[0]))
 true_y = []

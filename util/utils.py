@@ -28,12 +28,16 @@ def get_state(vehicle):
 
     return np.array([[x, y, psi, v]]).T
 
-def setup_carla_environment():
+def setup_carla_environment(Sameline_ACC=True):
     """
     Sets up the CARLA environment by connecting to the server, 
     spawning vehicles, and setting their initial states.
     Returns the car and truck actors.
     """
+    '''
+    Sameline_ACC=TRUE: the car and truck are in the same lane, and the truck trakcing the car
+    Sameline_ACC=FALSE: the car and truck are in the different lane
+    '''
     client = carla.Client('localhost', 2000)
     world = client.get_world()
     bp_lib = world.get_blueprint_library()
@@ -42,17 +46,29 @@ def setup_carla_environment():
     for actor in world.get_actors().filter('vehicle.*'):
         actor.destroy()
 
-    # Spawn Tesla Model 3
-    car_bp = bp_lib.find('vehicle.tesla.model3')
-    car_spawn_point = carla.Transform(carla.Location(x=124, y=143.318146, z=0.3))
-    car = spawn_vehicle(world, car_bp, car_spawn_point)
+    if Sameline_ACC :
+        # Spawn Tesla Model 3
+        car_bp = bp_lib.find('vehicle.tesla.model3')
+        car_spawn_point = carla.Transform(carla.Location(x=124-100, y=143.318146, z=0.3))
+        car = spawn_vehicle(world, car_bp, car_spawn_point)
 
-    # Spawn Firetruck
-    truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-    truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-100))
-    truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
+        # Spawn Firetruck
+        truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
+        truck_spawn_point = carla.Transform(carla.Location(x=124-75, y=143.318146, z=0.3))
+        truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
+        return car, truck
+    else:
+        # Spawn Tesla Model 3
+        car_bp = bp_lib.find('vehicle.tesla.model3')
+        car_spawn_point = carla.Transform(carla.Location(x=124, y=143.318146, z=0.3))
+        car = spawn_vehicle(world, car_bp, car_spawn_point)
 
-    return car, truck
+        # Spawn Firetruck
+        truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
+        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-100))
+        truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
+
+        return car, truck
 
 def spawn_vehicle(world, blueprint, spawn_point):
     """

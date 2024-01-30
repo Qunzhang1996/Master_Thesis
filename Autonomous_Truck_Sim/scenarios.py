@@ -59,7 +59,10 @@ class trailing:
         laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
 
         return roadMin, roadMax, laneCenters
-
+    #!!!!!!!!!!!!!!!!
+    #FIXME: Here, notice to change when implement in CARLA
+    #truck_state is: x: [24.] y: [146.81814575] psi: [0.] v: [0]
+    #!!!!!!!!!!!!!!!     
     def setEgoLane(self):
         x = self.vehicle.getPosition()
         self.egoPx = x[0]
