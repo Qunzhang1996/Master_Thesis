@@ -57,4 +57,13 @@ class kalman_filter():
     @property
     def get_covariance(self):
         return self.P
+    @property
+    def get_F_matrix(self):
+        return self.F
+    @property
+    def get_B_matrix(self):
+        return self.B
+    @property
+    def get_predict(self):
+        return self.x
     

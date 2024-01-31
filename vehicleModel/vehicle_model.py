@@ -58,7 +58,7 @@ class car_VehicleModel(vehBicycleKinematic):
     #! rewrite the model from vehBicycleKinematic to car_VehicleModel
     def model(self):
         # System dynamics model
-        # x = [x_a y_a v_vx theta_1 theta_2]
+        # x = [x_a y_a v_vx theta]
         # u = [steer acc]
         dp_xb = self.x[2] *cos(self.x[3])
         dp_yb = self.x[2] * sin(self.x[3])
