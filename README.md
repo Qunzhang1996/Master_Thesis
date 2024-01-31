@@ -1,27 +1,75 @@
-# Master_Thesis
-This the repo for master_thesis
-## 2024/01/24 QunZhang
-Create the repo and add some related folder   
-TODO List: 
-```
-1. Finish the one degree vehicle kinematic model
-2. Linerize the model and try apply kf for it
-3. Try ACC for the car model
-```
-## 2024/01/26 QunZhang
-Add kalman filter and test it in CARLA simulation, as shown below: 
-<p float="left">
-  <img src="Test_func\CARLA_KF_TEST.gif" width="50%" />
-  <img src="Test_func/animation.gif" width="27%" />
-</p>    
-<p float="left">
-  <img src="Test_func/x_difference.jpg" width="39%" /> 
-  <img src="Test_func/y_difference.jpg" width="39%" />
-</p>   
+# Autonomous Truck Simulator
+Author: Erik Börve, borerik@chalmers.se  
 
-TODO List: 
+ ## Purpose
+ This project provides an implementation of an autonomous truck in a multi-lane highway scenario. The controller utilizes non linear optimal control to compute multiple trajectories, of which the most cost-efficent is choosen.
+ 
+ ![](https://github.com/BorveErik/Autonomous-Truck-Sim/blob/main/simRes.gif)
+
+ ## Getting Started
+
+ ### Prerequisites
+
+ Clone the project in your local machine:
+  ```sh
+  git clone <repository cloning url>
+  ```
+ The environment is created for python 3.9.10. Using conda this can be set as:
+  ```sh
+ conda create --name Autonomous-Truck-Sim python=3.9.10 -y
+ source activate Autonomous-Truck-Sim
+  ```
+Finally, install dependencies:
+  ```sh
+  pip install -r requirements.txt
+  ```
+
+
+## Usage
+Simulations are run via the "main" file. This is also where simulations are configured, including e.g., designing traffic scenarios and setting up the optimal controllers.
+
+ ## Project Structure
+The projects contains the following files.
+```bash
+.
+├── controllers.py
+├── Data_example
+    └── ex1.csv
+    └── metaData_ex1.txt
+├── gitignore
+├── helpers.py
+├── main.py
+├── README.md
+├── requirements.txt
+├── scenarios.py
+├── simRes.gif
+├── templateRLagent.py
+├── traffic.py
+└── vehicleModelGarage.py
+
 ```
-1. Finish the one degree vehicle kinematic model, done
-2. Linerize the model and try apply kf for it, done
-3. Try ACC for the car model
-```
+
+ ### controllers.py
+ makeController:
+ Generates optimal controller based on specified scenario.
+ 
+ decisionMaster:
+ Optimizes the trajectory choice, returns optimal policy.
+ ### helpers.py
+ Contains assisting functions, e.g., for data extraction and plotting.
+ ### main.py
+ Running and setting up simulations.
+ 
+ ### scenarios.py
+ Formulates constraints for the different scenarios considered in the optimal controllers.
+ 
+ ### templateRLagent.py
+ Template class for communicating with the lower level controllers.
+ 
+ ### traffic.py
+ Combined traffic: Used to communicate with all vehicles in traffic scenario.
+ 
+ vehicleSUMO: Creates a vehicle with specified starting position, velocity and class.
+ 
+ ### vehicleModelGarage.py
+ Contains truck models that can be utilized in the simulation.
