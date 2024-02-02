@@ -61,5 +61,5 @@ for i in range(4):
     axs[row, col].legend(['upper bound', 'lower bound'], loc='upper right')
     axs[row, col].set_title(titles[i])
 plt.tight_layout()
-# plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
+plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
 plt.show()
