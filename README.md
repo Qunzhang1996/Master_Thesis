@@ -26,5 +26,5 @@ TODO List:
 ```
 1. Finish the one degree vehicle kinematic model, done
 2. Linerize the model and try apply kf for it, done
-3. Try ACC for the car model.
+3. Try ACC for the car model
 ```
