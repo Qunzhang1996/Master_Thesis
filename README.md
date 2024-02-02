@@ -21,6 +21,7 @@ Add kalman filter and test it in CARLA simulation, and tighten the constraint as
 <p float="left">
   <img src="Figure/MPC_tighten_bound.jpg" width="80%" /> 
 </p>   
+
 TODO List: 
 ```
 1. Finish the one degree vehicle kinematic model, done

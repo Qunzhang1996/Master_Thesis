@@ -163,8 +163,8 @@ def update(frame):
 # -------start animation----------------
 fig = plt.figure(figsize=(5, 5))
 ani = animation.FuncAnimation(fig, update, frames=len(t_axis), repeat=False)
-ani.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\animation.gif', writer='imagemagick', fps=30)
-# plt.show()
+# ani.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\animation.gif', writer='imagemagick', fps=30)
+plt.show()
 # ----------------- check the x, y difference ------------------------
 plot_diff(t_axis,x_difference,y_difference)
 

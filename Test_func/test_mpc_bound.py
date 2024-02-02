@@ -43,10 +43,9 @@ lwb=np.array([[0],[1.75],[0],[3.14/6]])  #no limit to the x, y should be in [-1.
 # Predict Horizon 
 N=12
 #calculate the Nth tightened bound
-MPC_tighten_bound_up=MPC_tighten_bound(A,B,D,Q,R,P0,process_noise,Possibilty)
-tightened_bound_N_up,tightened_bound_N_list_up=MPC_tighten_bound_up.tighten_bound_N(P0,H_up,upb,N,1)
-MPC_tighten_bound_lw=MPC_tighten_bound(A,B,D,Q,R,P0,process_noise,Possibilty)
-tightened_bound_N_lw,tightened_bound_N_list_lw=MPC_tighten_bound_lw.tighten_bound_N(P0,H_low,lwb,N,0)
+MPC_tighten_bound_=MPC_tighten_bound(A,B,D,Q,R,P0,process_noise,Possibilty)
+tightened_bound_N_list_up=MPC_tighten_bound_.tighten_bound_N(P0,H_up,upb,N,1)
+tightened_bound_N_list_lw=MPC_tighten_bound_.tighten_bound_N(P0,H_low,lwb,N,0)
 
 
 # #visualize the tightened bound in 4 subplots
@@ -62,5 +61,5 @@ for i in range(4):
     axs[row, col].legend(['upper bound', 'lower bound'], loc='upper right')
     axs[row, col].set_title(titles[i])
 plt.tight_layout()
-plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
+# plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
 plt.show()
