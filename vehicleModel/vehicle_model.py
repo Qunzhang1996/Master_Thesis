@@ -125,12 +125,32 @@ class car_VehicleModel(vehBicycleKinematic):
         # Evaluate the Jacobians at the operating point
         A_op = f_A(x_op, u_op)
         B_op = f_B(x_op, u_op)
+        g_op= self.F_x(x_op,u_op)-A_op@x_op-B_op@u_op
 
         # Discretize the linearized matrices
         newA = A_op * dt_sim + np.eye(self.nx)
         newB = B_op * dt_sim
+        newG=  g_op * dt_sim
 
-        return newA, newB
+        return newA, newB,newG
 
+# System initialization 
+dt = 0.2
+N=10
+end_time = 15
+t_axis = np.arange(0, end_time, dt)
+car_model = car_VehicleModel(dt,N, width = 2, length = 4)
+nx,nu,nrefx,nrefu = car_model.getSystemDim()
+int_opt = 'rk'
+car_model.integrator(int_opt,dt)
+F_x_ADV  = car_model.getIntegrator()
+vx_init_ego = 10   
+car_model.setInit([124-75,143.318146],vx_init_ego)
+x_iter = DM(int(nx),1)
+# get initial state and input
+x_iter[:],u_iter = car_model.getInit()
 
-# car_Model = car_VehicleModel(0.1, 10)
+# ----------------- Ego Vehicle obsver(kalman filter) Settings ------------------------
+init_flag = True
+F,B,G=car_model.calculate_AB(dt,init_flag=1)
+print("F is:",F,"","B is:",B,"G is:",G)

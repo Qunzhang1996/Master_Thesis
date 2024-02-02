@@ -9,16 +9,18 @@ TODO List:
 3. Try ACC for the car model
 ```
 ## 2024/01/26 QunZhang
-Add kalman filter and test it in CARLA simulation, as shown below: 
+Add kalman filter and test it in CARLA simulation, and tighten the constraint as shown below: 
 <p float="left">
-  <img src="Test_func\CARLA_KF_TEST.gif" width="50%" />
-  <img src="Test_func/animation.gif" width="27%" />
+  <img src="Figure\CARLA_KF_TEST.gif" width="50%" />
+  <img src="Figure/animation.gif" width="27%" />
 </p>    
 <p float="left">
-  <img src="Test_func/x_difference.jpg" width="39%" /> 
-  <img src="Test_func/y_difference.jpg" width="39%" />
+  <img src="Figure/x_difference.jpg" width="39%" /> 
+  <img src="Figure/y_difference.jpg" width="39%" />
 </p>   
-
+<p float="left">
+  <img src="Figure/MPC_tighten_bound.jpg" width="80%" /> 
+</p>   
 TODO List: 
 ```
 1. Finish the one degree vehicle kinematic model, done

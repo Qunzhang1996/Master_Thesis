@@ -102,7 +102,7 @@ def plot_diff(t_axis,x_difference,y_difference):
     plt.ylabel('x Difference')
     plt.title('Difference in x over Time')
     plt.legend()
-    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\x_difference.jpg')
+    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\x_difference.jpg')
 
     # For y difference
     plt.figure(3, figsize=(5, 5))
@@ -111,7 +111,7 @@ def plot_diff(t_axis,x_difference,y_difference):
     plt.ylabel('y Difference')
     plt.title('Difference in y over Time')
     plt.legend()
-    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\y_difference.jpg')
+    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\y_difference.jpg')
     plt.show()
     
 #make sure angle in -pi pi

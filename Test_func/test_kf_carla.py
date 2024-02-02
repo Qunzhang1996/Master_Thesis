@@ -26,7 +26,7 @@ import json
 # ----------------- Carla Settings ------------------------
 #! set the initial position of the car and truck
 import carla
-car,truck = setup_carla_environment(Sameline_ACC=True)
+car,truck = setup_carla_environment(Sameline_ACC=False)
 velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(15, 0, 0)
 
@@ -42,7 +42,7 @@ car.set_target_velocity(velocity1)
 # exit()
 #---------------------------------------------------------------------------------
 
-# car.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0))
+car.apply_control(carla.VehicleControl(throttle=0.0, steer=0.5, brake=0))
 # System initialization 
 dt = 0.2
 N=10
@@ -55,14 +55,14 @@ int_opt = 'rk'
 car_model.integrator(int_opt,dt)
 F_x_ADV  = car_model.getIntegrator()
 vx_init_ego = 10   
-car_model.setInit([124-75,143.318146],vx_init_ego)
+car_model.setInit([124,143.318146],vx_init_ego)
 x_iter = DM(int(nx),1)
 # get initial state and input
 x_iter[:],u_iter = car_model.getInit()
 
 # ----------------- Ego Vehicle obsver(kalman filter) Settings ------------------------
 init_flag = True
-F,B=car_model.calculate_AB(dt,init_flag=1)
+F,B,_=car_model.calculate_AB(dt,init_flag=1)
 G=np.eye(nx)*dt**2   #process noise matrix, x_iter=F@x_iter+B@u_iter+G@w
 H=np.eye(nx)   #measurement matrix, y=H@x_iter
 
@@ -72,7 +72,7 @@ x0=x_iter
 print(x0)
 u_iter+=np.array([0,0])
 u0=u_iter
-sigma_process=0.01
+sigma_process=0.1
 sigma_measurement=0.01
 P0=np.eye(nx)*(100*sigma_process)**4
 Q0=np.eye(nx)*sigma_process**2
@@ -91,8 +91,8 @@ nominal_x = [float(x0[0])]
 nominal_y = [float(x0[1])]
 estimated_x = [float(x0[0])]
 estimated_y = [float(x0[1])]
-x_difference = [abs(nominal_x[-1]-estimated_x[-1])]
-y_difference = [abs(nominal_y[-1]-estimated_y[-1])]
+x_difference = [abs(true_x[-1]-estimated_x[-1])]
+y_difference = [abs(true_y[-1]-estimated_y[-1])]
 v_difference = []
 psi_difference = []
 
@@ -114,7 +114,7 @@ def update(frame):
     P_estimate = ekf.get_covariance
     # print("P_estimate is:",P_estimate)
     car_model.update(x_estimate, u_iter)
-    F, B = car_model.calculate_AB()
+    F, B,_ = car_model.calculate_AB()
     
     #save the true and estimated state  
     true_x.append(float(x_iter[0]))
@@ -126,9 +126,9 @@ def update(frame):
     
     
     
-    x_diff = (abs(estimated_x[-1] - nominal_x[-1]))
-    y_diff = (abs(estimated_y[-1] - nominal_y[-1]))
-    print("x_diff is:",x_diff,"y_diff is:",y_diff)
+    x_diff = (abs(estimated_x[-1] - true_x[-1]))
+    y_diff = (abs(estimated_y[-1] - true_y[-1]))
+    # print("x_diff is:",x_diff,"y_diff is:",y_diff)
     x_difference.append(x_diff)
     y_difference.append(y_diff)
     plot_paths(true_x, true_y,estimated_x, estimated_y,t)
@@ -163,7 +163,7 @@ def update(frame):
 # -------start animation----------------
 fig = plt.figure(figsize=(5, 5))
 ani = animation.FuncAnimation(fig, update, frames=len(t_axis), repeat=False)
-ani.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Test_func\\animation.gif', writer='imagemagick', fps=30)
+ani.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\animation.gif', writer='imagemagick', fps=30)
 # plt.show()
 # ----------------- check the x, y difference ------------------------
 plot_diff(t_axis,x_difference,y_difference)
