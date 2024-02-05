@@ -32,7 +32,7 @@ process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
 process_noise[2,2]=1.8/6  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
 # stochastic mpc parameters
-Possibilty=0.9  # the possibility of the tightened bound
+Possibilty=0.95  # the possibility of the tightened bound
 # initial upper bound of the constraints
 # Here is the upper bound of the constraints
 H_up=[np.array([[1],[0],[0],[0]]),np.array([[0],[1],[0],[0]]), np.array([[0],[0],[1],[0]]), np.array([[0],[0],[0],[1]])]
@@ -61,5 +61,5 @@ for i in range(4):
     axs[row, col].legend(['upper bound', 'lower bound'], loc='upper right')
     axs[row, col].set_title(titles[i])
 plt.tight_layout()
-plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
+# plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
 plt.show()

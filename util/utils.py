@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
 
@@ -48,13 +49,13 @@ def setup_carla_environment(Sameline_ACC=True):
 
     if Sameline_ACC :
         # Spawn Tesla Model 3
-        car_bp = bp_lib.find('vehicle.tesla.model3')
-        car_spawn_point = carla.Transform(carla.Location(x=124-75, y=143.318146, z=0.3))
+        car_bp = bp_lib.find('vehicle.ford.ambulance')
+        car_spawn_point = carla.Transform(carla.Location(x=50, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
-        truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-        truck_spawn_point = carla.Transform(carla.Location(x=10, y=143.318146, z=0.3))
+        truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
+        truck_spawn_point = carla.Transform(carla.Location(x=30, y=143.318146, z=0.3))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
     else:

@@ -26,5 +26,10 @@ TODO List:
 ```
 1. Finish the one degree vehicle kinematic model, done
 2. Linerize the model and try apply kf for it, done
-3. Try ACC for the car model
+3. Try ACC for the car model   
+   ACC_PID DONE
+   MPC_PID TBD
 ```
+<p float="left">
+  <img src="Figure/ACC_PID.gif" width="100%" /> 
+</p>   
