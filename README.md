@@ -10,17 +10,23 @@ TODO List:
 ```
 ## 2024/01/26 QunZhang
 Add kalman filter and test it in CARLA simulation, and tighten the constraint as shown below: 
-<p float="left">
-  <img src="Figure\CARLA_KF_TEST.gif" width="50%" />
-  <img src="Figure/animation.gif" width="27%" />
-</p>    
-<p float="left">
-  <img src="Figure/x_difference.jpg" width="39%" /> 
-  <img src="Figure/y_difference.jpg" width="39%" />
-</p>   
-<p float="left">
-  <img src="Figure/MPC_tighten_bound.jpg" width="80%" /> 
-</p>   
+<div style="display: flex;">
+  <div style="flex: 1;">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+      <img src="Figure/CARLA_KF_TEST.gif" style="width: 50%; height: 200px;" />
+      <img src="Figure/animation.gif" style="width: 50%; height: 200px;" />
+      <img src="Figure/x_difference.jpg" style="width: 50%; height: 200px;" /> 
+      <img src="Figure/y_difference.jpg" style="width: 50%; height: 200px;" />
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+    <img src="Figure/MPC_tighten_bound.jpg" style="width: 100%; height: 400px;" />
+  </div>
+</div>
+
+
+
 
 TODO List: 
 ```
