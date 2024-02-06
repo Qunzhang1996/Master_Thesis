@@ -53,15 +53,15 @@ while True:
     control_car = car_contoller.run_step(10*3.6, target, False)
     car.apply_control(control_car)
     
-    # Calculate distance error (aim for 10m gap)
-    distance_error = (car_x - truck_x) - 10  # Desired distance - Actual distance
+    # Calculate distance error (aim for 5m gap)
+    distance_error = (car_x - truck_x) - 5  # Desired distance - Actual distance
 
     # Proportional control for speed adjustment
     Kp = 3  # Proportional gain; adjust as necessary for smoother control
     speed_adjustment = Kp * distance_error
     
     # Ensure the truck tries to maintain a safe distance with a reasonable speed adjustment
-    target_speed = car_v + speed_adjustment
+    target_speed = truck_v + speed_adjustment
     control = local_controller.run_step(target_speed, car_y, False)
     truck.apply_control(control)
     print("control:",control,"target_speed:",target_speed)

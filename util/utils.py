@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
 
@@ -137,3 +136,5 @@ def check_dimensions_car(nx, nu):
     if nx != 4 or nu != 2:
         raise ValueError("Error: nx must be equal to 4 and nu must be equal to 2.")
     
+
+
