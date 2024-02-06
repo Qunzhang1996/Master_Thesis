@@ -12,11 +12,11 @@ class Kinematic(IntEnum):
     X_km, Y_km, V_km, THETA_km = range(4)
 
 class car_VehicleModel(vehBicycleKinematic):
-    """Here, inheriting from vehBicycleKinematic class
+    """Here, inheriting from vehBicycleKinematic class ( 2 degree truck)
 
-    Kinematic bicycle model with trailer
+    Kinematic bicycle model with car
     x = [p_x p_y v_x theta]
-    u = [steer_ang, acc_v,x]
+    u = [steer_ang, acc_v]
     """
     def __init__(self, *args, **kwargs):
         #__init__(self,dt,N, width = 2.54, length = 16.1544, scaling = [0.1,1,1,1,1])

@@ -4,6 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+class Param:
+    """
+    here is the parameters for the vehicle
+    """
+    
+    dt = 0.1  # [s] time step
+     # vehicle config
+    RF = 16.71554/3 # [m] distance from rear to vehicle front end of vehicle
+    RB = 0.8  # [m] distance from rear to vehicle back end of vehicle
+    W = 2.4  # [m] width of vehicle
+    WD = 0.7 * W  # [m] distance between left-right wheels
+    WB =  4  # [m] Wheel base
+    TR = 0.44  # [m] Tyre radius
+    TW = 0.7  # [m] Tyre width
+
+
+
+
+
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
 

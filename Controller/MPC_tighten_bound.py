@@ -2,13 +2,7 @@ from casadi import *
 import numpy as np
 from scipy.linalg import solve_discrete_are
 from scipy.stats import norm
-
-class StateIndex:
-    """Used to return the index of the state."""
-    def __init__(self, A, B, N):
-        self.s = [i * N for i in range(np.shape(A)[0])]
-        self.v = [np.shape(A)[0] * N + i * (N - 1) for i in range(np.shape(B)[1])]
-    
+  
 class MPC_tighten_bound:
     """Calculates the stochastic MPC tightened bound."""
     """This class is used to calculate the stochastic mpc tightened bound
