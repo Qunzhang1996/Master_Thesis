@@ -21,8 +21,6 @@ class Param:
 
 
 
-
-
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
 
@@ -155,5 +153,10 @@ def check_dimensions_car(nx, nu):
     if nx != 4 or nu != 2:
         raise ValueError("Error: nx must be equal to 4 and nu must be equal to 2.")
     
-
+def getTotalCost(L,Lf,x,u,refx,refu,N):
+            cost = 0
+            for i in range(0,N):
+                cost += L(x[:,i],u[:,i],refx[:,i],refu[:,i])
+            cost += Lf(x[:,N],refx[:,N])
+            return cost
 

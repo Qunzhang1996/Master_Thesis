@@ -1,15 +1,16 @@
-""" Here is the LTI_Mpc for the Autonomous Vehicle to track the vehicle in front in the straight road. 
-"""
 from casadi import *
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
 path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
 sys.path.append(path_to_add)
-from Autonomous_Truck_Sim.helpers import *
 from Controller.MPC_tighten_bound import MPC_tighten_bound
 from vehicleModel.vehicle_model import car_VehicleModel
-from util.utils import Param
+from util.utils import *
+
+
+# Assuming the necessary path additions and imports have been done correctly as you've shown
+
 class MPC:
     def __init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.99, N=12) -> None:
         # The number of MPC states, here include x, y, psi and v
@@ -144,11 +145,43 @@ class MPC:
             print(f"An error occurred: {e}")
             return None, None
         
+        
+dt = 0.1
+N=12
+vehicleADV = car_VehicleModel(dt,N, width = 2, length = 4)
+nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
+int_opt = 'rk'
+vehicleADV.integrator(int_opt,dt)
+F_x_ADV  = vehicleADV.getIntegrator()
+vx_init_ego = 10   
+vehicleADV.setInit([0,0],vx_init_ego)
+#__init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.99, N=12)
+Q_ADV = [0,40,3e2,5,5]                            # State cost, Entries in diagonal matrix
+R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
+vehicleADV.cost(Q_ADV,R_ADV)
+vehicleADV.costf(Q_ADV)
+L_ADV,Lf_ADV = vehicleADV.getCost()
+mpc_controller = MPC(vehicleADV, np.eye(nx), np.eye(nu), np.eye(nx), np.eye(nx), 0.99, N)
+# Set initial conditions for the ego vehicle
+x0 = np.array([[0], [0], [10], [0]])  # Initial state: [x, y, psi, v]. Example values provided
 
+# Define reference trajectory and control for N steps
+# For simplicity, setting reference states and inputs to zero or desired states.
+# In practice, these should be calculated based on the desired trajectory.
+ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
+# ref x should be 100
+ref_trajectory[0,:] = 100
+ref_control = np.ones((nu, N))  # Reference control inputs
 
+# Position of the leading vehicle (for IDM constraint)
+# Assuming the leading vehicle is at 20 meters ahead initially
+p_leading = 20
 
+# Set the controller (this step initializes the optimization problem with cost and constraints)
+mpc_controller.setController()
 
+# Solve the MPC problem
+u_opt, x_opt = mpc_controller.solve(x0, ref_trajectory, ref_control, p_leading)
 
-
-
-
+# Print the optimized control input for the first step
+print("Optimized control input (steer_angle,acc) for the first step:", u_opt[:, 0])
