@@ -37,29 +37,51 @@ process_noise[2,2]=1.8/6  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
 mpc_controller = MPC(vehicleADV, np.eye(nx), np.eye(nu), P0, process_noise, 0.95, N)
 # Set initial conditions for the ego vehicle
-x0 = np.array([[1], [0], [10], [0]])  # Initial state: [x, y, psi, v]. Example values provided
+x0 = np.array([[0], [0], [10], [0]])  # Initial state: [x, y, psi, v]. Example values provided
 
 # Define reference trajectory and control for N steps
 # For simplicity, setting reference states and inputs to zero or desired states.
 ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
-ref_trajectory[0,:] = 100
-ref_trajectory[1,:] = 1
-
+ref_trajectory[0,:] = 50
+ref_trajectory[1,:] = 0
+ref_trajectory[2,:] = 10
 
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
 # Position of the leading vehicle (for IDM constraint)
 # Assuming the leading vehicle is at 20 meters ahead initially
-p_leading = 20
+p_leading = 30
 
 # Set the controller (this step initializes the optimization problem with cost and constraints)
 mpc_controller.setController()
+x_plot = [] 
+x_plot.append(x0[0].item())
+y_plot = []
+y_plot.append(x0[1].item())
+v_plot = [10]
 
 # Solve the MPC problem
-u_opt, x_opt = mpc_controller.solve(x0, ref_trajectory, ref_control, p_leading)
+for i in range(12):
+    u_opt, x_opt = mpc_controller.solve(x0, ref_trajectory, ref_control, p_leading)
+    x0=x_opt[:,1]
+    x_plot.append(x0[0])
+    y_plot.append(x0[1])
+    v_plot.append(x0[2])
 
+plt.figure(figsize=(10, 5))
 
-plt.plot(x_opt[0,:],x_opt[1,:])
+plt.subplot(1, 2, 1)
+plt.plot(x_plot, y_plot, '-o')
+plt.xlabel('x (m)')
+plt.ylabel('y (m)')
+plt.title('Optimal trajectory')
+plt.grid(True)
+
+plt.subplot(1, 2, 2)
+plt.plot(v_plot, '-o')
+plt.xlabel('Time step')
+plt.ylabel('Velocity (m/s)')
+plt.title('Velocity')
+plt.grid(True)
+
 plt.show()
-# Print the optimized control input for the first step
-print("Optimized control input (steer_angle,acc) for the first step:", u_opt[:, 0])

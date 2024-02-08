@@ -110,28 +110,24 @@ class MPC:
         # Example tightened bound application (adjust according to actual implementation)
         tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
-        # print("tightened_bound_N_list_up", tightened_bound_N_list_lw)
         
         # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
         # according to the new bounded constraints set the constraints
-        print("tightened_bound_N_list_up", tightened_bound_N_list_up)
-        print("tightened_bound_N_list_lw", tightened_bound_N_list_lw)
         for i in range(self.N):
             for j in range(self.nx):
                 self.opti.subject_to(self.x[j, i] <= tightened_bound_N_list_up[i][j].item())
-                # if j == 0:
-                #     self.opti.subject_to(self.x[j, i] >= tightened_bound_N_list_lw[i][j].item())
-                # else:
-                #     self.opti.subject_to(self.x[j, i] >= tightened_bound_N_list_lw[i][j].item())
-                            
-            # print("x", self.x[:, i].shape)
-            # print("tightened_bound_N_list_up[i]", tightened_bound_N_list_up[i].reshape(-1, 1))
-            # print("tightened_bound_N_list_lw[i]", tightened_bound_N_list_lw[i].reshape(-1, 1))
             self.opti.subject_to(self.x[:, i] <= DM(tightened_bound_N_list_up[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] >= DM(tightened_bound_N_list_lw[i].reshape(-1, 1)))
+            
+        # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
+        self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
+        self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
+        self.opti.subject_to(self.u[1, :] >= -0.7 * 9.81)
+        self.opti.subject_to(self.u[1, :] <= 0.05 * 9.81)
+        
         
         # Set the IDM constraint
-        self.opti.subject_to(self.x[0, :] <= self.IDM_constraint(self.p_leading, self.x[2, :]))
+        # self.opti.subject_to(self.x[0, :] <= self.IDM_constraint(self.p_leading, self.x[2, :]))
         
     def setCost(self):
         """
@@ -162,6 +158,7 @@ class MPC:
         # Solver options
         opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
         self.opti.solver("ipopt", opts)
+        # print("IDM_constraint", self.IDM_constraint(p_leading, x0[2]))
         
         try:
             sol = self.opti.solve()
