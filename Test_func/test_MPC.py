@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 import sys
 path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
 sys.path.append(path_to_add)
-from Controller.MPC_tighten_bound import MPC_tighten_bound
 from Controller.LTI_MPC import MPC
 from vehicleModel.vehicle_model import car_VehicleModel
 from util.utils import *
 
 
-dt = 0.2
+dt = 0.1
 N=12
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 4)
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
@@ -35,14 +34,14 @@ process_noise[0,0]=0.5  # x bound is [0, 3]
 process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
 process_noise[2,2]=1.8/6  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
-mpc_controller = MPC(vehicleADV, np.eye(nx), np.eye(nu), P0, process_noise, 0.95, N)
+mpc_controller = MPC(vehicleADV, np.diag([0,40,3e2,5]), np.diag([5,5]), P0, process_noise, 0.95, N)
 # Set initial conditions for the ego vehicle
 x0 = np.array([[0], [0], [10], [0]])  # Initial state: [x, y, psi, v]. Example values provided
 
 # Define reference trajectory and control for N steps
 # For simplicity, setting reference states and inputs to zero or desired states.
 ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
-ref_trajectory[0,:] = 50
+ref_trajectory[0,:] = 0
 ref_trajectory[1,:] = 0
 ref_trajectory[2,:] = 10
 
@@ -61,9 +60,10 @@ y_plot.append(x0[1].item())
 v_plot = [10]
 
 # Solve the MPC problem
-for i in range(12):
+for i in range(100):
     u_opt, x_opt = mpc_controller.solve(x0, ref_trajectory, ref_control, p_leading)
     x0=x_opt[:,1]
+    p_leading = p_leading + x0[2]*dt
     x_plot.append(x0[0])
     y_plot.append(x0[1])
     v_plot.append(x0[2])

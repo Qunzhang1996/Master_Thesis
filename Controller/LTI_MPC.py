@@ -89,9 +89,9 @@ class MPC:
         """
         # Default or custom constraints
         self.H_up = H_up if H_up is not None else [np.array([[1], [0], [0], [0]]), np.array([[0], [1], [0], [0]]), np.array([[0], [0], [1], [0]]), np.array([[0], [0], [0], [1]])]
-        self.upb = upb if upb is not None else np.array([[5000], [1.75], [30], [3.14/8]])
+        self.upb = upb if upb is not None else np.array([[5000], [5000], [30], [3.14/8]])
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
-        self.lwb = lwb if lwb is not None else np.array([[5000], [1.75], [0], [3.14/8]])
+        self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
     
     def setInEqConstraints(self):
         """
@@ -123,11 +123,11 @@ class MPC:
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
         self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
         self.opti.subject_to(self.u[1, :] >= -0.7 * 9.81)
-        self.opti.subject_to(self.u[1, :] <= 0.05 * 9.81)
+        self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
         
         
         # Set the IDM constraint
-        # self.opti.subject_to(self.x[0, :] <= self.IDM_constraint(self.p_leading, self.x[2, :]))
+        self.opti.subject_to(self.x[0, :] <= self.IDM_constraint(self.p_leading, self.x[2, :]))
         
     def setCost(self):
         """

@@ -1,6 +1,7 @@
 import math
 import carla
 import numpy as np
+from enum import IntEnum
 import matplotlib.pyplot as plt
 
 
@@ -19,7 +20,9 @@ class Param:
     TR = 0.44  # [m] Tyre radius
     TW = 0.7  # [m] Tyre width
 
-
+class C_k(IntEnum):
+    X_km, Y_km, V_km, Psi =range(4)
+    
 
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
@@ -43,7 +46,7 @@ def get_state(vehicle):
     v = math.sqrt(vehicle_vel.x**2 + vehicle_vel.y**2)
     # v = vehicle_vel.length()  #converting it to km/hr
 
-    return np.array([[x, y, psi, v]]).T
+    return np.array([[x, y, v, psi]]).T
 
 def setup_carla_environment(Sameline_ACC=True):
     """
@@ -66,7 +69,7 @@ def setup_carla_environment(Sameline_ACC=True):
     if Sameline_ACC :
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=50, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=70, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
