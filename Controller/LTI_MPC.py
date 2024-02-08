@@ -11,7 +11,7 @@ from Controller.MPC_tighten_bound import MPC_tighten_bound
 from vehicleModel.vehicle_model import car_VehicleModel
 from util.utils import Param
 class MPC:
-    def __init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.99, N=12) -> None:
+    def __init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.95, N=12) -> None:
         # The number of MPC states, here include x, y, psi and v
         NUM_OF_STATES = 4
         self.nx = NUM_OF_STATES
@@ -78,7 +78,8 @@ class MPC:
         Set state equation constraints.
         """
         for i in range(self.N):
-            A, B, C = self.calc_linear_discrete_model(v, phi, delta)
+            A, B, C = self.calc_linear_discrete_model(v, phi, delta)  
+            self.A, self.B, self.C = A, B, C
             self.opti.subject_to(self.x[:, i+1] == A @ self.x[:, i] + B @ self.u[:, i] + C)
         self.opti.subject_to(self.x[:, 0] == self.x0)
     
@@ -88,9 +89,9 @@ class MPC:
         """
         # Default or custom constraints
         self.H_up = H_up if H_up is not None else [np.array([[1], [0], [0], [0]]), np.array([[0], [1], [0], [0]]), np.array([[0], [0], [1], [0]]), np.array([[0], [0], [0], [1]])]
-        self.upb = upb if upb is not None else np.array([[5000], [500], [30], [np.pi/8]])
+        self.upb = upb if upb is not None else np.array([[5000], [1.75], [30], [3.14/8]])
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
-        self.lwb = lwb if lwb is not None else np.array([[0], [500], [0], [np.pi/8]])
+        self.lwb = lwb if lwb is not None else np.array([[5000], [1.75], [0], [3.14/8]])
     
     def setInEqConstraints(self):
         """
@@ -98,14 +99,40 @@ class MPC:
         """
         v, phi, delta = 10, 0, 0  # Default values; adjust as necessary
         A, B, _ = self.calc_linear_discrete_model(v, phi, delta)
-        D = DM.eye(self.nx)  # Noise matrix
-        self.MPC_tighten_bound = MPC_tighten_bound(A, B, D, self.Q, self.R, self.P0, self.process_noise, self.Possibility)
+        D = np.eye(self.nx)  # Noise matrix
         
         self.setInEqConstraints_val()  # Set tightened bounds
+
         
+        
+        self.MPC_tighten_bound = MPC_tighten_bound(A, B, D, self.Q, self.R, self.P0, self.process_noise, self.Possibility)
+                
         # Example tightened bound application (adjust according to actual implementation)
-        # Here you would apply the IDM constraints and any other inequality constraints
-    
+        tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
+        tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
+        # print("tightened_bound_N_list_up", tightened_bound_N_list_lw)
+        
+        # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
+        # according to the new bounded constraints set the constraints
+        print("tightened_bound_N_list_up", tightened_bound_N_list_up)
+        print("tightened_bound_N_list_lw", tightened_bound_N_list_lw)
+        for i in range(self.N):
+            for j in range(self.nx):
+                self.opti.subject_to(self.x[j, i] <= tightened_bound_N_list_up[i][j].item())
+                # if j == 0:
+                #     self.opti.subject_to(self.x[j, i] >= tightened_bound_N_list_lw[i][j].item())
+                # else:
+                #     self.opti.subject_to(self.x[j, i] >= tightened_bound_N_list_lw[i][j].item())
+                            
+            # print("x", self.x[:, i].shape)
+            # print("tightened_bound_N_list_up[i]", tightened_bound_N_list_up[i].reshape(-1, 1))
+            # print("tightened_bound_N_list_lw[i]", tightened_bound_N_list_lw[i].reshape(-1, 1))
+            self.opti.subject_to(self.x[:, i] <= DM(tightened_bound_N_list_up[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[:, i] >= DM(tightened_bound_N_list_lw[i].reshape(-1, 1)))
+        
+        # Set the IDM constraint
+        self.opti.subject_to(self.x[0, :] <= self.IDM_constraint(self.p_leading, self.x[2, :]))
+        
     def setCost(self):
         """
         Set cost function for the optimization problem.
@@ -126,6 +153,7 @@ class MPC:
         Solve the MPC problem.
         """
         # Set the initial condition and reference trajectories
+        
         self.opti.set_value(self.x0, x0)
         self.opti.set_value(self.refx, ref_trajectory)
         self.opti.set_value(self.refu, ref_control)

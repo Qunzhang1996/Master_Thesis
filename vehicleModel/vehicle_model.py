@@ -134,23 +134,23 @@ class car_VehicleModel(vehBicycleKinematic):
 
         return newA, newB,newG
 
-# System initialization 
-dt = 0.2
-N=10
-end_time = 15
-t_axis = np.arange(0, end_time, dt)
-car_model = car_VehicleModel(dt,N, width = 2, length = 4)
-nx,nu,nrefx,nrefu = car_model.getSystemDim()
-int_opt = 'rk'
-car_model.integrator(int_opt,dt)
-F_x_ADV  = car_model.getIntegrator()
-vx_init_ego = 10   
-car_model.setInit([124-75,143.318146],vx_init_ego)
-x_iter = DM(int(nx),1)
-# get initial state and input
-x_iter[:],u_iter = car_model.getInit()
+# # System initialization 
+# dt = 0.1
+# N=10
+# end_time = 15
+# t_axis = np.arange(0, end_time, dt)
+# car_model = car_VehicleModel(dt,N, width = 2, length = 4)
+# nx,nu,nrefx,nrefu = car_model.getSystemDim()
+# int_opt = 'rk'
+# car_model.integrator(int_opt,dt)
+# F_x_ADV  = car_model.getIntegrator()
+# vx_init_ego = 10   
+# car_model.setInit([124-75,143.318146],vx_init_ego)
+# x_iter = DM(int(nx),1)
+# # get initial state and input
+# x_iter[:],u_iter = car_model.getInit()
 
-# ----------------- Ego Vehicle obsver(kalman filter) Settings ------------------------
-init_flag = True
-F,B,G=car_model.calculate_AB(dt,init_flag=1)
-print("F is:",F,"","B is:",B,"G is:",G)
+# # ----------------- Ego Vehicle obsver(kalman filter) Settings ------------------------
+# init_flag = True
+# F,B,G=car_model.calculate_AB(dt,init_flag=1)
+# print("F is:",F,"","B is:",B,"G is:",G)
