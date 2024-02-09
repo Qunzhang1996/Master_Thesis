@@ -45,7 +45,7 @@ class MPC:
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
     
-    def IDM_constraint(self, p_leading, v_eg, d_s=10, L1=4, T_s=1.5, lambda_s=0):
+    def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=4, T_s=1, lambda_s=0):
         """
         IDM constraint for tracking the vehicle in front.
         """

@@ -69,7 +69,7 @@ def setup_carla_environment(Sameline_ACC=True):
     if Sameline_ACC :
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=70, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=50, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
