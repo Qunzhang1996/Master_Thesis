@@ -35,8 +35,8 @@ client = carla.Client('localhost', 2000)
 world = client.get_world()
 carla_map = world.get_map()
 # initial the carla built in pid controller
-car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.02}, args_longitudinal = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': 0.02})
-local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.02}, args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0, 'dt': 0.02})
+car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.01}, args_longitudinal = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': 0.01})
+local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.01}, args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0, 'dt': 0.01})
 # To start a behavior agent with an aggressive car for truck to track
 spawn_points = carla_map.get_spawn_points()
 destination = carla.Location(x=1000, y=143.318146, z=0.3)
@@ -98,7 +98,7 @@ previous_acceleration = 0  # To help in jerk calculation
 
 
 for i in range(1000):
-    time.sleep(0.02)
+    time.sleep(0.01)
     # keep leading vehicle velocity keeps change
     # import  random  noise
     noise = np.random.normal(0, 1)
@@ -152,7 +152,7 @@ for i in range(1000):
         truck_accelerations.append(0)  # Initial acceleration is 0
         truck_jerks.append(0)  # Initial jerk is 0
         
-    if i == 500: break
+    if i == 600: break
 
 
 
@@ -203,7 +203,7 @@ if velocity_times and truck_velocities:
     axs[0, 1].plot(velocity_times, truck_velocities[:-1], '-', color='r',label='Truck Velocity')
     axs[0, 1].plot(velocity_times, leading_velocities[:-1], '-', color='g' ,label='Leading Velocity')
     # plot the reference velocity
-    axs[0, 1].plot(velocity_times, [15]*len(velocity_times), '--', color='b',label='Reference Velocity')
+    axs[0, 1].plot(velocity_times, [10]*len(velocity_times), '--', color='b',label='Reference Velocity')
     axs[0, 1].set_title('Velocity')
     axs[0, 1].set_xlabel('Time')
     axs[0, 1].set_ylabel('Velocity (m/s)')
