@@ -25,7 +25,7 @@ from util.utils import *
 car,truck = setup_carla_environment(Sameline_ACC=True)
 time.sleep(1)
 velocity1 = carla.Vector3D(15, 0, 0)
-velocity2 = carla.Vector3D(12, 0, 0)
+velocity2 = carla.Vector3D(10, 0, 0)
 car.set_target_velocity(velocity1)
 truck.set_target_velocity(velocity2)
 
@@ -35,8 +35,8 @@ client = carla.Client('localhost', 2000)
 world = client.get_world()
 carla_map = world.get_map()
 # initial the carla built in pid controller
-car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.01}, args_longitudinal = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': 0.01})
-local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.01}, args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0, 'dt': 0.01})
+car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.02}, args_longitudinal = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': 0.02})
+local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': 0.02}, args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0, 'dt': 0.02})
 # To start a behavior agent with an aggressive car for truck to track
 spawn_points = carla_map.get_spawn_points()
 destination = carla.Location(x=1000, y=143.318146, z=0.3)
@@ -51,7 +51,7 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
-vx_init_ego = 12  
+vx_init_ego = 1
 vehicleADV.setInit([30,143.318146],vx_init_ego)
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
@@ -79,7 +79,7 @@ print(f"initial input of the truck is: {u_iter}")
 ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
 ref_trajectory[0,:] = 0
 ref_trajectory[1,:] = 0
-ref_trajectory[2,:] = 15
+ref_trajectory[2,:] = 10
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
 # Set the controller (this step initializes the optimization problem with cost and constraints)
@@ -98,11 +98,11 @@ previous_acceleration = 0  # To help in jerk calculation
 
 
 for i in range(1000):
-    time.sleep(0.01)
+    time.sleep(0.02)
     # keep leading vehicle velocity keeps change
     # import  random  noise
     noise = np.random.normal(0, 1)
-    velocity_leading = 15 + noise
+    velocity_leading = 10 + noise
     control_car = car_contoller.run_step(velocity_leading*3.6, 143.318146, False)
     car.apply_control(control_car)
     # print(f"velocity_leading: {velocity_leading}")

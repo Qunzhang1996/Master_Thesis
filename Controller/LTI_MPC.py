@@ -123,7 +123,7 @@ class MPC:
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
         self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
         self.opti.subject_to(self.u[1, :] >= -0.7 * 9.81)
-        self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
+        self.opti.subject_to(self.u[1, :] <= 0.7 * 9.81)
         
         
         # Set the IDM constraint
