@@ -15,13 +15,6 @@ Add kalman filter and test it in CARLA simulation, and tighten the constraint as
   <img src="Figure/animation.gif" width="21%" />
   <img src="Figure/MPC_tighten_bound.jpg" width="26.5%" /> 
 </p>    
-<!-- <p float="left">
-  <img src="Figure/x_difference.jpg" width="39%" /> 
-  <img src="Figure/y_difference.jpg" width="39%" />
-</p>   
-<p float="left"> -->
-  
-</p>   
 
 TODO List: 
 ```
@@ -43,7 +36,8 @@ This is the result of the MPC_PID_ACC:
 ## 2024/02/09 QunZhang
 TODO List: 
 ```
-1. Use chance MPC to tighen the velocity diff
-2. Add the kf into the simulation
-3. Try lane changing
+1. Use chance MPC to tighten the IDM 
+2. Use chance MPC to tighen the velocity diff
+3. Add the kf into the simulation
+4. Try lane changing
 ```

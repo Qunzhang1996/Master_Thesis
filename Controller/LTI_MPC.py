@@ -34,10 +34,12 @@ class MPC:
         
         # Initialize opti stack
         self.x = self.opti.variable(self.nx, self.N + 1)
+        self.lambda_s= self.opti.variable(1,self.N + 1)
         self.u = self.opti.variable(self.nu, self.N)
         self.refx = self.opti.parameter(self.nrefx, self.N + 1)
         self.refu = self.opti.parameter(self.nrefu, self.N)
         self.x0 = self.opti.parameter(self.nx, 1)
+        
         
         # IDM leading vehicle position parameter
         self.p_leading = self.opti.parameter(1)
@@ -45,11 +47,11 @@ class MPC:
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
     
-    def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=4, T_s=1, lambda_s=0):
+    def IDM_constraint(self, p_leading, v_eg, d_s=5, L1=6, T_s=1.5,lambda_s=0):
         """
         IDM constraint for tracking the vehicle in front.
         """
-        return p_leading - L1 - d_s - T_s * v_eg - lambda_s
+        return p_leading - L1 - d_s - T_s * v_eg + lambda_s
     
     def calc_linear_discrete_model(self, v=10, phi=0, delta=0):
         """
@@ -73,7 +75,7 @@ class MPC:
         
         return A, B, C
     
-    def setStateEqconstraints(self, v=10, phi=0, delta=0):
+    def setStateEqconstraints(self, v=15, phi=0, delta=0):
         """
         Set state equation constraints.
         """
@@ -97,7 +99,7 @@ class MPC:
         """
         Set inequality constraints.
         """
-        v, phi, delta = 10, 0, 0  # Default values; adjust as necessary
+        v, phi, delta = 15, 0, 0  # Default values; adjust as necessary
         A, B, _ = self.calc_linear_discrete_model(v, phi, delta)
         D = np.eye(self.nx)  # Noise matrix
         
@@ -113,28 +115,32 @@ class MPC:
         
         # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
         # according to the new bounded constraints set the constraints
-        for i in range(self.N):
+        for i in range(self.N+1):
             for j in range(self.nx):
                 self.opti.subject_to(self.x[j, i] <= tightened_bound_N_list_up[i][j].item())
             self.opti.subject_to(self.x[:, i] <= DM(tightened_bound_N_list_up[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] >= DM(tightened_bound_N_list_lw[i].reshape(-1, 1)))
+            # Set the IDM constraint
+            self.opti.subject_to(self.x[0, i] <= self.IDM_constraint(self.p_leading + 6*self.Param.dt*i, self.x[2, i],self.lambda_s[0,i]))
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
         self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
-        self.opti.subject_to(self.u[1, :] >= -0.7 * 9.81)
-        self.opti.subject_to(self.u[1, :] <= 0.7 * 9.81)
+        self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)
+        self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
         
         
-        # Set the IDM constraint
-        self.opti.subject_to(self.x[0, :] <= self.IDM_constraint(self.p_leading, self.x[2, :]))
+        
+        
         
     def setCost(self):
         """
         Set cost function for the optimization problem.
         """
         L, Lf = self.vehicle.getCost()
-        self.opti.minimize(getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N))
+        cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
+        cost += 3e5*self.lambda_s@ self.lambda_s.T
+        self.opti.minimize(cost)
     
     def setController(self):
         """
@@ -164,9 +170,11 @@ class MPC:
             sol = self.opti.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
-            return u_opt, x_opt
+            lambda_s = sol.value(self.lambda_s)
+            return u_opt, x_opt, lambda_s
         except Exception as e:
             print(f"An error occurred: {e}")
+            self.opti.debug.value(self.x)
             return None, None
         
 

@@ -10,7 +10,7 @@ class Param:
     here is the parameters for the vehicle
     """
     
-    dt = 0.1  # [s] time step
+    dt = 0.2  # [s] time step
      # vehicle config
     RF = 16.71554/3 # [m] distance from rear to vehicle front end of vehicle
     RB = 0.8  # [m] distance from rear to vehicle back end of vehicle
@@ -69,7 +69,7 @@ def setup_carla_environment(Sameline_ACC=True):
     if Sameline_ACC :
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=50, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=130, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
