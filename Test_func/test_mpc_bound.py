@@ -1,7 +1,7 @@
 import numpy as np
 from casadi import *
 import sys
-sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis\Controller')
+sys.path.append(r'C:\Users\86232\Desktop\Master_Thesis\Controller')
 from MPC_tighten_bound import MPC_tighten_bound
 
 #test the function
@@ -56,21 +56,45 @@ N=12
 MPC_tighten_bound_=MPC_tighten_bound(A,B,D,Q,R,P0,process_noise,Possibilty)
 tightened_bound_N_list_up=MPC_tighten_bound_.tighten_bound_N(P0,H_up,upb,N,1)
 tightened_bound_N_list_lw=MPC_tighten_bound_.tighten_bound_N(P0,H_low,lwb,N,0)
-print(tightened_bound_N_list_up)
+# print(tightened_bound_N_list_up)
+
+IDM_constraint_list = []
+for i in range(N+1):
+    IDM_constraint_list.append(100+10*i*0.2)
+IDM_constraint_list = np.array(IDM_constraint_list).reshape(-1, 1)
+tightened_bound_N_IDM_list=MPC_tighten_bound_.tighten_bound_N_IDM(IDM_constraint_list,N)
+
 
 
 # #visualize the tightened bound in 4 subplots
 import matplotlib.pyplot as plt
-fig, axs = plt.subplots(2, 2, figsize=(10, 8))
-fig.suptitle('Tightened Bound')
+fig, axs = plt.subplots(3, 2, figsize=(12, 8))
+fig.suptitle('Tightened Bound and IDM Constraint Comparison')
 
+# Titles for the first 4 subplots
 titles = ['Constraint for x', 'Constraint for y', 'Constraint for v', 'Constraint for psi']
 for i in range(4):
     row, col = divmod(i, 2)
-    axs[row, col].plot(tightened_bound_N_list_up[:, i], '-o')  # Plot all 12 points for column i
-    axs[row, col].plot(tightened_bound_N_list_lw[:, i], '-o')  # Plot all 12 points for column i
-    axs[row, col].legend(['upper bound', 'lower bound'], loc='upper right')
+    axs[row, col].plot(tightened_bound_N_list_up[:, i], '-o', label='upper bound')  # Plot all points for column i
+    axs[row, col].plot(tightened_bound_N_list_lw[:, i], '-o', label='lower bound')  # Plot all points for column i
+    axs[row, col].legend(loc='upper right')
     axs[row, col].set_title(titles[i])
-plt.tight_layout()
-# plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
+
+plt.delaxes(axs[2, 0]) 
+plt.delaxes(axs[2, 1]) 
+ax_big = fig.add_subplot(3, 1, 3)  # Adding a big subplot for the IDM comparison
+ax_big.y_lim = (100, 150)
+ax_big.plot(IDM_constraint_list, '-o', label='IDM constraint')  # Plot all points for IDM constraint
+ax_big.plot(tightened_bound_N_IDM_list, '-o', label='tightened bound')  # Plot all points for tightened bound
+ax_big.legend(loc='upper right')
+ax_big.set_title('IDM Constraint vs. Tightened Bound')
+ax_big.grid(True)
+
+plt.tight_layout()  
+plt.savefig('C:\\Users\\86232\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
 plt.show()
+
+
+
+
+

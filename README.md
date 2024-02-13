@@ -13,7 +13,7 @@ Add kalman filter and test it in CARLA simulation, and tighten the constraint as
 <p float="left">
   <img src="Figure\CARLA_KF_TEST.gif" width="40%" />
   <img src="Figure/animation.gif" width="21%" />
-  <img src="Figure/MPC_tighten_bound.jpg" width="26.5%" /> 
+  <img src="Figure/MPC_tighten_bound.jpg" width="30%" /> 
 </p>    
 
 TODO List: 

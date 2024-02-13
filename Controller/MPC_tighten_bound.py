@@ -62,7 +62,7 @@ class MPC_tighten_bound:
         tightened_bound_N_list = []
         _, K = self.calculate_Dlqr()
         self.reset_P0()  # Reset P0 before the loop
-        sigma, sigma_list = self.calculate_P_next_N(K, N)
+        _, sigma_list = self.calculate_P_next_N(K, N)
         for s in sigma_list:
             tighten_bound = self.tightened_bound(s, h, b, upper_boundary)
             tightened_bound_N_list.append(tighten_bound)
@@ -71,6 +71,20 @@ class MPC_tighten_bound:
         # add b at the beginning of the list
         tightened_bound_N_list.insert(0, b) if upper_boundary else tightened_bound_N_list.insert(0, -b)
         return np.array(tightened_bound_N_list).reshape(N+1, -1)
+    
+    def tighten_bound_N_IDM(self, IDM_constraint, N):
+        _, K = self.calculate_Dlqr()
+        self.reset_P0()  # Reset P0 before the loop
+        _, sigma_list = self.calculate_P_next_N(K, N)
+        original_constraint = IDM_constraint # contains the 13X1 vector
+        tightened_bound_N_IDM_list = []
+        tightened_bound_N_IDM_list.append(original_constraint[0])
+        for i in range(0,N):
+            current_sigma = sigma_list[i][0,0] # Only the first element: "x" of the sigma matrix is used
+            temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
+            tightened_bound_N_IDM_list.append(original_constraint[i+1] - temp)
+            
+        return np.array(tightened_bound_N_IDM_list).reshape(N+1, -1)
 
     @property
     def get_corvariance(self):

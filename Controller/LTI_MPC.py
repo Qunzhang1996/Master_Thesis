@@ -18,7 +18,6 @@ class MPC:
         # The number of MPC actions, including acc and steer_angle
         NUM_OF_ACTS = 2
         self.nu = NUM_OF_ACTS
-        
         self.vehicle = vehicle
         self.nx, self.nu, self.nrefx, self.nrefu = self.vehicle.getSystemDim()
         self.Q = Q
@@ -28,6 +27,10 @@ class MPC:
         self.Possibility = Possibility
         self.N = N
         self.Param = Param()
+        # ref val for the vehicle matrix
+        self.v_ref = 15
+        self.phi_ref = 0
+        self.delta_ref = 0
         
         # Create Opti Stack
         self.opti = Opti()
@@ -39,7 +42,6 @@ class MPC:
         self.refx = self.opti.parameter(self.nrefx, self.N + 1)
         self.refu = self.opti.parameter(self.nrefu, self.N)
         self.x0 = self.opti.parameter(self.nx, 1)
-        
         
         # IDM leading vehicle position parameter
         self.p_leading = self.opti.parameter(1)
@@ -95,40 +97,38 @@ class MPC:
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
     
-    def setInEqConstraints(self):
+    def setInEqConstraints(self, leading_velocity=10):
         """
         Set inequality constraints.
         """
-        v, phi, delta = 15, 0, 0  # Default values; adjust as necessary
+        v, phi, delta = self.v_ref, self.phi_ref, self.delta_ref  # Default values; adjust as necessary
         A, B, _ = self.calc_linear_discrete_model(v, phi, delta)
         D = np.eye(self.nx)  # Noise matrix
         
         self.setInEqConstraints_val()  # Set tightened bounds
 
-        
-        
         self.MPC_tighten_bound = MPC_tighten_bound(A, B, D, self.Q, self.R, self.P0, self.process_noise, self.Possibility)
-                
+        self.IDM_constraint_list = self.IDM_constraint(self.p_leading + leading_velocity*self.Param.dt*i, self.x[2, i],self.lambda_s[0,i])
         # Example tightened bound application (adjust according to actual implementation)
         tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
-        
+        tightened_bound_N_IDM_list = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
         # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
         # according to the new bounded constraints set the constraints
         for i in range(self.N+1):
-            for j in range(self.nx):
-                self.opti.subject_to(self.x[j, i] <= tightened_bound_N_list_up[i][j].item())
+            # for j in range(self.nx):
+            #     self.opti.subject_to(self.x[j, i] <= tightened_bound_N_list_up[i][j].item())
             self.opti.subject_to(self.x[:, i] <= DM(tightened_bound_N_list_up[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] >= DM(tightened_bound_N_list_lw[i].reshape(-1, 1)))
             # Set the IDM constraint
-            self.opti.subject_to(self.x[0, i] <= self.IDM_constraint(self.p_leading + 6*self.Param.dt*i, self.x[2, i],self.lambda_s[0,i]))
+            # self.opti.subject_to(self.x[0, i] <= self.IDM_constraint(self.p_leading + leading_velocity*self.Param.dt*i, self.x[2, i],self.lambda_s[0,i]))
+            self.opti.subject_to(self.x[0, i] <= DM(tightened_bound_N_IDM_list[i].reshape(-1, 1)))
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
         self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
         self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)
         self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
-        
         
         
         
