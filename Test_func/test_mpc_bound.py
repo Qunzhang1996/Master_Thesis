@@ -1,22 +1,22 @@
 import numpy as np
 from casadi import *
 import sys
-sys.path.append(r'C:\Users\86232\Desktop\Master_Thesis\Controller')
+sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis\Controller')
 from MPC_tighten_bound import MPC_tighten_bound
 
 #test the function
 
 
 #! A,B here is the linearized system, and the system is constant velocity model at x=0,y=0, v=10m/s, theta=0
-A=np.array([[1, 0, 0.1, -0],
+A=np.array([[1, 0, 0.2, -0],
             [0, 1, 0, 1],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 # A = DM(A)
 B=np.array([[0.0, 0.0], 
             [0.0, 0.0], 
-            [0.0, 0.1], 
-            [0.25, 0.0]])
+            [0.0, 0.2], 
+            [0.5, 0.0]])
 # B=DM(B)
 #! P0 here is converged  kf covariance
 x0=np.array([[0],[0],[10],[0]])
@@ -37,7 +37,7 @@ R=np.diag([5,5])  # cost matrix  for input
 # R=DM(R)
 process_noise=np.eye(4)  # process noise
 # process_noise=DM(process_noise)
-process_noise[0,0]=0.5  # x bound is [0, 3]
+process_noise[0,0]=1  # x bound is [0, 3]
 process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
 process_noise[2,2]=1.8/6  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
@@ -91,7 +91,7 @@ ax_big.set_title('IDM Constraint vs. Tightened Bound')
 ax_big.grid(True)
 
 plt.tight_layout()  
-plt.savefig('C:\\Users\\86232\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
+plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
 plt.show()
 
 
