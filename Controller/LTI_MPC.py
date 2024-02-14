@@ -53,13 +53,13 @@ class MPC:
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
     
-    def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=6, T_s=1.0,lambda_s=0):
+    def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=6, T_s=1.0, lambda_s=0):
         """
         IDM constraint for tracking the vehicle in front.
         """
         return p_leading - L1 - d_s - T_s * v_eg + lambda_s
     
-    def calc_linear_discrete_model(self, v=10, phi=0, delta=0):
+    def calc_linear_discrete_model(self, v, phi=0, delta=0):
         """
         Calculate linear and discrete time dynamic model.
         """
@@ -81,7 +81,7 @@ class MPC:
         
         return A, B, C
     
-    def setStateEqconstraints(self, v=15, phi=0, delta=0):
+    def setStateEqconstraints(self, v=10, phi=0, delta=0):
         """
         Set state equation constraints.
         """
@@ -153,13 +153,13 @@ class MPC:
         L, Lf = self.vehicle.getCost()
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
         # Add slack variable cost
-        cost += 3e5*self.lambda_s@ self.lambda_s.T
+        cost += 3e4*self.lambda_s@ self.lambda_s.T
         # add cost to the v_kp1-v_k
         # for i in range(self.N):
-        #     cost += 3e4*(self.x[2,i+1]-self.x[2,i])**2
+        #     cost += 3e2*(self.x[2,i+1]-self.x[2,i])**2
         # add cost to the jerk, a_kp1-a_k
         for i in range(self.N-1):
-            cost += 3e4*(self.u[1,i+1]-self.u[1,i])**2
+            cost += 100*(self.u[1,i+1]-self.u[1,i])**2
         self.opti.minimize(cost)
     
     def setController(self):

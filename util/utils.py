@@ -69,11 +69,13 @@ def setup_carla_environment(Sameline_ACC=True):
     if Sameline_ACC :
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=90, y=143.318146, z=0.3))
+        # car_bp = bp_lib.find('vehicle.tesla.model3')
+        car_spawn_point = carla.Transform(carla.Location(x=80, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
         truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
+        # truck_bp = bp_lib.find('vehicle.tesla.model3')
         truck_spawn_point = carla.Transform(carla.Location(x=10, y=143.318146, z=0.3))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
@@ -169,7 +171,7 @@ def smooth_velocity_diff(p_leading, truck_x):
     max_val = 5
     
     # Sigmoid parameters
-    k = 0.1  # Steepness of the sigmoid curve; adjust as needed
+    k = 1  # Steepness of the sigmoid curve; adjust as needed
     x0 = 0   # This can be adjusted to control when the function starts to approach 5
     
     # Calculate the difference

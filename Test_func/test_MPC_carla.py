@@ -28,6 +28,7 @@ velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(10, 0, 0)
 car.set_target_velocity(velocity1)
 truck.set_target_velocity(velocity2)
+time.sleep(1)
 
 desired_interval = 0.2  # Desired time interval in seconds
 # To start a basic agent
@@ -36,16 +37,16 @@ world = client.get_world()
 carla_map = world.get_map()
 # initial the carla built in pid controller
 car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
-                                     args_longitudinal = {'K_P': 1.0, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
+                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.01, 'dt': desired_interval}, 
-                                        args_longitudinal = {'K_P': 2, 'K_I': 0.3, 'K_D': 0.1, 'dt': desired_interval})
+                                        args_longitudinal = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval})
 # To start a behavior agent with an aggressive car for truck to track
 spawn_points = carla_map.get_spawn_points()
 destination = carla.Location(x=1000, y=143.318146, z=0.3)
 print(f"destination: {destination}")
 
 #------------------initialize the robust MPC---------------------
-ref_velocity = 12.5
+ref_velocity = 15
 dt = 0.2
 N=12
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 4)
@@ -53,10 +54,10 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
-vx_init_ego = 10
+vx_init_ego = 11
 vehicleADV.setInit([30,143.318146],vx_init_ego)
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
-R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
+R_ADV = [5,40]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -66,7 +67,7 @@ P0 = np.array([[0.002071893043635329, -9.081755508401041e-07, 6.625835814018275e
             [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
             [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
 process_noise=np.eye(4)  # process noise
-process_noise[0,0]=1  # x bound is [0, 3]
+process_noise[0,0]=2  # x bound is [0, 3]
 process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
 process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
@@ -80,7 +81,7 @@ print(f"initial input of the truck is: {u_iter}")
 
 ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
 ref_trajectory[0,:] = 0
-ref_trajectory[1,:] = 0
+ref_trajectory[1,:] = 143.318146
 ref_trajectory[2,:] = ref_velocity
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
@@ -127,26 +128,25 @@ for i in range(1000):
     truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
     p_leading=p_leading + (velocity_leading)*desired_interval
     # p_leading=car_x
-    if i%1==0:
+    if i%10==0:
         # get the CARLA state
         x_iter = [truck_x, truck_y, truck_v, truck_psi]
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
         u_opt, x_opt, lambda_s = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, velocity_leading, vel_diff)
         x_iter=x_opt[:,1]
-    # print("leading velocity",car_v, "velocity of the truck: ", x_iter[2])
-    truck_vel_mpc.append(x_iter[2])
-    lambda_s_list.append(lambda_s)
-    
     #PID controller according to the x_iter of the MPC
     control_truck = local_controller.run_step(x_iter[2]*3.6, x_iter[1], False)
     truck.apply_control(control_truck)
     
+    truck_vel_mpc.append(x_iter[2])
+    lambda_s_list.append(lambda_s)
+    
+    
+    
     truck_state_ctr = get_state(truck)
     truck_vel_ctr=truck_state_ctr[C_k.V_km].item()
     truck_vel_control.append(truck_vel_ctr)
-    
-    
     # Data collection inside the loop
     current_time = time.time()
     timestamps.append(current_time)
@@ -179,7 +179,7 @@ for i in range(1000):
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
-    if i == 280: break
+    if i == 240: break
 
 
 
@@ -252,7 +252,7 @@ if acceleration_times and truck_accelerations:
 # Jerk plot
 if jerk_times and truck_jerks:
     axs[1, 1].plot(jerk_times, truck_jerks[:-3], '-', color='r',label='Jerk')
-    axs[1, 1].set_ylim([-10, 10])
+    axs[1, 1].set_ylim([-15, 15])
     axs[1, 1].set_title('Truck Jerk')
     axs[1, 1].set_xlabel('Time')
     axs[1, 1].set_ylabel('Jerk (m/s³)')
