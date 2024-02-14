@@ -252,6 +252,7 @@ if acceleration_times and truck_accelerations:
 # Jerk plot
 if jerk_times and truck_jerks:
     axs[1, 1].plot(jerk_times, truck_jerks[:-3], '-', color='r',label='Jerk')
+    axs[1, 1].set_ylim([-10, 10])
     axs[1, 1].set_title('Truck Jerk')
     axs[1, 1].set_xlabel('Time')
     axs[1, 1].set_ylabel('Jerk (m/s³)')
@@ -262,7 +263,7 @@ if jerk_times and truck_jerks:
 if x_positions_leading and y_positions_leading:
     axs[0, 2].plot(timestamps,np.sqrt((np.array(x_positions_leading)-np.array(x_positions))**2+(np.array(y_positions_leading)-np.array(y_positions))**2), 
                    '-',color='r',label='Difference')
-    # axs[0, 2].set_ylim([10, 30])
+    axs[0, 2].set_ylim([0, 100])
     axs[0, 2].set_title('distance between Leading Car and Truck')
     axs[0, 2].set_xlabel('Time')
     axs[0, 2].set_ylabel('distance (m)')
@@ -274,7 +275,7 @@ if velocity_times and truck_velocities:
     # axs[1, 2].plot(velocity_times, np.array(truck_velocities[:-1])-np.array(leading_velocities[:-1]), '-', color='r',label='Difference')
     axs[1, 2].plot(velocity_times, np.array(truck_vel_mpc[1:]), '-', color='r', label='mpc reference velocity')
     axs[1, 2].plot(velocity_times, np.array(truck_vel_control[:-1]), '-', color='b', label='truck velocity')
-    # axs[1, 2].set_ylim([5, 15])
+    axs[1, 2].set_ylim([5, 15])
     axs[1, 2].set_title('MPC reference and velocity after pid control')
     axs[1, 2].set_xlabel('Time')
     axs[1, 2].set_ylabel('Velocity (m/s)')
