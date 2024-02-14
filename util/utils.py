@@ -69,12 +69,12 @@ def setup_carla_environment(Sameline_ACC=True):
     if Sameline_ACC :
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=130, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=90, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
         truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
-        truck_spawn_point = carla.Transform(carla.Location(x=30, y=143.318146, z=0.3))
+        truck_spawn_point = carla.Transform(carla.Location(x=10, y=143.318146, z=0.3))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
     else:
@@ -162,4 +162,30 @@ def getTotalCost(L,Lf,x,u,refx,refu,N):
                 cost += L(x[:,i],u[:,i],refx[:,i],refu[:,i])
             cost += Lf(x[:,N],refx[:,N])
             return cost
+        
+        
+def smooth_velocity_diff(p_leading, truck_x):
+    # Desired maximum value
+    max_val = 5
+    
+    # Sigmoid parameters
+    k = 0.1  # Steepness of the sigmoid curve; adjust as needed
+    x0 = 0   # This can be adjusted to control when the function starts to approach 5
+    
+    # Calculate the difference
+    difference = p_leading - truck_x
+    
+    # Normalizing the difference to fit into the sigmoid function effectively
+    # This normalization factor adjusts the difference to a scale where the sigmoid's output is most sensitive
+    normalization_factor = 80 / 5  # Adjust based on the desired sensitivity
+    
+    # Sigmoid function to ensure smooth transition
+    sigmoid = 1 / (1 + np.exp(-k * (difference - x0) * normalization_factor))
+    
+    # Scale the sigmoid output to have a maximum of 5
+    vel_diff = sigmoid * max_val
+    
+    vel_diff = max(vel_diff, 2)  # Ensure the velocity difference is 2 at least
+    
+    return vel_diff
 

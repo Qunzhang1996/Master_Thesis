@@ -31,6 +31,7 @@ class MPC:
         self.v_ref = 15
         self.phi_ref = 0
         self.delta_ref = 0
+        # self.leading_velocity = 10
         
         # Create Opti Stack
         self.opti = Opti()
@@ -45,11 +46,14 @@ class MPC:
         
         # IDM leading vehicle position parameter
         self.p_leading = self.opti.parameter(1)
+        # set car velocity 
+        self.leading_velocity = self.opti.parameter(1)
+        self.vel_diff = self.opti.parameter(1)
     
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
     
-    def IDM_constraint(self, p_leading, v_eg, d_s=5, L1=6, T_s=1.5,lambda_s=0):
+    def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=6, T_s=1.0,lambda_s=0):
         """
         IDM constraint for tracking the vehicle in front.
         """
@@ -97,7 +101,7 @@ class MPC:
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
     
-    def setInEqConstraints(self, leading_velocity=10):
+    def setInEqConstraints(self):
         """
         Set inequality constraints.
         """
@@ -108,21 +112,31 @@ class MPC:
         self.setInEqConstraints_val()  # Set tightened bounds
 
         self.MPC_tighten_bound = MPC_tighten_bound(A, B, D, self.Q, self.R, self.P0, self.process_noise, self.Possibility)
-        self.IDM_constraint_list = self.IDM_constraint(self.p_leading + leading_velocity*self.Param.dt*i, self.x[2, i],self.lambda_s[0,i])
+        # Set the IDM constraint
+        self.IDM_constraint_list = []
+        for i in range(self.N+1):
+            self.IDM_constraint_list.append(self.IDM_constraint(self.p_leading + self.leading_velocity*self.Param.dt*i, 
+                                                                self.x[2, i],self.lambda_s[0,i]))
+        # Set the vel_diff constraint 
+        vel_diff_constrain_list = [self.vel_diff] * (self.N+1)
+
         # Example tightened bound application (adjust according to actual implementation)
         tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
         tightened_bound_N_IDM_list = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
+        tightened_bound_N_vel_diff_list = self.MPC_tighten_bound.tighten_bound_N_vel_diff(vel_diff_constrain_list, self.N)
+
         # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
         # according to the new bounded constraints set the constraints
         for i in range(self.N+1):
-            # for j in range(self.nx):
-            #     self.opti.subject_to(self.x[j, i] <= tightened_bound_N_list_up[i][j].item())
             self.opti.subject_to(self.x[:, i] <= DM(tightened_bound_N_list_up[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] >= DM(tightened_bound_N_list_lw[i].reshape(-1, 1)))
             # Set the IDM constraint
-            # self.opti.subject_to(self.x[0, i] <= self.IDM_constraint(self.p_leading + leading_velocity*self.Param.dt*i, self.x[2, i],self.lambda_s[0,i]))
-            self.opti.subject_to(self.x[0, i] <= DM(tightened_bound_N_IDM_list[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[0, i] <= tightened_bound_N_IDM_list[i].item())
+            
+            # Set the vel_diff constraint
+            self.opti.subject_to(self.x[2, i] - self.leading_velocity <= tightened_bound_N_vel_diff_list[i].item())
+            self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -tightened_bound_N_vel_diff_list[i].item())
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
@@ -132,14 +146,20 @@ class MPC:
         
         
         
-        
     def setCost(self):
         """
         Set cost function for the optimization problem.
         """
         L, Lf = self.vehicle.getCost()
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
+        # Add slack variable cost
         cost += 3e5*self.lambda_s@ self.lambda_s.T
+        # add cost to the v_kp1-v_k
+        # for i in range(self.N):
+        #     cost += 3e4*(self.x[2,i+1]-self.x[2,i])**2
+        # add cost to the jerk, a_kp1-a_k
+        for i in range(self.N-1):
+            cost += 3e4*(self.u[1,i+1]-self.u[1,i])**2
         self.opti.minimize(cost)
     
     def setController(self):
@@ -150,7 +170,7 @@ class MPC:
         self.setInEqConstraints()
         self.setCost()
     
-    def solve(self, x0, ref_trajectory, ref_control, p_leading):
+    def solve(self, x0, ref_trajectory, ref_control, p_leading, leading_velocity=10, vel_diff=5):
         """
         Solve the MPC problem.
         """
@@ -160,7 +180,8 @@ class MPC:
         self.opti.set_value(self.refx, ref_trajectory)
         self.opti.set_value(self.refu, ref_control)
         self.opti.set_value(self.p_leading, p_leading)
-        
+        self.opti.set_value(self.leading_velocity, leading_velocity)
+        self.opti.set_value(self.vel_diff, vel_diff)
         # Solver options
         opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
         self.opti.solver("ipopt", opts)

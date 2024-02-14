@@ -24,7 +24,7 @@ from util.utils import *
 
 car,truck = setup_carla_environment(Sameline_ACC=True)
 time.sleep(1)
-velocity1 = carla.Vector3D(8, 0, 0)
+velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(10, 0, 0)
 car.set_target_velocity(velocity1)
 truck.set_target_velocity(velocity2)
@@ -36,16 +36,16 @@ world = client.get_world()
 carla_map = world.get_map()
 # initial the carla built in pid controller
 car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
-                                     args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0, 'dt': desired_interval})
+                                     args_longitudinal = {'K_P': 1.0, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.01, 'dt': desired_interval}, 
-                                        args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0, 'dt': desired_interval})
+                                        args_longitudinal = {'K_P': 2, 'K_I': 0.3, 'K_D': 0.1, 'dt': desired_interval})
 # To start a behavior agent with an aggressive car for truck to track
 spawn_points = carla_map.get_spawn_points()
 destination = carla.Location(x=1000, y=143.318146, z=0.3)
 print(f"destination: {destination}")
 
 #------------------initialize the robust MPC---------------------
-
+ref_velocity = 12.5
 dt = 0.2
 N=12
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 4)
@@ -66,9 +66,9 @@ P0 = np.array([[0.002071893043635329, -9.081755508401041e-07, 6.625835814018275e
             [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
             [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
 process_noise=np.eye(4)  # process noise
-process_noise[0,0]=0.5  # x bound is [0, 3]
+process_noise[0,0]=1  # x bound is [0, 3]
 process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
-process_noise[2,2]=1.8/6  # v bound is [0, 1.8]
+process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
 mpc_controller = MPC(vehicleADV, np.diag([0,40,3e2,5]), np.diag([5,5]), P0, process_noise, 0.95, N)
 
@@ -81,7 +81,7 @@ print(f"initial input of the truck is: {u_iter}")
 ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
 ref_trajectory[0,:] = 0
 ref_trajectory[1,:] = 0
-ref_trajectory[2,:] = 15
+ref_trajectory[2,:] = ref_velocity
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
 # Set the controller (this step initializes the optimization problem with cost and constraints)
@@ -127,10 +127,12 @@ for i in range(1000):
     truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
     p_leading=p_leading + (velocity_leading)*desired_interval
     # p_leading=car_x
-    if i%5==0:
+    if i%1==0:
         # get the CARLA state
         x_iter = [truck_x, truck_y, truck_v, truck_psi]
-        u_opt, x_opt, lambda_s = mpc_controller.solve(x_iter, ref_trajectory, ref_control, p_leading)
+        vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
+        u_opt, x_opt, lambda_s = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
+                                                      p_leading, velocity_leading, vel_diff)
         x_iter=x_opt[:,1]
     # print("leading velocity",car_v, "velocity of the truck: ", x_iter[2])
     truck_vel_mpc.append(x_iter[2])
@@ -177,7 +179,7 @@ for i in range(1000):
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
-    if i == 250: break
+    if i == 280: break
 
 
 
@@ -229,7 +231,7 @@ if velocity_times and truck_velocities:
     axs[0, 1].plot(velocity_times, truck_velocities[:-1], '-', color='r',label='Truck Velocity')
     axs[0, 1].plot(velocity_times, leading_velocities[:-1], '-', color='g' ,label='Leading Velocity')
     # plot the reference velocity
-    axs[0, 1].plot(velocity_times, [15]*len(velocity_times), '--', color='b',label='Reference Velocity')
+    axs[0, 1].plot(velocity_times, [ref_velocity]*len(velocity_times), '--', color='b',label='Reference Velocity')
     axs[0, 1].set_ylim([0, 20])
     axs[0, 1].set_title('Velocity')
     axs[0, 1].set_xlabel('Time')
@@ -272,6 +274,7 @@ if velocity_times and truck_velocities:
     # axs[1, 2].plot(velocity_times, np.array(truck_velocities[:-1])-np.array(leading_velocities[:-1]), '-', color='r',label='Difference')
     axs[1, 2].plot(velocity_times, np.array(truck_vel_mpc[1:]), '-', color='r', label='mpc reference velocity')
     axs[1, 2].plot(velocity_times, np.array(truck_vel_control[:-1]), '-', color='b', label='truck velocity')
+    # axs[1, 2].set_ylim([5, 15])
     axs[1, 2].set_title('MPC reference and velocity after pid control')
     axs[1, 2].set_xlabel('Time')
     axs[1, 2].set_ylabel('Velocity (m/s)')
