@@ -37,7 +37,7 @@ world = client.get_world()
 carla_map = world.get_map()
 # initial the carla built in pid controller
 car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
-                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
+                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.05, 'K_D': 0.02, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.01, 'dt': desired_interval}, 
                                         args_longitudinal = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval})
 # To start a behavior agent with an aggressive car for truck to track
@@ -71,7 +71,7 @@ process_noise[0,0]=2  # x bound is [0, 3]
 process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
 process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
 process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
-mpc_controller = MPC(vehicleADV, np.diag([0,40,3e2,5]), np.diag([5,5]), P0, process_noise, 0.95, N)
+mpc_controller = MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, 0.95, N)
 
 # get initial state of truck 
 x_iter = DM(int(nx),1)
@@ -110,7 +110,7 @@ p_leading = car_x
 total_iterations = 100  # Total number of iterations
 start_time = time.time()  # Record the start time of the simulation
 noise = np.random.normal(0, 0.5)
-velocity_leading = 10
+velocity_leading = 13
 
 
 for i in range(1000):
@@ -127,8 +127,8 @@ for i in range(1000):
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
     truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
     p_leading=p_leading + (velocity_leading)*desired_interval
-    # p_leading=car_x
-    if i%10==0:
+    p_leading=car_x
+    if i%1==0:
         # get the CARLA state
         x_iter = [truck_x, truck_y, truck_v, truck_psi]
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
@@ -179,7 +179,7 @@ for i in range(1000):
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
-    if i == 240: break
+    if i == 220: break
 
 
 
@@ -275,7 +275,7 @@ if velocity_times and truck_velocities:
     # axs[1, 2].plot(velocity_times, np.array(truck_velocities[:-1])-np.array(leading_velocities[:-1]), '-', color='r',label='Difference')
     axs[1, 2].plot(velocity_times, np.array(truck_vel_mpc[1:]), '-', color='r', label='mpc reference velocity')
     axs[1, 2].plot(velocity_times, np.array(truck_vel_control[:-1]), '-', color='b', label='truck velocity')
-    axs[1, 2].set_ylim([5, 15])
+    axs[1, 2].set_ylim([5, 20])
     axs[1, 2].set_title('MPC reference and velocity after pid control')
     axs[1, 2].set_xlabel('Time')
     axs[1, 2].set_ylabel('Velocity (m/s)')
@@ -306,4 +306,3 @@ plt.savefig(figure_path)
 
 # Show the plot
 plt.show()
-

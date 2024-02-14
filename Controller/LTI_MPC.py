@@ -158,8 +158,8 @@ class MPC:
         # for i in range(self.N):
         #     cost += 3e2*(self.x[2,i+1]-self.x[2,i])**2
         # add cost to the jerk, a_kp1-a_k
-        for i in range(self.N-1):
-            cost += 100*(self.u[1,i+1]-self.u[1,i])**2
+        # for i in range(self.N-1):
+        #     cost += 3e4*(self.u[1,i+1]-self.u[1,i])**2
         self.opti.minimize(cost)
     
     def setController(self):
