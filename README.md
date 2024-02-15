@@ -42,13 +42,14 @@ This is the result of the MPC_PID_ACC:
 <p float="left">
   <img src="Figure/MPC_PID_ACC.gif" width="85%" /> 
 </p>   
+This is the result of the MPC_PID_ACC without kalman filter (red bounding box is tighten IDM_constraint):  
 <p float="left">
   <img src="Figure/IDM_constraint_simulation_plots.gif" width="85%" /> 
 </p>   
 <p float="left">
   <img src="Figure/simulation_plots.png" width="85%" /> 
 </p>   
-This is the result of the MPC_PID_ACC with kalman filter:
+This is the result of the MPC_PID_ACC with kalman filter (red bounding box is tighten IDM_constraint):  
 <p float="left">
   <img src="Figure/IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
 </p>   
