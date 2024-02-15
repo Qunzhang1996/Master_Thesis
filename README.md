@@ -35,7 +35,7 @@ TODO List:
 ```
 1. Use chance MPC to tighten the IDM, Done, 2024/2/14
 2. Use chance MPC to tighen the velocity diff, Done, 2024/2/14
-3. Add the kf into the simulation, TBD, DDL: 2024/2/16
+3. Add the kf into the simulation, TBD, 
 4. Try lane changing
 ```
 This is the result of the MPC_PID_ACC:
@@ -47,4 +47,11 @@ This is the result of the MPC_PID_ACC:
 </p>   
 <p float="left">
   <img src="Figure/simulation_plots.png" width="85%" /> 
+</p>   
+This is the result of the MPC_PID_ACC with kalman filter:
+<p float="left">
+  <img src="Figure/IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
+</p>   
+<p float="left">
+  <img src="Figure/simulation_plots_with_filter.png" width="85%" /> 
 </p>   

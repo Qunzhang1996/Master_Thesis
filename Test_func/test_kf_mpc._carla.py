@@ -58,7 +58,7 @@ vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
 vx_init_ego = 11
 vehicleADV.setInit([30,143.318146],vx_init_ego)
-Q_ADV = [0,100,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,3e2,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
@@ -83,9 +83,13 @@ mpc_controller.setController()
 
 ## !----------------- Ego Vehicle observor(kalman filter) Settings ------------------------
 # set the process and measurement noise
-sigma_process=1
+sigma_process=0.1
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
+Q_0[0,0]=2  # x bound is [0, 3]
+Q_0[1,1]=0.01/6  # y bound is [0, 0.1]
+Q_0[2,2]=1.8/6*2  # v bound is [0, 1.8]
+Q_0[3,3]=0.05/6  # psi bound is [0, 0.05]
 R_0=np.eye(nx)*sigma_measurement**2
 r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
 # set the initial state and control input
@@ -159,7 +163,8 @@ for i in range(1000):
 
         # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)
         x_iter=x_opt[:,1]
-        u_iter = u_opt[:,0] # ! get the first input of the optimal input for the kalman filter
+        print(f"the optimal state of the truck is: {x_iter}")
+        # ! get the first input of the optimal input for the kalman filter
 
 #PID controller according to the x_iter of the MPC
     control_truck = local_controller.run_step(x_iter[2]*3.6, x_iter[1], False)

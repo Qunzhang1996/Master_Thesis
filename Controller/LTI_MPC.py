@@ -162,6 +162,7 @@ class MPC:
         # add cost to the jerk, a_kp1-a_k
         # for i in range(self.N-1):
         #     cost += 3e4*(self.u[1,i+1]-self.u[1,i])**2
+        # we want the velocity faster
         self.opti.minimize(cost)
     
     def setController(self):
