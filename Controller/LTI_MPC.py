@@ -79,7 +79,7 @@ class MPC:
         
         return A, B, C
     
-    def setStateEqconstraints(self, v=10, phi=0, delta=0):
+    def setStateEqconstraints(self, v=15, phi=0, delta=0):
         """
         Set state equation constraints.
         """
@@ -141,6 +141,10 @@ class MPC:
         self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
         self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)
         self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
+        # tighten the change of the input
+        # for i in range(self.N-1):
+        #     self.opti.subject_to(self.u[1,i+1]-self.u[1,i] <= 0.5)
+        #     self.opti.subject_to(self.u[1,i+1]-self.u[1,i] >= -0.5)
         
         
         
@@ -197,6 +201,12 @@ class MPC:
             self.opti.debug.value(self.x)
             return None, None
         
+        
+    def get_dynammic_model(self):
+        """
+        Return the dynamic model of the vehicle.
+        """
+        return self.A, self.B, self.C
 
 
 

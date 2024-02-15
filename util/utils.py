@@ -212,7 +212,8 @@ def smooth_velocity_diff(p_leading, truck_x):
 
 
 
-def animate_constraints(all_tightened_bounds, truck_positions, car_position, y_center=143.318146, width=3.5, vehicle_width=2, vehicle_length=6):
+def animate_constraints(all_tightened_bounds, truck_positions, car_position, figure_dir, gif_name,
+                        y_center=143.318146, width=3.5, vehicle_width=2, vehicle_length=6):
     """
     Animates the changes in constraint boxes and vehicle position over iterations.
 
@@ -263,10 +264,10 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, y_c
 
     ani = FuncAnimation(fig, update, frames=range(len(all_tightened_bounds)), init_func=init, blit=False, repeat=False)
     # Save animation
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    # figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
-    figure_path = os.path.join(figure_dir, 'IDM_constraint_simulation_plots.gif')
+    figure_path = os.path.join(figure_dir, gif_name)
     
     # Ensure the writer for GIF is available
     plt.rcParams['animation.convert_path'] = 'C:\\Path\\To\\ImageMagick\\convert.exe'  # Update this path
@@ -274,7 +275,9 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, y_c
 
     plt.close(fig)  # Prevent the figure from displaying inline or in a window
     
-def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control):
+def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations,
+                                  truck_jerks, car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+                                  figure_dir,figure_name):
     # Prepare data for plotting
     x_positions, y_positions = zip(*truck_positions) if truck_positions else ([], [])
     x_positions_leading, y_positions_leading = zip(*car_positions) if car_positions else ([], [])
@@ -375,11 +378,9 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
 
 
     # Save the plot
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_path = os.path.join(figure_dir, 'simulation_plots.png')
+    # figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_path = os.path.join(figure_dir, figure_name)
     plt.savefig(figure_path)
-
-
     # Show the plot
     plt.show()
 
