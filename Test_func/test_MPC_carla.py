@@ -31,19 +31,11 @@ truck.set_target_velocity(velocity2)
 time.sleep(1)
 
 desired_interval = 0.2  # Desired time interval in seconds
-# To start a basic agent
-client = carla.Client('localhost', 2000)
-world = client.get_world()
-carla_map = world.get_map()
 # initial the carla built in pid controller
 car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
                                      args_longitudinal = {'K_P': 0.950, 'K_I': 0.05, 'K_D': 0.02, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.01, 'dt': desired_interval}, 
                                         args_longitudinal = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval})
-# To start a behavior agent with an aggressive car for truck to track
-spawn_points = carla_map.get_spawn_points()
-destination = carla.Location(x=1000, y=143.318146, z=0.3)
-print(f"destination: {destination}")
 
 #------------------initialize the robust MPC---------------------
 ref_velocity = 15
@@ -61,17 +53,8 @@ R_ADV = [5,40]                                    # Input cost, Entries in diago
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
-# process_noise=DM(process_noise)
-P0 = np.array([[0.002071893043635329, -9.081755508401041e-07, 6.625835814018275e-06, 3.5644803460420476e-06],
-            [-9.081755508401084e-07, 0.0020727698104820867, -1.059020050149629e-05, 2.218506297137566e-06], 
-            [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
-            [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
-process_noise=np.eye(4)  # process noise
-process_noise[0,0]=2  # x bound is [0, 3]
-process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
-process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
-process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
-mpc_controller = MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, 0.95, N)
+P0, process_noise, possibility = set_stochastic_mpc_params()
+mpc_controller = MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N)
 
 # get initial state of truck 
 x_iter = DM(int(nx),1)
@@ -100,6 +83,8 @@ truck_vel_mpc = []
 lambda_s_list = []
 truck_vel_control = []
 timestamps = []  # To store timestamps for calculating acceleration and jerk
+all_tightened_bounds = []
+
 previous_acceleration = 0  # To help in jerk calculation
 car_state = get_state(car)
 car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
@@ -132,8 +117,12 @@ for i in range(1000):
         # get the CARLA state
         x_iter = [truck_x, truck_y, truck_v, truck_psi]
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
-        u_opt, x_opt, lambda_s = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
+        u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, velocity_leading, vel_diff)
+        # Example place inside your loop
+        all_tightened_bounds.append(tightened_bound_N_IDM_list)  # Ensure you're copying the list if it's mutable
+
+        # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)
         x_iter=x_opt[:,1]
     #PID controller according to the x_iter of the MPC
     control_truck = local_controller.run_step(x_iter[2]*3.6, x_iter[1], False)
@@ -141,7 +130,6 @@ for i in range(1000):
     
     truck_vel_mpc.append(x_iter[2])
     lambda_s_list.append(lambda_s)
-    
     
     
     truck_state_ctr = get_state(truck)
@@ -172,137 +160,15 @@ for i in range(1000):
         truck_accelerations.append(0)  # Initial acceleration is 0
         truck_jerks.append(0)  # Initial jerk is 0
     
-    
-        
-    
     # Dynamically adjust sleep time to maintain desired interval
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
     if i == 220: break
-
-
-
-
-
-
-# Assuming the lists truck_positions, timestamps, truck_velocities, truck_accelerations, and truck_jerks are filled with your data
-# Prepare data for plotting
-x_positions, y_positions = zip(*truck_positions) if truck_positions else ([], [])
-x_positions_leading, y_positions_leading = zip(*car_positions) if car_positions else ([], [])
-velocity_times = timestamps[1:] if len(timestamps) > 1 else []
-acceleration_times = timestamps[2:] if len(timestamps) > 2 else []
-jerk_times = timestamps[3:] if len(timestamps) > 3 else []
-# save data to json file
-parameters_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Parameters'
-os.makedirs(parameters_dir, exist_ok=True)
-
-# Prepare the data for saving
-data_to_save = {
-    "truck_positions": truck_positions,
-    "truck_velocities": truck_velocities,
-    "truck_accelerations": truck_accelerations,
-    "truck_jerks": truck_jerks
-}
-
-# Save data as JSON
-json_file_path = os.path.join(parameters_dir, 'simulation_data.json')
-with open(json_file_path, 'w') as json_file:
-    json.dump(data_to_save, json_file, indent=4)
-
-
-
-# Here is for the plot
-import matplotlib.pyplot as plt
-# Create a 2x3 plot layout
-fig, axs = plt.subplots(2, 3, figsize=(12, 10)) 
-# Trajectory plot
-if x_positions and y_positions:
-    axs[0, 0].plot(x_positions, y_positions, '-',color='r',label='Trajectory')
-    axs[0, 0].set_title('Truck Trajectory')
-    axs[0, 0].set_xlabel('X Position')
-    axs[0, 0].set_ylim([143.318146-1.75, 143.318146+1.75])
-    axs[0, 0].set_ylabel('Y Position')
-    axs[0, 0].grid(True)
-    axs[0, 0].legend()
-
-# Velocity plot
-if velocity_times and truck_velocities:
-    axs[0, 1].plot(velocity_times, truck_velocities[:-1], '-', color='r',label='Truck Velocity')
-    axs[0, 1].plot(velocity_times, leading_velocities[:-1], '-', color='g' ,label='Leading Velocity')
-    # plot the reference velocity
-    axs[0, 1].plot(velocity_times, [ref_velocity]*len(velocity_times), '--', color='b',label='Reference Velocity')
-    axs[0, 1].set_ylim([0, 20])
-    axs[0, 1].set_title('Velocity')
-    axs[0, 1].set_xlabel('Time')
-    axs[0, 1].set_ylabel('Velocity (m/s)')
-    axs[0, 1].grid(True)
-    axs[0, 1].legend()
-
-# Acceleration plot
-if acceleration_times and truck_accelerations:
-    axs[1, 0].plot(acceleration_times, truck_accelerations[:-2], '-', color='r',label='Acceleration')
-    axs[1, 0].set_title('Truck Acceleration')
-    axs[1, 0].set_xlabel('Time')
-    axs[1, 0].set_ylim([-4, 4])
-    axs[1, 0].set_ylabel('Acceleration (m/s²)')
-    axs[1, 0].grid(True)
-    axs[1, 0].legend()
-
-# Jerk plot
-if jerk_times and truck_jerks:
-    axs[1, 1].plot(jerk_times, truck_jerks[:-3], '-', color='r',label='Jerk')
-    axs[1, 1].set_ylim([-15, 15])
-    axs[1, 1].set_title('Truck Jerk')
-    axs[1, 1].set_xlabel('Time')
-    axs[1, 1].set_ylabel('Jerk (m/s³)')
-    axs[1, 1].grid(True)
-    axs[1, 1].legend()
     
-# difference between leading car and truck plot
-if x_positions_leading and y_positions_leading:
-    axs[0, 2].plot(timestamps,np.sqrt((np.array(x_positions_leading)-np.array(x_positions))**2+(np.array(y_positions_leading)-np.array(y_positions))**2), 
-                   '-',color='r',label='Difference')
-    axs[0, 2].set_ylim([0, 100])
-    axs[0, 2].set_title('distance between Leading Car and Truck')
-    axs[0, 2].set_xlabel('Time')
-    axs[0, 2].set_ylabel('distance (m)')
-    axs[0, 2].grid(True)
-    axs[0, 2].legend()
-    
-# difference between mpc target and truck velocity plot
-if velocity_times and truck_velocities:
-    # axs[1, 2].plot(velocity_times, np.array(truck_velocities[:-1])-np.array(leading_velocities[:-1]), '-', color='r',label='Difference')
-    axs[1, 2].plot(velocity_times, np.array(truck_vel_mpc[1:]), '-', color='r', label='mpc reference velocity')
-    axs[1, 2].plot(velocity_times, np.array(truck_vel_control[:-1]), '-', color='b', label='truck velocity')
-    axs[1, 2].set_ylim([5, 20])
-    axs[1, 2].set_title('MPC reference and velocity after pid control')
-    axs[1, 2].set_xlabel('Time')
-    axs[1, 2].set_ylabel('Velocity (m/s)')
-    axs[1, 2].grid(True)
-    axs[1, 2].legend() 
-
-#print lambda_s_list with time
-# if lambda_s_list:
-#     axs[0, 3].plot(velocity_times, np.array(lambda_s_list[:-1]), '-', color='r', label='lambda var')
-#     axs[0, 3].set_title('slack var with time')
-#     axs[0, 3].set_xlabel('Time')
-#     axs[0, 3].grid(True)
-#     axs[0, 3].legend()
-    
-   
-# Adjust layout for a neat presentation
-plt.tight_layout()
-#delete useless pic
-# plt.delaxes(axs[1, 3])
-
-
-# Save the plot
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_path = os.path.join(figure_dir, 'simulation_plots.png')
-plt.savefig(figure_path)
+animate_constraints(all_tightened_bounds,truck_positions,car_positions)
+plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, car_positions, 
+                              leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control)
 
 
 
-# Show the plot
-plt.show()

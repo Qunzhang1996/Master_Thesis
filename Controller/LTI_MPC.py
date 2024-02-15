@@ -31,11 +31,9 @@ class MPC:
         self.v_ref = 15
         self.phi_ref = 0
         self.delta_ref = 0
-        # self.leading_velocity = 10
         
         # Create Opti Stack
         self.opti = Opti()
-        
         # Initialize opti stack
         self.x = self.opti.variable(self.nx, self.N + 1)
         self.lambda_s= self.opti.variable(1,self.N + 1)
@@ -121,22 +119,22 @@ class MPC:
         vel_diff_constrain_list = [self.vel_diff] * (self.N+1)
 
         # Example tightened bound application (adjust according to actual implementation)
-        tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
-        tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
-        tightened_bound_N_IDM_list = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
-        tightened_bound_N_vel_diff_list = self.MPC_tighten_bound.tighten_bound_N_vel_diff(vel_diff_constrain_list, self.N)
+        self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
+        self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
+        self.tightened_bound_N_IDM_list = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
+        self.tightened_bound_N_vel_diff_list = self.MPC_tighten_bound.tighten_bound_N_vel_diff(vel_diff_constrain_list, self.N)
 
         # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
         # according to the new bounded constraints set the constraints
         for i in range(self.N+1):
-            self.opti.subject_to(self.x[:, i] <= DM(tightened_bound_N_list_up[i].reshape(-1, 1)))
-            self.opti.subject_to(self.x[:, i] >= DM(tightened_bound_N_list_lw[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
             # Set the IDM constraint
-            self.opti.subject_to(self.x[0, i] <= tightened_bound_N_IDM_list[i].item())
+            self.opti.subject_to(self.x[0, i] <= self.tightened_bound_N_IDM_list[i].item())
             
             # Set the vel_diff constraint
-            self.opti.subject_to(self.x[2, i] - self.leading_velocity <= tightened_bound_N_vel_diff_list[i].item())
-            self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -tightened_bound_N_vel_diff_list[i].item())
+            self.opti.subject_to(self.x[2, i] - self.leading_velocity <= self.tightened_bound_N_vel_diff_list[i].item())
+            self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -self.tightened_bound_N_vel_diff_list[i].item())
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
@@ -185,14 +183,15 @@ class MPC:
         # Solver options
         opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
         self.opti.solver("ipopt", opts)
-        # print("IDM_constraint", self.IDM_constraint(p_leading, x0[2]))
         
         try:
             sol = self.opti.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
             lambda_s = sol.value(self.lambda_s)
-            return u_opt, x_opt, lambda_s
+            # also return tightened IDM constraint with solved op
+            tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
+            return u_opt, x_opt, lambda_s, tightened_IDM_constraints
         except Exception as e:
             print(f"An error occurred: {e}")
             self.opti.debug.value(self.x)

@@ -1,9 +1,11 @@
 import math
 import carla
+import os
+import json
 import numpy as np
 from enum import IntEnum
 import matplotlib.pyplot as plt
-
+from matplotlib.animation import FuncAnimation
 
 class Param:
     """
@@ -23,6 +25,23 @@ class Param:
 class C_k(IntEnum):
     X_km, Y_km, V_km, Psi =range(4)
     
+    
+    
+def set_stochastic_mpc_params():
+    
+    # process_noise=DM(process_noise)
+    P0 = np.array([[0.002071893043635329, -9.081755508401041e-07, 6.625835814018275e-06, 3.5644803460420476e-06],
+                [-9.081755508401084e-07, 0.0020727698104820867, -1.059020050149629e-05, 2.218506297137566e-06], 
+                [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
+                [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
+    process_noise=np.eye(4)  # process noise
+    process_noise[0,0]=2  # x bound is [0, 3]
+    process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
+    process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
+    process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
+
+    possibility=0.95  # possibility 
+    return P0,process_noise,possibility
 
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
@@ -190,4 +209,179 @@ def smooth_velocity_diff(p_leading, truck_x):
     vel_diff = max(vel_diff, 2)  # Ensure the velocity difference is 2 at least
     
     return vel_diff
+
+
+
+def animate_constraints(all_tightened_bounds, truck_positions, car_position, y_center=143.318146, width=3.5, vehicle_width=2, vehicle_length=6):
+    """
+    Animates the changes in constraint boxes and vehicle position over iterations.
+
+    :param all_tightened_bounds: A list of lists, each containing tightened_bound_N_IDM_list values for each iteration.
+    :param truck_positions: A list of tuples, each containing the (x, y) position of the truck for each iteration.
+    :param y_center: Y coordinate for the center of the constraint boxes.
+    :param width: The width of the constraint boxes.
+    :param vehicle_width: The width of the vehicle representation.
+    :param vehicle_length: The length of the vehicle representation.
+    """
+    # Set figure size to 12x6 inches
+    fig, ax = plt.subplots(figsize=(30, 2))
+    ax.set_xlim(min(min(bounds) for bounds in all_tightened_bounds), max(max(bounds) for bounds in all_tightened_bounds))
+    ax.set_ylim(y_center - width - 15, y_center + width + 15)
+
+    def init():
+        return []
+
+    def update(frame):
+        ax.clear()
+        # Central line
+        ax.plot([0, max(max(bounds) for bounds in all_tightened_bounds)], [y_center, y_center], 'k--')
+        
+        # Reset the y-axis limits after clearing
+        ax.set_ylim(y_center - width - 5, y_center + width + 5)
+            
+        # Central line
+        ax.plot([0, max(max(bounds) for bounds in all_tightened_bounds)], [y_center, y_center], 'k--')
+        
+        # Constraint box
+        x_right_end = min(all_tightened_bounds[frame])
+        rect = plt.Rectangle((0, y_center - width / 2), x_right_end, width, fill=None, edgecolor='red', linewidth=2)
+        ax.add_patch(rect)
+        
+        # Vehicle representation
+        truck_x, truck_y = truck_positions[frame]
+        car_x, car_y = car_position[frame]
+        vehicle_rect = plt.Rectangle((truck_x - vehicle_length / 2, truck_y - vehicle_width / 2), vehicle_length, vehicle_width, color='blue')
+        vehicle_rect_car = plt.Rectangle((car_x - vehicle_length / 2, car_y - vehicle_width / 2), vehicle_length, vehicle_width, color='red')
+        ax.add_patch(vehicle_rect)
+        ax.add_patch(vehicle_rect_car)
+        ax.legend(['','', 'Constraint Box', 'Truck', 'Car'])
+        ax.set_xlabel('X Position')
+        ax.set_ylabel('Y Position')
+        ax.set_title('Constraint Box and Vehicle Position')
+        
+        return [rect, vehicle_rect, vehicle_rect_car]
+
+    ani = FuncAnimation(fig, update, frames=range(len(all_tightened_bounds)), init_func=init, blit=False, repeat=False)
+    # Save animation
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    if not os.path.exists(figure_dir):
+        os.makedirs(figure_dir)
+    figure_path = os.path.join(figure_dir, 'IDM_constraint_simulation_plots.gif')
+    
+    # Ensure the writer for GIF is available
+    plt.rcParams['animation.convert_path'] = 'C:\\Path\\To\\ImageMagick\\convert.exe'  # Update this path
+    ani.save(figure_path, writer='imagemagick', fps=10)  # Adjust fps as needed
+
+    plt.close(fig)  # Prevent the figure from displaying inline or in a window
+    
+def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control):
+    # Prepare data for plotting
+    x_positions, y_positions = zip(*truck_positions) if truck_positions else ([], [])
+    x_positions_leading, y_positions_leading = zip(*car_positions) if car_positions else ([], [])
+    velocity_times = timestamps[1:] if len(timestamps) > 1 else []
+    acceleration_times = timestamps[2:] if len(timestamps) > 2 else []
+    jerk_times = timestamps[3:] if len(timestamps) > 3 else []
+
+    # save data to json file
+    parameters_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Parameters'
+    os.makedirs(parameters_dir, exist_ok=True)
+
+    # Prepare the data for saving
+    data_to_save = {
+        "truck_positions": truck_positions,
+        "truck_velocities": truck_velocities,
+        "truck_accelerations": truck_accelerations,
+        "truck_jerks": truck_jerks
+    }
+
+    # Save data as JSON
+    json_file_path = os.path.join(parameters_dir, 'simulation_data.json')
+    with open(json_file_path, 'w') as json_file:
+        json.dump(data_to_save, json_file, indent=4)
+
+    # # Create a 2x3 plot layout
+    fig, axs = plt.subplots(2, 3, figsize=(12, 10)) 
+    # Trajectory plot
+    if x_positions and y_positions:
+        axs[0, 0].plot(x_positions, y_positions, '-',color='r',label='Trajectory')
+        axs[0, 0].set_title('Truck Trajectory')
+        axs[0, 0].set_xlabel('X Position')
+        axs[0, 0].set_ylim([143.318146-1.75, 143.318146+1.75])
+        axs[0, 0].set_ylabel('Y Position')
+        axs[0, 0].grid(True)
+        axs[0, 0].legend()
+
+    # Velocity plot
+    if velocity_times and truck_velocities:
+        axs[0, 1].plot(velocity_times, truck_velocities[:-1], '-', color='r',label='Truck Velocity')
+        axs[0, 1].plot(velocity_times, leading_velocities[:-1], '-', color='g' ,label='Leading Velocity')
+        # plot the reference velocity
+        axs[0, 1].plot(velocity_times, [ref_velocity]*len(velocity_times), '--', color='b',label='Reference Velocity')
+        axs[0, 1].set_ylim([0, 20])
+        axs[0, 1].set_title('Velocity')
+        axs[0, 1].set_xlabel('Time')
+        axs[0, 1].set_ylabel('Velocity (m/s)')
+        axs[0, 1].grid(True)
+        axs[0, 1].legend()
+
+    # Acceleration plot
+    if acceleration_times and truck_accelerations:
+        axs[1, 0].plot(acceleration_times, truck_accelerations[:-2], '-', color='r',label='Acceleration')
+        axs[1, 0].set_title('Truck Acceleration')
+        axs[1, 0].set_xlabel('Time')
+        axs[1, 0].set_ylim([-4, 4])
+        axs[1, 0].set_ylabel('Acceleration (m/s²)')
+        axs[1, 0].grid(True)
+        axs[1, 0].legend()
+
+    # Jerk plot
+    if jerk_times and truck_jerks:
+        axs[1, 1].plot(jerk_times, truck_jerks[:-3], '-', color='r',label='Jerk')
+        axs[1, 1].set_ylim([-15, 15])
+        axs[1, 1].set_title('Truck Jerk')
+        axs[1, 1].set_xlabel('Time')
+        axs[1, 1].set_ylabel('Jerk (m/s³)')
+        axs[1, 1].grid(True)
+        axs[1, 1].legend()
+        
+    # difference between leading car and truck plot
+    if x_positions_leading and y_positions_leading:
+        axs[0, 2].plot(timestamps,np.sqrt((np.array(x_positions_leading)-np.array(x_positions))**2+(np.array(y_positions_leading)-np.array(y_positions))**2), 
+                       '-',color='r',label='Difference')
+        axs[0, 2].set_ylim([0, 100])
+        axs[0, 2].set_title('distance between Leading Car and Truck')
+        axs[0, 2].set_xlabel('Time')
+        axs[0, 2].set_ylabel('distance (m)')
+        axs[0, 2].grid(True)
+        axs[0, 2].legend()
+        
+    # difference between mpc target and truck velocity plot
+    if velocity_times and truck_velocities:
+        # axs[1, 2].plot(velocity_times, np.array(truck_velocities[:-1])-np.array(leading_velocities[:-1]), '-', color='r',label='Difference')
+        axs[1, 2].plot(velocity_times, np.array(truck_vel_mpc[1:]), '-', color='r', label='mpc reference velocity')
+        axs[1, 2].plot(velocity_times, np.array(truck_vel_control[:-1]), '-', color='b', label='truck velocity')
+        axs[1, 2].set_ylim([5, 20])
+        axs[1, 2].set_title('MPC reference and velocity after pid control')
+        axs[1, 2].set_xlabel('Time')
+        axs[1, 2].set_ylabel('Velocity (m/s)')
+        axs[1, 2].grid(True)
+        axs[1, 2].legend() 
+
+        
+    
+    # Adjust layout for a neat presentation
+    plt.tight_layout()
+
+
+
+    # Save the plot
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_path = os.path.join(figure_dir, 'simulation_plots.png')
+    plt.savefig(figure_path)
+
+
+    # Show the plot
+    plt.show()
+
+
 

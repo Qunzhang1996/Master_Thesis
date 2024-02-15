@@ -43,5 +43,8 @@ This is the result of the MPC_PID_ACC:
   <img src="Figure/MPC_PID_ACC.gif" width="85%" /> 
 </p>   
 <p float="left">
+  <img src="Figure/IDM_constraint_simulation_plots.gif" width="85%" /> 
+</p>   
+<p float="left">
   <img src="Figure/simulation_plots.png" width="85%" /> 
 </p>   
