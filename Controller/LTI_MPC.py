@@ -191,7 +191,7 @@ class MPC:
         # Add slack variable cost
         cost += 3e4*self.lambda_s@ self.lambda_s.T
         # Add slack variable cost for y
-        cost += 8e8*self.slack_y@ self.slack_y.T
+        cost += 3e4*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
     
     def setController(self):
@@ -223,7 +223,7 @@ class MPC:
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
             lambda_s = sol.value(self.lambda_s)
-            print(f"slack_y: {sol.value(self.slack_y)}")
+            # print(f"slack_y: {sol.value(self.slack_y)}")
             # also return tightened IDM constraint with solved op
             tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
             return u_opt, x_opt, lambda_s, tightened_IDM_constraints

@@ -248,8 +248,11 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
         
         # Constraint box
         x_right_end = min(all_tightened_bounds[frame])
+        x_right_end2 = max(all_tightened_bounds[frame])
         rect = plt.Rectangle((0, y_center - width / 2), x_right_end, width, fill=None, edgecolor='red', linewidth=2)
+        rect2 = plt.Rectangle((0, y_center - width / 2), x_right_end2, width, fill=None, edgecolor='red', linewidth=2)
         ax.add_patch(rect)
+        ax.add_patch(rect2)
         
         # Vehicle representation
         truck_x, truck_y = truck_positions[frame]
