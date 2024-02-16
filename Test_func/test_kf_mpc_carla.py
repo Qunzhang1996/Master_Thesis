@@ -37,28 +37,38 @@ time.sleep(1)
 client = carla.Client('localhost', 2000)
 world = client.get_world()
 carla_map = world.get_map()
-
-## !----------------- PID Controller Settings ------------------------
+# ██████╗ ██╗██████╗ 
+# ██╔══██╗██║██╔══██╗
+# ██████╔╝██║██║  ██║
+# ██╔═══╝ ██║██║  ██║
+# ██║     ██║██████╔╝
+# ╚═╝     ╚═╝╚═════╝ 
+## !----------------- PID Controller Settings ------------------------                   
 desired_interval = 0.2  # Desired time interval in seconds
 car_contoller = VehiclePIDController(car, 
-                                     args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
+                                     args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
                                      args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.01, 'dt': desired_interval}, 
+                                        args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
                                         args_longitudinal = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval})
-
-## !----------------- Robust MPC Controller Settings ------------------------
+# ███╗   ███╗██████╗  ██████╗
+# ████╗ ████║██╔══██╗██╔════╝
+# ██╔████╔██║██████╔╝██║     
+# ██║╚██╔╝██║██╔═══╝ ██║     
+# ██║ ╚═╝ ██║██║     ╚██████╗
+# ╚═╝     ╚═╝╚═╝      ╚═════╝
+## !----------------- Robust MPC Controller Settings ------------------------                           
 ref_velocity = 15  # TODO: here is the reference velocity for the truck
 dt = desired_interval
 N=12
-vehicleADV = car_VehicleModel(dt,N, width = 2, length = 4)
+vehicleADV = car_VehicleModel(dt,N, width = 2, length = 6)
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
 vx_init_ego = 11
-vehicleADV.setInit([30,143.318146],vx_init_ego)
-Q_ADV = [0,3e2,3e2,5]                            # State cost, Entries in diagonal matrix
+vehicleADV.setInit([20,143.318146],vx_init_ego)
+Q_ADV = [0,2e2,2e2,10]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
@@ -67,6 +77,7 @@ P0, process_noise, possibility = set_stochastic_mpc_params()
 mpc_controller = MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N)
 
 ## !----------------- get initial state and set ref for the ccontroller ------------------------
+                                                                                  
 x_iter = DM(int(nx),1)
 x_iter[:],u_iter = vehicleADV.getInit()
 print(f"initial state of the truck is: {x_iter}")
@@ -76,25 +87,33 @@ ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
 ref_trajectory[0,:] = 0
 ref_trajectory[1,:] = 143.318146
 ref_trajectory[2,:] = ref_velocity
+ref_trajectory[3,:] = 0
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
 # Set the controller (this step initializes the optimization problem with cost and constraints)
 mpc_controller.setController()
 
-## !----------------- Ego Vehicle observor(kalman filter) Settings ------------------------
+
+#  ██████╗ ██████╗ ███████╗███████╗██████╗ ██╗   ██╗ ██████╗ ██████╗ 
+# ██╔═══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗██║   ██║██╔═══██╗██╔══██╗
+# ██║   ██║██████╔╝███████╗█████╗  ██████╔╝██║   ██║██║   ██║██████╔╝
+# ██║   ██║██╔══██╗╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██║   ██║██╔══██╗
+# ╚██████╔╝██████╔╝███████║███████╗██║  ██║ ╚████╔╝ ╚██████╔╝██║  ██║
+#  ╚═════╝ ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝   ╚═════╝ ╚═╝  ╚═╝
+# !----------------- Kalman Filter Settings ------------------------                                                                                                                                                                                                                         
 # set the process and measurement noise
 sigma_process=0.1
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
 Q_0[0,0]=2  # x bound is [0, 3]
-Q_0[1,1]=0.01/6  # y bound is [0, 0.1]
+Q_0[1,1]=0.01  # y bound is [0, 0.1]
 Q_0[2,2]=1.8/6*2  # v bound is [0, 1.8]
-Q_0[3,3]=0.05/6  # psi bound is [0, 0.05]
+Q_0[3,3]=0.001  # psi bound is [0, 0.05]
 R_0=np.eye(nx)*sigma_measurement**2
 r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
 # set the initial state and control input
 x_0 = x_iter
-P_kf=np.eye(nx)*(10*sigma_process)**4  # initial state covariance
+P_kf=np.eye(nx)*(sigma_process)**4  # initial state covariance
 u_iter = np.array([0,0])
 # get system dynamic matrices
 A,B,_=mpc_controller.get_dynammic_model()
@@ -102,8 +121,13 @@ H=np.eye(nx)   #measurement matrix, y=H@x_iter
 # initial the Kalman Filter
 ekf=kalman_filter(A,B,H,x_0,P_kf,Q_0,R_0)
 
-
-## !----------------- Data storage initialization ------------------------
+# ██████╗  █████╗ ████████╗ █████╗     ███████╗████████╗ ██████╗ ██████╗  █████╗  ██████╗ ███████╗
+# ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗    ██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝ ██╔════╝
+# ██║  ██║███████║   ██║   ███████║    ███████╗   ██║   ██║   ██║██████╔╝███████║██║  ███╗█████╗  
+# ██║  ██║██╔══██║   ██║   ██╔══██║    ╚════██║   ██║   ██║   ██║██╔══██╗██╔══██║██║   ██║██╔══╝  
+# ██████╔╝██║  ██║   ██║   ██║  ██║    ███████║   ██║   ╚██████╔╝██║  ██║██║  ██║╚██████╔╝███████╗
+# ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝    ╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+# !----------------- Data Collection ------------------------                                                                                               
 car_positions = []  # To store (x, y) positions
 truck_positions = []  # To store (x, y) positions
 truck_velocities = []  # To store velocity
@@ -115,8 +139,8 @@ lambda_s_list = []
 truck_vel_control = []
 timestamps = []  # To store timestamps for calculating acceleration and jerk
 all_tightened_bounds = []  # To store all tightened bounds for visualization
+Trajectory_pred = []  # To store the predicted trajectory
 previous_acceleration = 0  # To help in jerk calculation
-
 
 ## !----------------- get initial state of leading vehicle ------------------------
 car_state = get_state(car)
@@ -127,7 +151,12 @@ p_leading = car_x
 start_time = time.time()  # Record the start time of the simulation
 velocity_leading = 13
 
-
+# ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗
+# ██╔════╝██║████╗ ████║██║   ██║██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║
+# ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
+# ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
+# ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
+# ╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝                                                                                                                                         
 ## !----------------- start simulation!!!!!!!!!!!!!!!!!!! ------------------------
 for i in range(1000):
     iteration_start = time.time()
@@ -159,14 +188,17 @@ for i in range(1000):
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, velocity_leading, vel_diff)
         # Example place inside your loop
-        all_tightened_bounds.append(tightened_bound_N_IDM_list)  # Ensure you're copying the list if it's mutable
+        all_tightened_bounds.append(tightened_bound_N_IDM_list)  
 
         # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)
+        Trajectory_pred.append(x_opt[:2,:]) # store the predicted trajectory
+        # print("the type of x_opt is:",type(x_opt[:2,:]))
+        # exit()
         x_iter=x_opt[:,1]
-        print(f"the optimal state of the truck is: {x_iter}")
+        # print(f"the optimal state of the truck is: {x_iter}")
         # ! get the first input of the optimal input for the kalman filter
 
-#PID controller according to the x_iter of the MPC
+    #PID controller according to the x_iter of the MPC
     control_truck = local_controller.run_step(x_iter[2]*3.6, x_iter[1], False)
     truck.apply_control(control_truck)
     
@@ -208,12 +240,12 @@ for i in range(1000):
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
-    if i == 200: break
+    if i == 220: break
     
-    
+# print(Trajectory_pred)
 gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 gif_name = 'IDM_constraint_simulation_plots_with_filter.gif'
-animate_constraints(all_tightened_bounds,truck_positions,car_positions,gif_dir,gif_name)
+animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'simulation_plots_with_filter.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 

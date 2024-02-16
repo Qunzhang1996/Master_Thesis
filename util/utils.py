@@ -18,7 +18,7 @@ class Param:
     RB = 0.8  # [m] distance from rear to vehicle back end of vehicle
     W = 2.4  # [m] width of vehicle
     WD = 0.7 * W  # [m] distance between left-right wheels
-    WB =  4  # [m] Wheel base
+    WB =  6  # [m] Wheel base
     TR = 0.44  # [m] Tyre radius
     TW = 0.7  # [m] Tyre width
 
@@ -95,7 +95,7 @@ def setup_carla_environment(Sameline_ACC=True):
         # Spawn Firetruck
         truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
         # truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
-        truck_spawn_point = carla.Transform(carla.Location(x=10, y=143.318146, z=0.3))
+        truck_spawn_point = carla.Transform(carla.Location(x=20, y=143.318146, z=0.3))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
     else:
@@ -121,39 +121,7 @@ def spawn_vehicle(world, blueprint, spawn_point):
     except Exception as e:
         print(f"Error spawning vehicle: {e}")
         return None
-    
-    
-def plot_paths(true_x, true_y,estimated_x, estimated_y,t):
-    plt.figure(1)
-    plt.cla()
-    plt.plot(true_x, true_y, label='True Path', color='blue')
-    plt.plot(estimated_x, estimated_y, label='Estimated Path', color='red')
-    plt.scatter(true_x[-1], true_y[-1], color='blue', s=50)
-    plt.scatter(estimated_x[-1], estimated_y[-1], color='red', s=50)
-    plt.title(f"Time: {t:.2f}s - Paths")
-    plt.legend()
-    # plt.gca().invert_xaxis()
-
-
-def plot_diff(t_axis,x_difference,y_difference):
-    # For x difference
-    plt.figure(2, figsize=(5, 5))
-    plt.plot(t_axis.flatten(), x_difference[:-2], label='x Difference', color='green')
-    plt.xlabel('Time (s)')
-    plt.ylabel('x Difference')
-    plt.title('Difference in x over Time')
-    plt.legend()
-    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\x_difference.jpg')
-
-    # For y difference
-    plt.figure(3, figsize=(5, 5))
-    plt.plot(t_axis.flatten(), y_difference[:-2], label='y Difference', color='orange')
-    plt.xlabel('Time (s)')
-    plt.ylabel('y Difference')
-    plt.title('Difference in y over Time')
-    plt.legend()
-    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\y_difference.jpg')
-    plt.show()
+  
     
 #make sure angle in -pi pi
 def angle_trans(angle):
@@ -211,21 +179,59 @@ def smooth_velocity_diff(p_leading, truck_x):
     return vel_diff
 
 
+  
+    
+def plot_paths(true_x, true_y,estimated_x, estimated_y,t):
+    plt.figure(1)
+    plt.cla()
+    plt.plot(true_x, true_y, label='True Path', color='blue')
+    plt.plot(estimated_x, estimated_y, label='Estimated Path', color='red')
+    plt.scatter(true_x[-1], true_y[-1], color='blue', s=50)
+    plt.scatter(estimated_x[-1], estimated_y[-1], color='red', s=50)
+    plt.title(f"Time: {t:.2f}s - Paths")
+    plt.legend()
+    # plt.gca().invert_xaxis()
 
-def animate_constraints(all_tightened_bounds, truck_positions, car_position, figure_dir, gif_name,
+
+def plot_diff(t_axis,x_difference,y_difference):
+    # For x difference
+    plt.figure(2, figsize=(5, 5))
+    plt.plot(t_axis.flatten(), x_difference[:-2], label='x Difference', color='green')
+    plt.xlabel('Time (s)')
+    plt.ylabel('x Difference')
+    plt.title('Difference in x over Time')
+    plt.legend()
+    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\x_difference.jpg')
+
+    # For y difference
+    plt.figure(3, figsize=(5, 5))
+    plt.plot(t_axis.flatten(), y_difference[:-2], label='y Difference', color='orange')
+    plt.xlabel('Time (s)')
+    plt.ylabel('y Difference')
+    plt.title('Difference in y over Time')
+    plt.legend()
+    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\y_difference.jpg')
+    plt.show()
+
+
+
+def animate_constraints(all_tightened_bounds, truck_positions, car_position, Trajectory_pred, figure_dir, gif_name,
                         y_center=143.318146, width=3.5, vehicle_width=2, vehicle_length=6):
     """
-    Animates the changes in constraint boxes and vehicle position over iterations.
+    Animates the changes in constraint boxes, vehicle position, and predicted trajectories over iterations.
 
     :param all_tightened_bounds: A list of lists, each containing tightened_bound_N_IDM_list values for each iteration.
     :param truck_positions: A list of tuples, each containing the (x, y) position of the truck for each iteration.
+    :param car_position: A list of tuples, each containing the (x, y) position of the car for each iteration.
+    :param Trajectory_pred: A list of lists, each containing the predicted (x, y) positions of the truck for each iteration.
     :param y_center: Y coordinate for the center of the constraint boxes.
     :param width: The width of the constraint boxes.
     :param vehicle_width: The width of the vehicle representation.
     :param vehicle_length: The length of the vehicle representation.
     """
-    # Set figure size to 12x6 inches
-    fig, ax = plt.subplots(figsize=(30, 2))
+    # Set figure size to 24x6 inches
+    fig, ax = plt.subplots(figsize=(24, 2))  # Adjusted to more standard aspect ratio
+    fig.tight_layout()
     ax.set_xlim(min(min(bounds) for bounds in all_tightened_bounds), max(max(bounds) for bounds in all_tightened_bounds))
     ax.set_ylim(y_center - width - 15, y_center + width + 15)
 
@@ -239,9 +245,6 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, fig
         
         # Reset the y-axis limits after clearing
         ax.set_ylim(y_center - width - 5, y_center + width + 5)
-            
-        # Central line
-        ax.plot([0, max(max(bounds) for bounds in all_tightened_bounds)], [y_center, y_center], 'k--')
         
         # Constraint box
         x_right_end = min(all_tightened_bounds[frame])
@@ -255,23 +258,28 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, fig
         vehicle_rect_car = plt.Rectangle((car_x - vehicle_length / 2, car_y - vehicle_width / 2), vehicle_length, vehicle_width, color='red')
         ax.add_patch(vehicle_rect)
         ax.add_patch(vehicle_rect_car)
-        ax.legend(['','', 'Constraint Box', 'Truck', 'Car'])
+
+        # Predicted trajectory
+        if Trajectory_pred and frame < len(Trajectory_pred):
+            pred_x, pred_y = Trajectory_pred[frame][0], Trajectory_pred[frame][1]  # Assuming each element is a tuple (x, y)
+            ax.plot(pred_x, pred_y, 'g--', label='Predicted Trajectory')
+
+        # Update legend to include predicted trajectory
+        ax.legend(['', 'Constraint Box', 'Truck', 'Car', 'Predicted Trajectory'], loc='upper right')
+        
         ax.set_xlabel('X Position')
         ax.set_ylabel('Y Position')
-        ax.set_title('Constraint Box and Vehicle Position')
+        ax.set_title('Constraint Box and Vehicle Position with Predicted Trajectory')
         
         return [rect, vehicle_rect, vehicle_rect_car]
 
     ani = FuncAnimation(fig, update, frames=range(len(all_tightened_bounds)), init_func=init, blit=False, repeat=False)
-    # Save animation
-    # figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
     figure_path = os.path.join(figure_dir, gif_name)
-    
-    # Ensure the writer for GIF is available
-    plt.rcParams['animation.convert_path'] = 'C:\\Path\\To\\ImageMagick\\convert.exe'  # Update this path
     ani.save(figure_path, writer='imagemagick', fps=10)  # Adjust fps as needed
+
+
 
     plt.close(fig)  # Prevent the figure from displaying inline or in a window
     
@@ -306,10 +314,22 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
     fig, axs = plt.subplots(2, 3, figsize=(12, 10)) 
     # Trajectory plot
     if x_positions and y_positions:
-        axs[0, 0].plot(x_positions, y_positions, '-',color='r',label='Trajectory')
+        axs[0, 0].plot(x_positions, y_positions, '-', color='r', label='Trajectory')
+        # Correct way to plot car contour with a blue dash line
+        left_boundary_x = [x - 3 for x in x_positions]
+        right_boundary_x = [x + 3 for x in x_positions]
+        left_boundary_y = [y - 1.2 for y in y_positions]
+        right_boundary_y = [y + 1.2 for y in y_positions]
+
+        axs[0, 0].plot(left_boundary_x, left_boundary_y, 'b--', label='Left car Boundary')
+        axs[0, 0].plot(right_boundary_x, right_boundary_y, 'b--', label='Right car Boundary')
+
+        # plot road boundary with black dash line
+        axs[0, 0].plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k--')
+        axs[0, 0].plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k--')
         axs[0, 0].set_title('Truck Trajectory')
         axs[0, 0].set_xlabel('X Position')
-        axs[0, 0].set_ylim([143.318146-1.75, 143.318146+1.75])
+        axs[0, 0].set_ylim([143.318146 - 3.5, 143.318146 + 3.5])
         axs[0, 0].set_ylabel('Y Position')
         axs[0, 0].grid(True)
         axs[0, 0].legend()

@@ -82,6 +82,7 @@ truck_jerks = []  # To store jerk
 truck_vel_mpc = []
 lambda_s_list = []
 truck_vel_control = []
+Trajectory_pred = []  # To store the predicted trajectory
 timestamps = []  # To store timestamps for calculating acceleration and jerk
 all_tightened_bounds = []  # To store all tightened bounds for visualization
 previous_acceleration = 0  # To help in jerk calculation
@@ -121,7 +122,7 @@ for i in range(1000):
                                                       p_leading, velocity_leading, vel_diff)
         # Example place inside your loop
         all_tightened_bounds.append(tightened_bound_N_IDM_list)  # Ensure you're copying the list if it's mutable
-
+        Trajectory_pred.append(x_opt[:2,:]) # store the predicted trajectory
         # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)
         x_iter=x_opt[:,1]
     #PID controller according to the x_iter of the MPC
@@ -170,7 +171,7 @@ for i in range(1000):
     
 gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 gif_name = 'IDM_constraint_simulation_plots.gif'
-animate_constraints(all_tightened_bounds,truck_positions,car_positions,gif_dir,gif_name)
+animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'simulation_plots.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 

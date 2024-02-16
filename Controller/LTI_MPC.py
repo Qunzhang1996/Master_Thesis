@@ -11,6 +11,15 @@ from Controller.MPC_tighten_bound import MPC_tighten_bound
 from vehicleModel.vehicle_model import car_VehicleModel
 from util.utils import Param
 class MPC:
+    """
+    ██████╗  ██████╗ ██████╗      ██████╗ ██╗     ███████╗███████╗███████╗    ███╗   ███╗██████╗  ██████╗            
+    ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
+    ██║  ███╗██║   ██║██║  ██║    ██████╔╝██║     █████╗  ███████╗███████╗    ██╔████╔██║██████╔╝██║                 
+    ██║   ██║██║   ██║██║  ██║    ██╔══██╗██║     ██╔══╝  ╚════██║╚════██║    ██║╚██╔╝██║██╔═══╝ ██║                 
+    ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗            
+     ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
+    """
+
     def __init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.95, N=12) -> None:
         # The number of MPC states, here include x, y, psi and v
         NUM_OF_STATES = 4
@@ -36,12 +45,15 @@ class MPC:
         self.opti = Opti()
         # Initialize opti stack
         self.x = self.opti.variable(self.nx, self.N + 1)
-        self.lambda_s= self.opti.variable(1,self.N + 1)
         self.u = self.opti.variable(self.nu, self.N)
         self.refx = self.opti.parameter(self.nrefx, self.N + 1)
         self.refu = self.opti.parameter(self.nrefu, self.N)
         self.x0 = self.opti.parameter(self.nx, 1)
-        
+        # slack variable for the IDM constraint
+        self.lambda_s= self.opti.variable(1,self.N + 1)
+        # slack variable for y 
+        self.slack_y = self.opti.variable(1,self.N + 1)
+
         # IDM leading vehicle position parameter
         self.p_leading = self.opti.parameter(1)
         # set car velocity 
@@ -96,8 +108,18 @@ class MPC:
         # Default or custom constraints
         self.H_up = H_up if H_up is not None else [np.array([[1], [0], [0], [0]]), np.array([[0], [1], [0], [0]]), np.array([[0], [0], [1], [0]]), np.array([[0], [0], [0], [1]])]
         self.upb = upb if upb is not None else np.array([[5000], [5000], [30], [3.14/8]])
+        
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
+        
+        # set slack variable for the y
+        # print("the upb is: ",self.upb[1,0])
+        # print("the slack_y is: ",self.slack_y)
+        # self.upb[1,0] = 143.318146+1.75 
+        # self.lwb[1,0] = -143.318146+1.75 
+
+        # self.upb[1,0] += self.slack_y
+        # self.lwb[1,0] += self.slack_y
     
     def setInEqConstraints(self):
         """
@@ -115,6 +137,13 @@ class MPC:
         for i in range(self.N+1):
             self.IDM_constraint_list.append(self.IDM_constraint(self.p_leading + self.leading_velocity*self.Param.dt*i, 
                                                                 self.x[2, i],self.lambda_s[0,i]))
+        # Set the y constraint 13
+        self.y_upper = [143.318146+0.75] * (self.N+1)
+        self.y_lower = [-143.318146+0.75] * (self.N+1)
+        for i in range(self.N+1):
+            self.y_upper[i] += self.slack_y[0,i]
+            self.y_lower[i] += self.slack_y[0,i]
+        
         # Set the vel_diff constraint 
         vel_diff_constrain_list = [self.vel_diff] * (self.N+1)
 
@@ -123,6 +152,8 @@ class MPC:
         self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
         self.tightened_bound_N_IDM_list = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
         self.tightened_bound_N_vel_diff_list = self.MPC_tighten_bound.tighten_bound_N_vel_diff(vel_diff_constrain_list, self.N)
+        self.tightened_bound_N_y_upper_list = self.MPC_tighten_bound.tighten_bound_N_y_upper(self.y_upper, self.N)
+        self.tightened_bound_N_y_lower_list = self.MPC_tighten_bound.tighten_bound_N_y_lower(self.y_lower, self.N)
 
         # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
         # according to the new bounded constraints set the constraints
@@ -135,6 +166,9 @@ class MPC:
             # Set the vel_diff constraint
             self.opti.subject_to(self.x[2, i] - self.leading_velocity <= self.tightened_bound_N_vel_diff_list[i].item())
             self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -self.tightened_bound_N_vel_diff_list[i].item())
+            # set the y constraint
+            self.opti.subject_to(self.x[1, i] <= self.tightened_bound_N_y_upper_list[i].item())
+            self.opti.subject_to(self.x[1, i] >= self.tightened_bound_N_y_lower_list[i].item())
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
@@ -156,13 +190,8 @@ class MPC:
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
         # Add slack variable cost
         cost += 3e4*self.lambda_s@ self.lambda_s.T
-        # add cost to the v_kp1-v_k
-        # for i in range(self.N):
-        #     cost += 3e2*(self.x[2,i+1]-self.x[2,i])**2
-        # add cost to the jerk, a_kp1-a_k
-        # for i in range(self.N-1):
-        #     cost += 3e4*(self.u[1,i+1]-self.u[1,i])**2
-        # we want the velocity faster
+        # Add slack variable cost for y
+        cost += 8e8*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
     
     def setController(self):
@@ -194,6 +223,7 @@ class MPC:
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
             lambda_s = sol.value(self.lambda_s)
+            print(f"slack_y: {sol.value(self.slack_y)}")
             # also return tightened IDM constraint with solved op
             tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
             return u_opt, x_opt, lambda_s, tightened_IDM_constraints

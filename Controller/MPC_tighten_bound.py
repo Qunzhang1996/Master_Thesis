@@ -86,6 +86,34 @@ class MPC_tighten_bound:
             
         return np.array(tightened_bound_N_IDM_list).reshape(N+1, -1)
     
+    def tighten_bound_N_y_upper(self, y_constrain, N):
+        _, K = self.calculate_Dlqr()
+        self.reset_P0()  # Reset P0 before the loop
+        _, sigma_list = self.calculate_P_next_N(K, N)
+        tightened_bound_N_y_list = []
+        tightened_bound_N_y_list.append(y_constrain)
+        tightened_bound_N_y_list = []
+        tightened_bound_N_y_list.append(y_constrain[0])
+        for i in range(0,N):
+            current_sigma = sigma_list[i][1,1] # Only the second element: "y" of the sigma matrix is used
+            temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
+            tightened_bound_N_y_list.append(y_constrain[i+1] - temp)
+        return np.array(tightened_bound_N_y_list).reshape(N+1, -1)
+    
+    def tighten_bound_N_y_lower(self, y_constrain, N):
+        _, K = self.calculate_Dlqr()
+        self.reset_P0()
+        _, sigma_list = self.calculate_P_next_N(K, N)
+        tightened_bound_N_y_list = []
+        tightened_bound_N_y_list.append(y_constrain[0])
+        for i in range(0,N):
+            current_sigma = sigma_list[i][1,1]
+            temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
+            tightened_bound_N_y_list.append(-y_constrain[i+1] + temp)
+        return np.array(tightened_bound_N_y_list).reshape(N+1, -1)
+    
+    
+    
     def tighten_bound_N_vel_diff(self, vel_diff_constrain, N):
         _, K = self.calculate_Dlqr()
         self.reset_P0()  # Reset P0 before the loop
@@ -98,6 +126,9 @@ class MPC_tighten_bound:
             tightened_bound_N_vel_diff_list.append(vel_diff_constrain[i+1] - temp)
             
         return np.array(tightened_bound_N_vel_diff_list).reshape(N+1, -1)
+    
+    
+        
 
     @property
     def get_corvariance(self):
