@@ -35,7 +35,7 @@ TODO List:
 ```
 1. Use chance MPC to tighten the IDM, Done, 2024/2/14
 2. Use chance MPC to tighen the velocity diff, Done, 2024/2/14
-3. Add the kf into the simulation, TBD, 
+3. Add the kf into the simulation, Done, 
 4. Try lane changing
 ```
 This is the result of the MPC_PID_ACC:
@@ -75,3 +75,11 @@ This is the result of the MPC_PID_ACC with kalman filter (PID works every 0.2s, 
 </p>   
 <p float="left">
   <img src="Figure/CARLA_simulation_compare_ref_diffF.png" width="85%" /> 
+
+## 2024/02/19 QunZhang
+TODO List: 
+```
+1. build heavy traffic scenerio
+2. lane changing
+3. decision master
+```

@@ -111,15 +111,7 @@ class MPC:
         
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
-        
-        # set slack variable for the y
-        # print("the upb is: ",self.upb[1,0])
-        # print("the slack_y is: ",self.slack_y)
-        # self.upb[1,0] = 143.318146+1.75 
-        # self.lwb[1,0] = -143.318146+1.75 
 
-        # self.upb[1,0] += self.slack_y
-        # self.lwb[1,0] += self.slack_y
     
     def setInEqConstraints(self):
         """

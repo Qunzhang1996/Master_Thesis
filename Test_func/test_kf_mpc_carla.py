@@ -36,7 +36,7 @@ from util.utils import *
 # ╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝     ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝    
                                                                               
 # !----------------- PID MPC Settings ------------------------                                                                                                                                     
-SYNC_CTRL = True  # True for syncronized control, False for different control
+SYNC_CTRL = False  # True for syncronized control, False for different control
 frequence = 1 if SYNC_CTRL else 10  # frequence of the MPC controller
 ## !----------------- Carla Settings ------------------------
 car,truck = setup_carla_environment(Sameline_ACC=True)
@@ -61,7 +61,7 @@ car_contoller = VehiclePIDController(car,
                                      args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
                                      args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.05, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 0.95, 'K_I': 0.2, 'K_D': 0.03, 'dt': desired_interval}, 
+                                        args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.03, 'dt': desired_interval}, 
                                         args_longitudinal = {'K_P': 1.7, 'K_I': 0.5, 'K_D': 0.1, 'dt': desired_interval})
 # ███╗   ███╗██████╗  ██████╗
 # ████╗ ████║██╔══██╗██╔════╝
@@ -80,7 +80,7 @@ vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
 vx_init_ego = 15
 vehicleADV.setInit([20,143.318146],vx_init_ego)
-Q_ADV = [0,9e2,50,10]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,40,5e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
@@ -118,11 +118,11 @@ sigma_process=0.1
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
 Q_0[0,0]=2  # x bound is [0, 3]
-Q_0[1,1]=0.001  # y bound is [0, 0.1]
+Q_0[1,1]=0.01  # y bound is [0, 0.1]
 Q_0[2,2]=1.8/6*2  # v bound is [0, 1.8]
 Q_0[3,3]=0.001  # psi bound is [0, 0.05]
 R_0=np.eye(nx)*sigma_measurement
-r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
+
 # set the initial state and control input
 x_0 = x_iter
 P_kf=np.eye(nx)  # initial state covariance
@@ -185,6 +185,7 @@ for i in range(1000):
     car_state = get_state(car)
     # !----------------- get the state of the truck ------------------------
     truck_state = get_state(truck)
+    r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
     measurement_truck = truck_state + r # add noise to the truck state
     
     # !-----------------  do extended kalman filter ------------------------
@@ -196,13 +197,15 @@ for i in range(1000):
     # !-----------------  store the car and truck state ------------------------
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
     truck_x, truck_y, truck_v, truck_psi = truck_estimate[C_k.X_km], truck_estimate[C_k.Y_km],truck_estimate[C_k.V_km], truck_estimate[C_k.Psi]
+    
     car_positions.append((car_x, car_y))
     truck_estimate_positions.append((float(truck_x[0]), float(truck_y[0])))
     truck_positions.append((truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item()))
     # TODO: predict the state of car, assuming the car is moving at a constant velocity
     p_leading=p_leading + (velocity_leading)*desired_interval
-    
-    
+    #! uncomment  here  to ignore kalman filter
+    # truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
+    # print("this is heading angle of the truck: ", truck_psi)
     # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
     if i % frequence == 0:
         # get the CARLA state
@@ -262,6 +265,14 @@ for i in range(1000):
     time.sleep(sleep_duration)
     if i == 220: break
     
+    
+# ██████╗ ██╗      ██████╗ ████████╗
+# ██╔══██╗██║     ██╔═══██╗╚══██╔══╝
+# ██████╔╝██║     ██║   ██║   ██║   
+# ██╔═══╝ ██║     ██║   ██║   ██║   
+# ██║     ███████╗╚██████╔╝   ██║   
+# ╚═╝     ╚══════╝ ╚═════╝    ╚═╝   
+                            
 if SYNC_CTRL==True:
     gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter.gif'
