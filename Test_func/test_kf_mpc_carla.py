@@ -26,6 +26,18 @@ from util.utils import *
 # subprocess.run(command, shell=True)
 # # --------------------------Run the command--------------------------
 
+
+
+# ███████╗██╗   ██╗███╗   ██╗ ██████╗     ██████╗████████╗██████╗ ██╗         
+# ██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝    ██╔════╝╚══██╔══╝██╔══██╗██║         
+# ███████╗ ╚████╔╝ ██╔██╗ ██║██║         ██║        ██║   ██████╔╝██║         
+# ╚════██║  ╚██╔╝  ██║╚██╗██║██║         ██║        ██║   ██╔══██╗██║         
+# ███████║   ██║   ██║ ╚████║╚██████╗    ╚██████╗   ██║   ██║  ██║███████╗    
+# ╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝     ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝    
+                                                                              
+# !----------------- PID MPC Settings ------------------------                                                                                                                                     
+SYNC_CTRL = True  # True for syncronized control, False for different control
+frequence = 1 if SYNC_CTRL else 10  # frequence of the MPC controller
 ## !----------------- Carla Settings ------------------------
 car,truck = setup_carla_environment(Sameline_ACC=True)
 time.sleep(1)
@@ -113,7 +125,7 @@ R_0=np.eye(nx)*sigma_measurement
 r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
 # set the initial state and control input
 x_0 = x_iter
-P_kf=np.eye(nx)*(sigma_process)**4  # initial state covariance
+P_kf=np.eye(nx)  # initial state covariance
 u_iter = np.array([0,0])
 # get system dynamic matrices
 A,B,_=mpc_controller.get_dynammic_model()
@@ -192,7 +204,7 @@ for i in range(1000):
     
     
     # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
-    if i%10==0:
+    if i % frequence == 0:
         # get the CARLA state
         x_iter = vertcat(truck_x, truck_y, truck_v, truck_psi)
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
@@ -250,20 +262,37 @@ for i in range(1000):
     time.sleep(sleep_duration)
     if i == 220: break
     
+if SYNC_CTRL==True:
+    gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter.gif'
+    animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_name = 'CARLA_simulation_plots_with_filter.png'
+    plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+                                car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+                                figure_dir,figure_name)
 
-gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter_diffF.gif'
-animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulation_plots_with_filter_diffF.png'
-plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-                              car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-                              figure_dir,figure_name)
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_name = 'CARLA_simulation_plots_kf_state_compare.png'
+    plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
 
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulation_plots_kf_state_compare_diffF.png'
-plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_name = 'CARLA_simulation_compare_ref.png'
+    plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+else:
+    gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter_diffF.gif'
+    animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_name = 'CARLA_simulation_plots_with_filter_diffF.png'
+    plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+                                car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+                                figure_dir,figure_name)
 
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulation_compare_ref_diffF.png'
-plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_name = 'CARLA_simulation_plots_kf_state_compare_diffF.png'
+    plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
+
+    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    figure_name = 'CARLA_simulation_compare_ref_diffF.png'
+    plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
