@@ -66,4 +66,7 @@ class kalman_filter():
     @property
     def get_predict(self):
         return self.x
+    @property
+    def get_initial_state(self):
+        return self.x
     

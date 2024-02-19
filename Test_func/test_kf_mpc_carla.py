@@ -30,7 +30,7 @@ from util.utils import *
 car,truck = setup_carla_environment(Sameline_ACC=True)
 time.sleep(1)
 velocity1 = carla.Vector3D(10, 0, 0)
-velocity2 = carla.Vector3D(10, 0, 0)
+velocity2 = carla.Vector3D(15, 0, 0)
 car.set_target_velocity(velocity1)
 truck.set_target_velocity(velocity2)
 time.sleep(1)
@@ -47,10 +47,10 @@ carla_map = world.get_map()
 desired_interval = 0.2  # Desired time interval in seconds
 car_contoller = VehiclePIDController(car, 
                                      args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
-                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
+                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.05, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 0.95, 'K_I': 0.1, 'K_D': 0.03, 'dt': desired_interval}, 
-                                        args_longitudinal = {'K_P': 1.5, 'K_I': 0.5, 'K_D': 0.02, 'dt': desired_interval})
+                                        args_lateral = {'K_P': 0.95, 'K_I': 0.2, 'K_D': 0.03, 'dt': desired_interval}, 
+                                        args_longitudinal = {'K_P': 1.7, 'K_I': 0.5, 'K_D': 0.1, 'dt': desired_interval})
 # ███╗   ███╗██████╗  ██████╗
 # ████╗ ████║██╔══██╗██╔════╝
 # ██╔████╔██║██████╔╝██║     
@@ -66,9 +66,9 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
-vx_init_ego = 10
+vx_init_ego = 15
 vehicleADV.setInit([20,143.318146],vx_init_ego)
-Q_ADV = [0,5e2,50,10]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,9e2,50,10]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
@@ -109,7 +109,7 @@ Q_0[0,0]=2  # x bound is [0, 3]
 Q_0[1,1]=0.001  # y bound is [0, 0.1]
 Q_0[2,2]=1.8/6*2  # v bound is [0, 1.8]
 Q_0[3,3]=0.001  # psi bound is [0, 0.05]
-R_0=np.eye(nx)*sigma_measurement**2
+R_0=np.eye(nx)*sigma_measurement
 r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
 # set the initial state and control input
 x_0 = x_iter
@@ -130,13 +130,20 @@ ekf=kalman_filter(A,B,H,x_0,P_kf,Q_0,R_0)
 # !----------------- Data Collection ------------------------                                                                                               
 car_positions = []  # To store (x, y) positions
 truck_positions = []  # To store (x, y) positions
+truck_estimate_positions = []  # To store estimate (x, y) positions
 truck_velocities = []  # To store velocity
 leading_velocities = []  # To store leading vehicle velocity
 truck_accelerations = []  # To store acceleration
 truck_jerks = []  # To store jerk
+
+
 truck_vel_mpc = []
+truck_y_mpc = []  # To store ref y position
 lambda_s_list = []
 truck_vel_control = []
+truck_y_control = []
+
+
 timestamps = []  # To store timestamps for calculating acceleration and jerk
 all_tightened_bounds = []  # To store all tightened bounds for visualization
 Trajectory_pred = []  # To store the predicted trajectory
@@ -149,7 +156,7 @@ p_leading = car_x
 
 # ! Simulation parameters
 start_time = time.time()  # Record the start time of the simulation
-velocity_leading = 13
+velocity_leading = 12  # m/s
 
 # ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗
 # ██╔════╝██║████╗ ████║██║   ██║██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║
@@ -178,10 +185,12 @@ for i in range(1000):
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
     truck_x, truck_y, truck_v, truck_psi = truck_estimate[C_k.X_km], truck_estimate[C_k.Y_km],truck_estimate[C_k.V_km], truck_estimate[C_k.Psi]
     car_positions.append((car_x, car_y))
+    truck_estimate_positions.append((float(truck_x[0]), float(truck_y[0])))
     truck_positions.append((truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item()))
-    # print(f"truck state is: {truck_estimate}")
     # TODO: predict the state of car, assuming the car is moving at a constant velocity
     p_leading=p_leading + (velocity_leading)*desired_interval
+    
+    
     # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
     if i%10==0:
         # get the CARLA state
@@ -189,16 +198,10 @@ for i in range(1000):
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, velocity_leading, vel_diff)
-       
-
-        # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)
-        
-        # print("the type of x_opt is:",type(x_opt[:2,:]))
-        # exit()
         x_iter=x_opt[:,1]
         print(f"the optimal state of the truck is: {x_iter}")
         # ! get the first input of the optimal input for the kalman filter
-        
+    
         
     all_tightened_bounds.append(tightened_bound_N_IDM_list)  
     Trajectory_pred.append(x_opt[:2,:]) # store the predicted trajectory
@@ -206,19 +209,21 @@ for i in range(1000):
     #PID controller according to the x_iter of the MPC
     control_truck = local_controller.run_step(x_iter[2]*3.6, x_iter[1], False)
     truck.apply_control(control_truck)
-    
+    #-!----------------- store the state of the truck ------------------------
+    truck_y_mpc.append(x_iter[1])
     truck_vel_mpc.append(x_iter[2])
     lambda_s_list.append(lambda_s)
+    #-------------------------------------------------------------------------
     
     
     truck_state_ctr = get_state(truck)
-    # truck_vel_ctr=truck_state_ctr[C_k.V_km].item()
     #truck state after the PID controller
     truck_x_ctr, truck_y_ctr, truck_vel_ctr, truck_psi_ctr = truck_state_ctr[C_k.X_km].item(), truck_state_ctr[C_k.Y_km].item(), truck_state_ctr[C_k.V_km].item(), truck_state_ctr[C_k.Psi].item()
     truck_vel_control.append(truck_vel_ctr)
     # Data collection inside the loop
     current_time = time.time()
     timestamps.append(current_time)
+    truck_y_control.append(truck_y_ctr)
     truck_velocities.append(truck_vel_ctr)
     leading_velocities.append(car_v)
 
@@ -243,15 +248,22 @@ for i in range(1000):
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
-    if i == 200: break
+    if i == 220: break
     
-# print(Trajectory_pred)
 
 gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_name = 'IDM_constraint_simulation_plots_with_filter.gif'
+gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter_diffF.gif'
 animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'simulation_plots_with_filter.png'
+figure_name = 'CARLA_simulation_plots_with_filter_diffF.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                               figure_dir,figure_name)
+
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'CARLA_simulation_plots_kf_state_compare_diffF.png'
+plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
+
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'CARLA_simulation_compare_ref_diffF.png'
+plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)

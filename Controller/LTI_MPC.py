@@ -138,8 +138,8 @@ class MPC:
             self.IDM_constraint_list.append(self.IDM_constraint(self.p_leading + self.leading_velocity*self.Param.dt*i, 
                                                                 self.x[2, i],self.lambda_s[0,i]))
         # Set the y constraint 13
-        self.y_upper = [143.318146+0.75] * (self.N+1)
-        self.y_lower = [-143.318146+0.75] * (self.N+1)
+        self.y_upper = [143.318146+1.75-2.54/2] * (self.N+1)
+        self.y_lower = [-143.318146+1.75-2.54/2] * (self.N+1)
         for i in range(self.N+1):
             self.y_upper[i] += self.slack_y[0,i]
             self.y_lower[i] += self.slack_y[0,i]
@@ -174,7 +174,7 @@ class MPC:
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
         self.opti.subject_to(self.u[0, :] <= 3.14 / 180)
         self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)
-        self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
+        self.opti.subject_to(self.u[1, :] <= 0.05 * 9.81)
         # tighten the change of the input
         # for i in range(self.N-1):
         #     self.opti.subject_to(self.u[1,i+1]-self.u[1,i] <= 0.5)

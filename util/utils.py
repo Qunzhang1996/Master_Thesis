@@ -89,7 +89,7 @@ def setup_carla_environment(Sameline_ACC=True):
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
         # car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=60, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=120, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
@@ -212,6 +212,8 @@ def plot_diff(t_axis,x_difference,y_difference):
     plt.legend()
     plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\y_difference.jpg')
     plt.show()
+    
+    
 
 
 
@@ -268,7 +270,7 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
             ax.plot(pred_x, pred_y, 'g--', label='Predicted Trajectory')
 
         # Update legend to include predicted trajectory
-        ax.legend(['', 'Constraint Box', 'Truck', 'Car', 'Predicted Trajectory'], loc='upper right')
+        # ax.legend(['', 'Constraint Box', 'Truck', 'Car', 'Predicted Trajectory'], loc='upper right')
         
         ax.set_xlabel('X Position')
         ax.set_ylabel('Y Position')
@@ -282,9 +284,74 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
     figure_path = os.path.join(figure_dir, gif_name)
     ani.save(figure_path, writer='imagemagick', fps=10)  # Adjust fps as needed
 
-
-
     plt.close(fig)  # Prevent the figure from displaying inline or in a window
+    
+    
+# ! here is the function to plot the trajectory of the truck (kalman true and estimated)
+def plot_kf_trajectory(truck_positions, estimated_position, figure_dir, figure_name):
+    plt.figure(figsize=(12, 4))
+    plt.plot([pos[0] for pos in truck_positions], [pos[1] for pos in truck_positions], label='True Trajectory', color='blue')
+    plt.plot([pos[0] for pos in estimated_position], [pos[1] for pos in estimated_position], label='Estimated Trajectory', color='red')
+    plt.scatter(truck_positions[-1][0], truck_positions[-1][1], color='blue', s=50)
+    plt.scatter(estimated_position[-1][0], estimated_position[-1][1], color='red', s=50)
+    #! plt truck boundary 
+    plt.plot([pos[0] for pos in truck_positions], [pos[1]+2.54/2 for pos in truck_positions], label='truck upper boundary', color='green')
+    plt.plot([pos[0] for pos in truck_positions], [pos[1]-2.54/2 for pos in truck_positions], label='truck lower boundary', color='green')
+    #! plt road boundary
+    plt.plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k--')
+    plt.plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k--')
+    # ! plot center line
+    plt.plot([0, 700], [143.318146, 143.318146], 'k--')
+    plt.ylim(143.318146 - 7, 143.318146 + 7)
+    plt.title('True and Estimated Trajectories')
+    plt.xlabel('X Position')
+    plt.ylabel('Y Position')
+    plt.legend()
+    
+    # Save the plot
+    if not os.path.exists(figure_dir):
+        os.makedirs(figure_dir)
+    figure_path = os.path.join(figure_dir, figure_name)
+    plt.savefig(figure_path)
+    plt.show()
+
+
+
+def plot_mpc_y_vel(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
+    # Create a 2x1 plot layout
+    fig, axs = plt.subplots(1, 2, figsize=(12, 8))
+    
+    # Calculate time array based on 0.2s per point assumption
+    time_array = np.arange(len(y_mpc)) * 0.2
+    
+    # Y position plot
+    axs[0].plot(time_array, y_mpc, label='MPC Y Position', color='r')
+    axs[0].plot(time_array, y_true, label='True Y Position', color='b')
+    axs[0].set_title('Y Position')
+    axs[0].set_xlabel('Time (s)')
+    axs[0].set_ylabel('Y Position')
+    axs[0].grid(True)
+    axs[0].legend()
+    
+    # Velocity plot
+    axs[1].plot(time_array, vel_mpc, label='MPC Velocity', color='r')
+    axs[1].plot(time_array, vel_true, label='True Velocity', color='b')
+    axs[1].set_title('Velocity')
+    axs[1].set_xlabel('Time (s)')
+    axs[1].set_ylabel('Velocity')
+    axs[1].set_ylim([5, 20])
+    axs[1].grid(True)
+    axs[1].legend()
+    
+    # Adjust layout for a neat presentation
+    plt.tight_layout()
+    
+    # Save the plot
+    if not os.path.exists(figure_dir):
+        os.makedirs(figure_dir)
+    figure_path = os.path.join(figure_dir, figure_name)
+    plt.savefig(figure_path)
+    plt.show()
     
 def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations,
                                   truck_jerks, car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
@@ -374,7 +441,7 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
     if x_positions_leading and y_positions_leading:
         axs[0, 2].plot(timestamps,np.sqrt((np.array(x_positions_leading)-np.array(x_positions))**2+(np.array(y_positions_leading)-np.array(y_positions))**2), 
                        '-',color='r',label='Difference')
-        axs[0, 2].set_ylim([0, 100])
+        axs[0, 2].set_ylim([0, 120])
         axs[0, 2].set_title('distance between Leading Car and Truck')
         axs[0, 2].set_xlabel('Time')
         axs[0, 2].set_ylabel('distance (m)')
@@ -386,7 +453,7 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
         # axs[1, 2].plot(velocity_times, np.array(truck_velocities[:-1])-np.array(leading_velocities[:-1]), '-', color='r',label='Difference')
         axs[1, 2].plot(velocity_times, np.array(truck_vel_mpc[1:]), '-', color='r', label='mpc reference velocity')
         axs[1, 2].plot(velocity_times, np.array(truck_vel_control[:-1]), '-', color='b', label='truck velocity')
-        axs[1, 2].set_ylim([5, 20])
+        # axs[1, 2].set_ylim([5, 20])
         axs[1, 2].set_title('MPC reference and velocity after pid control')
         axs[1, 2].set_xlabel('Time')
         axs[1, 2].set_ylabel('Velocity (m/s)')

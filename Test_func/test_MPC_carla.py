@@ -25,17 +25,19 @@ from util.utils import *
 car,truck = setup_carla_environment(Sameline_ACC=True)
 time.sleep(1)
 velocity1 = carla.Vector3D(10, 0, 0)
-velocity2 = carla.Vector3D(10, 0, 0)
+velocity2 = carla.Vector3D(15, 0, 0)
 car.set_target_velocity(velocity1)
 truck.set_target_velocity(velocity2)
 time.sleep(1)
 
 desired_interval = 0.2  # Desired time interval in seconds
 # initial the carla built in pid controller
-car_contoller = VehiclePIDController(car, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
-                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.05, 'K_D': 0.02, 'dt': desired_interval})
-local_controller = VehiclePIDController(truck, args_lateral = {'K_P': 2, 'K_I': 0.2, 'K_D': 0.01, 'dt': desired_interval}, 
-                                        args_longitudinal = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval})
+car_contoller = VehiclePIDController(car, 
+                                     args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
+                                     args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.05, 'dt': desired_interval})
+local_controller = VehiclePIDController(truck, 
+                                        args_lateral = {'K_P': 0.95, 'K_I': 0.2, 'K_D': 0.03, 'dt': desired_interval}, 
+                                        args_longitudinal = {'K_P': 1.7, 'K_I': 0.5, 'K_D': 0.1, 'dt': desired_interval})
 
 #------------------initialize the robust MPC---------------------
 ref_velocity = 15
@@ -46,7 +48,7 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
-vx_init_ego = 11
+vx_init_ego = 15
 vehicleADV.setInit([30,143.318146],vx_init_ego)
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,40]                                    # Input cost, Entries in diagonal matrix
@@ -94,7 +96,7 @@ p_leading = car_x
 # Simulation parameters
 start_time = time.time()  # Record the start time of the simulation
 noise = np.random.normal(0, 0.5)
-velocity_leading = 13
+velocity_leading = 12
 
 
 for i in range(1000):
