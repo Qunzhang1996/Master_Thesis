@@ -84,24 +84,24 @@ def setup_carla_environment(Sameline_ACC=True):
     # Destroy existing vehicles
     for actor in world.get_actors().filter('vehicle.*'):
         actor.destroy()
-
+    center_line = 143.318146
     if Sameline_ACC :
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
         # car_bp = bp_lib.find('vehicle.ford.ambulance')
-        car_spawn_point = carla.Transform(carla.Location(x=120, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=120, y=center_line, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
         truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
         # truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
-        truck_spawn_point = carla.Transform(carla.Location(x=20, y=143.318146, z=0.3))
+        truck_spawn_point = carla.Transform(carla.Location(x=20, y=center_line, z=0.3))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
     else:
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
-        car_spawn_point = carla.Transform(carla.Location(x=124, y=143.318146, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=124, y=center_line, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
@@ -109,7 +109,7 @@ def setup_carla_environment(Sameline_ACC=True):
         truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-100))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
 
-        return car, truck
+        return car, truck, center_line
 
 def spawn_vehicle(world, blueprint, spawn_point):
     """
@@ -459,6 +459,8 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
         axs[1, 2].set_ylabel('Velocity (m/s)')
         axs[1, 2].grid(True)
         axs[1, 2].legend() 
+        # legend right top
+        axs[1, 2].legend(loc='upper right')
 
         
     

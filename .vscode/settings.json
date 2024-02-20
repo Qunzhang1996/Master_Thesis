@@ -1,17 +1,20 @@
 {
-    "editor.tokenColorCustomizations": {
-        "textMateRules": [
-            {
-                "scope": [
-                    "comment",
-                    "keyword.todo",
-                    "keyword.fixme"
-                ],
-                "settings": {
-                    "foreground": "#00FF00", // Green color
-                    "fontStyle": "italic"     // Make it italic
-                }
-            }
-        ]
-    }
+    // "editor.tokenColorCustomizations": {
+    //     "textMateRules": [
+    //         {
+    //             "scope": [
+    //                 "comment",
+    //                 "keyword.todo",
+    //                 "keyword.fixme"
+    //             ],
+    //             "settings": {
+    //                 "foreground": "#00FF00", // Green color
+    //                 "fontStyle": "italic"     // Make it italic
+    //             }
+    //         }
+    //     ]
+    // },
+    "convertToAsciiArt.favoriteFont": "star wars",
+    "convertToAsciiArt.favoriteVerticalLayout": "full",
+    "convertToAsciiArt.favoriteHorizontalLayout": "full"
 }

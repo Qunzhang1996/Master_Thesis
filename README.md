@@ -63,6 +63,7 @@ This is the result of the MPC_PID_ACC with kalman filter (red bounding box is ti
   <img src="Figure/CARLA_simulation_compare_ref.png" width="85%" /> 
 </p>   
 This is the result of the MPC_PID_ACC with kalman filter (PID works every 0.2s, MPC works every 1s):
+(Computional time of the MPC is:  0.067s with N=12, 0.11s with N=30)
 <p float="left">
   <img src="Figure/CARLA_IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
 </p>   

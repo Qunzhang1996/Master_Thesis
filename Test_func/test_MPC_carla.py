@@ -49,9 +49,9 @@ int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
 vx_init_ego = 15
-vehicleADV.setInit([30,143.318146],vx_init_ego)
-Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
-R_ADV = [5,40]                                    # Input cost, Entries in diagonal matrix
+vehicleADV.setInit([20,143.318146],vx_init_ego)
+Q_ADV = [0,40,5e2,5]                            # State cost, Entries in diagonal matrix
+R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()

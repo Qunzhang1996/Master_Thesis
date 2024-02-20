@@ -134,11 +134,25 @@ class simpleOvertake:
             refu_out[i,:] = refu[i]
 
         return refx_out,refu_out
-
+    
+    
     def getRoad(self):
         roadMax = 2*self.laneWidth
         roadMin = -(self.lanes-2)*self.laneWidth
         laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
+        
+        return roadMin, roadMax, laneCenters
+    
+    
+    # ! for the new CARLA scenario, try to use the following function
+    def getRoad_NEW(self,lanecenter = None):
+        roadMax = 2*self.laneWidth
+        roadMin = -(self.lanes-2)*self.laneWidth
+        laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
+        if lanecenter != None:
+            roadMax = lanecenter+3/2*self.laneWidth
+            roadMin = lanecenter-3/2*self.laneWidth
+            laneCenters = [lanecenter-self.laneWidth,lanecenter,lanecenter+self.laneWidth]
         
         return roadMin, roadMax, laneCenters
 
