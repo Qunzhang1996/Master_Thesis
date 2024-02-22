@@ -4,7 +4,7 @@ from casadi import *
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
+path_to_add='C:\\Users\\A490242\\Desktop\\Master_Thesis'
 sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.helpers import *
 from Controller.MPC_tighten_bound import MPC_tighten_bound
@@ -16,7 +16,7 @@ class MPC:
     ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
     ██║  ███╗██║   ██║██║  ██║    ██████╔╝██║     █████╗  ███████╗███████╗    ██╔████╔██║██████╔╝██║                 
     ██║   ██║██║   ██║██║  ██║    ██╔══██╗██║     ██╔══╝  ╚════██║╚════██║    ██║╚██╔╝██║██╔═══╝ ██║                 
-    ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗            
+    ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗        
      ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
     """
 
@@ -66,6 +66,12 @@ class MPC:
     def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=6, T_s=1.0, lambda_s=0):
         """
         IDM constraint for tracking the vehicle in front.
+        p_leading: position of the leading vehicle
+        v_eg: velocity of the ego vehicle
+        d_s: desired minimum following distance
+        L1: is the tractor length
+        T_s: represents the time-headway
+        lambda_s: slack variable
         """
         return p_leading - L1 - d_s - T_s * v_eg + lambda_s
     

@@ -8,12 +8,13 @@ from scenarios import trailing, simpleOvertake
 from traffic import vehicleSUMO, combinedTraffic
 from controllers import makeController, makeDecisionMaster
 from helpers import *
+# from Mas.helpers import *
 
 from templateRLagent import RLAgent
 
 # Set Gif-generation
 makeMovie = True
-directory = r"C:\\Users\A490243\\Desktop\\Master_Thesis_Preparation\\src\\Autonomous-Truck-Sim\\simRes.gif"
+directory = r"C:\\Users\A490242\\Desktop\\Master_Thesis\\Autonomous_Truck_Sim\\simRes.gif"
 
 # System initialization 
 dt = 0.2                    # Simulation time step (Impacts traffic model accuracy)

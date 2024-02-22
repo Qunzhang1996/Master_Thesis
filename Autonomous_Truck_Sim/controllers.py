@@ -1,7 +1,7 @@
 from casadi import *
 import numpy as np
 from matplotlib import pyplot as plt
-from .helpers import *
+from helpers import *
 
 class makeController:
     """

@@ -67,6 +67,22 @@ def get_state(vehicle):
 
     return np.array([[x, y, v, psi]]).T
 
+def get_vehicle_location(vehicle):
+    """
+    Get the current location of a vehicle.
+    
+    Args:
+        vehicle (carla.Vehicle): The CARLA vehicle object.
+    
+    Returns:
+        carla.Location: The current location of the vehicle.
+    """
+    # Get the transform of the vehicle
+    vehicle_transform = vehicle.get_transform()
+    
+    # Extract and return the location from the transform
+    return vehicle_transform.location
+
 def setup_carla_environment(Sameline_ACC=True):
     """
     Sets up the CARLA environment by connecting to the server, 
@@ -80,6 +96,8 @@ def setup_carla_environment(Sameline_ACC=True):
     client = carla.Client('localhost', 2000)
     world = client.get_world()
     bp_lib = world.get_blueprint_library()
+
+    
 
     # Destroy existing vehicles
     for actor in world.get_actors().filter('vehicle.*'):
@@ -99,17 +117,22 @@ def setup_carla_environment(Sameline_ACC=True):
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
     else:
-        # Spawn Tesla Model 3
+        # Spawn Tesla Model 3 in the left lane
         car_bp = bp_lib.find('vehicle.tesla.model3')
         car_spawn_point = carla.Transform(carla.Location(x=124, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
-        # Spawn Firetruck
+        # Spawn Tesla Model 3 in the right lane
+        # car_bp = bp_lib.find('vehicle.tesla.model3')
+        car_spawn_point2 = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-50))
+        car2 = spawn_vehicle(world, car_bp, car_spawn_point2)
+
+        # Spawn Firetruck behind the car2 in the right lane
         truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-100))
+        truck_spawn_point = carla.Transform(car_spawn_point2.location + carla.Location(x=-50))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
 
-        return car, truck
+        return car, truck, car2
 
 def spawn_vehicle(world, blueprint, spawn_point):
     """
@@ -151,7 +174,96 @@ def getTotalCost(L,Lf,x,u,refx,refu,N):
                 cost += L(x[:,i],u[:,i],refx[:,i],refu[:,i])
             cost += Lf(x[:,N],refx[:,N])
             return cost
-        
+
+def getCurrentLane(vehicle):
+        # set the center lane location as the reference lane
+        center_lane = 143.318146
+        lane_width = 3.5
+        right_lane = center_lane + lane_width
+        left_lane = center_lane - lane_width
+
+        #set the range of each lane
+        right_lane_range = [right_lane - lane_width / 2, right_lane + lane_width / 2]
+        center_lane_range = [center_lane - lane_width / 2, center_lane + lane_width / 2]
+        left_lane_range = [left_lane - lane_width / 2, left_lane + lane_width / 2]
+
+        # Check the current lane of the ego vehicle
+        vehicle_pos = vehicle.get_transform()
+        vehicle_loc = vehicle_pos.location
+
+        # Extract relevant states
+        x = vehicle_loc.x 
+        y = vehicle_loc.y 
+
+       # Lane: [left = 1, middle = 0, right == -1, out of range = 2] 
+        # check if the ego vehicle is in the left lane
+        if left_lane_range[0] <= y <= left_lane_range[1]:
+            Lane = 1
+            target_y = left_lane
+        # check if the ego vehicle is in the right lane
+        elif right_lane_range[0] <= y <= right_lane_range[1]:
+            Lane = -1
+            target_y = right_lane
+        # check if the ego vehicle is in the center lane
+        elif center_lane_range[0] <= y <= center_lane_range[1]:
+            Lane = 0
+            target_y = center_lane
+        else:
+            Lane = 2
+            target_y = center_lane
+        return Lane, target_y
+
+# function to change the lane
+def change_lane(vehicle, target_lane):
+    """
+    Change the lane of the vehicle to the target lane.
+
+    Args:
+    - vehicle (carla.Vehicle): The vehicle to change the lane.
+    - target_lane (int): The target lane to change to. 
+    """
+    # Get the current lane of the vehicle
+    current_lane, y = getCurrentLane(vehicle)
+
+    # set the center lane location as the reference lane
+    center_lane = 143.318146
+    lane_width = 3.5
+    right_lane = center_lane + lane_width
+    left_lane = center_lane - lane_width
+    target_y = y
+
+    # check if the ego vehicle is in the left lane
+    if current_lane == 1:
+        # check if the target lane is the center lane
+        if target_lane == 0:
+            # change the lane to the center lane
+            target_y = center_lane
+            # target_x = x
+        # check if the target lane is the right lane
+        elif target_lane == -1:
+            # change the lane to the right lane
+            target_y = right_lane
+            # target_x = x
+    # check if the ego vehicle is in the right lane
+    elif current_lane == -1:
+        # check if the target lane is the center lane
+        if target_lane == 0:
+            # change the lane to the center lane
+            target_y = center_lane
+            # target_x = x
+        # check if the target lane is the left lane
+        elif target_lane == 1:
+            # change the lane to the left lane
+            target_y = left_lane
+            # target_x = x
+    # check if the ego vehicle is in the center lane
+    elif current_lane == 0:
+        # check if the target lane is the left lane
+        if target_lane == 1:
+            # change the lane to the left lane
+            target_y = left_lane
+            # target_x = x
+    return target_y    
         
 def smooth_velocity_diff(p_leading, truck_x):
     # Desired maximum value
@@ -201,7 +313,7 @@ def plot_diff(t_axis,x_difference,y_difference):
     plt.ylabel('x Difference')
     plt.title('Difference in x over Time')
     plt.legend()
-    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\x_difference.jpg')
+    plt.savefig('C:\\Users\\A490242\\Desktop\\Master_Thesis\\Figure\\x_difference.jpg')
 
     # For y difference
     plt.figure(3, figsize=(5, 5))
@@ -210,7 +322,7 @@ def plot_diff(t_axis,x_difference,y_difference):
     plt.ylabel('y Difference')
     plt.title('Difference in y over Time')
     plt.legend()
-    plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\y_difference.jpg')
+    plt.savefig('C:\\Users\\A490242\\Desktop\\Master_Thesis\\Figure\\y_difference.jpg')
     plt.show()
 
 
@@ -297,7 +409,7 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
     jerk_times = timestamps[3:] if len(timestamps) > 3 else []
 
     # save data to json file
-    parameters_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Parameters'
+    parameters_dir = r'C:\Users\A490242\Desktop\Master_Thesis\Parameters'
     os.makedirs(parameters_dir, exist_ok=True)
 
     # Prepare the data for saving

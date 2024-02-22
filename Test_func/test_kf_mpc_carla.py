@@ -1,19 +1,19 @@
 from casadi import *
 import carla
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pltw
 import sys
 import time
 import os
 import json
-sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
-sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
+sys.path.append(r'C:\Users\A490242\Desktop\Documents\WindowsNoEditor\PythonAPI\carla')
+sys.path.append(r'C:\Users\A490242\Desktop\Master_Thesis')
 # import observor
 from kalman_filter.kalman_filter import kalman_filter
 # import controller
 from Controller.LTI_MPC import MPC
 from vehicleModel.vehicle_model import car_VehicleModel
-from agents.navigation.controller import VehiclePIDController
+from agents.navigation.controller_upd import VehiclePIDController
 # import helpers
 from util.utils import *
 
@@ -21,7 +21,7 @@ from util.utils import *
 # import subprocess
 # # Command to run your script
 # command = (
-#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+#     r'cd C:\Users\A490242\Desktop\Documents\WindowsNoEditor\PythonAPI\util && '
 #     r'python config.py --map Town06')
 # subprocess.run(command, shell=True)
 # # --------------------------Run the command--------------------------
@@ -247,10 +247,10 @@ for i in range(1000):
     
 # print(Trajectory_pred)
 
-gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+gif_dir = r'C:\Users\A490242\Desktop\Master_Thesis\Figure'
 gif_name = 'IDM_constraint_simulation_plots_with_filter.gif'
 animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_dir = r'C:\Users\A490242\Desktop\Master_Thesis\Figure'
 figure_name = 'simulation_plots_with_filter.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
