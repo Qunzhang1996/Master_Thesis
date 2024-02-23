@@ -1,4 +1,4 @@
-""" Here is the LTI_Mpc for the Autonomous Vehicle to track the vehicle in front in the straight road. 
+""" Here is the LTI_Mpc for the Autonomous egoVehicle to track the egoVehicle in front in the straight road. 
 """
 from casadi import *
 import numpy as np
@@ -10,7 +10,7 @@ from Autonomous_Truck_Sim.helpers import *
 from Controller.MPC_tighten_bound import MPC_tighten_bound
 from vehicleModel.vehicle_model import car_VehicleModel
 from util.utils import Param
-class MPC:
+class LC_MPC:
     """
     ██████╗  ██████╗ ██████╗      ██████╗ ██╗     ███████╗███████╗███████╗    ███╗   ███╗██████╗  ██████╗            
     ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
@@ -20,15 +20,16 @@ class MPC:
      ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
     """
 
-    def __init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.95, N=12) -> None:
+    def __init__(self, egoVehicle, trafficVehicles, Q, R, P0, process_noise, Possibility=0.95, N=12, version='trailing', scenario=None) -> None:
         # The number of MPC states, here include x, y, psi and v
         NUM_OF_STATES = 4
         self.nx = NUM_OF_STATES
         # The number of MPC actions, including acc and steer_angle
         NUM_OF_ACTS = 2
         self.nu = NUM_OF_ACTS
-        self.vehicle = vehicle
-        self.nx, self.nu, self.nrefx, self.nrefu = self.vehicle.getSystemDim()
+        self.egoVehicle = egoVehicle
+        self.nx, self.nu, self.nrefx, self.nrefu = self.egoVehicle.getSystemDim()
+        self.Nveh = len(trafficVehicles)
         self.Q = Q
         self.R = R
         self.P0 = P0
@@ -36,7 +37,7 @@ class MPC:
         self.Possibility = Possibility
         self.N = N
         self.Param = Param()
-        # ref val for the vehicle matrix
+        # ref val for the egoVehicle matrix
         self.v_ref = 15
         self.phi_ref = 0
         self.delta_ref = 0
@@ -54,20 +55,78 @@ class MPC:
         # slack variable for y 
         self.slack_y = self.opti.variable(1,self.N + 1)
 
-        # IDM leading vehicle position parameter
+        # IDM leading egoVehicle position parameter
         self.p_leading = self.opti.parameter(1)
         # set car velocity 
         self.leading_velocity = self.opti.parameter(1)
         self.vel_diff = self.opti.parameter(1)
+        # set the controller options
+        self.version = version
+
+        self.scenario = scenario
     
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
     
     def IDM_constraint(self, p_leading, v_eg, d_s=1, L1=6, T_s=1.0, lambda_s=0):
         """
-        IDM constraint for tracking the vehicle in front.
+        IDM constraint for tracking the egoVehicle in front.
         """
         return p_leading - L1 - d_s - T_s * v_eg + lambda_s
+    
+    def lane_change_constraint(egoVehicle, vehicles, version, lane_width = 3.5): # still working on this
+        """
+        Lane change constraint for the ego egoVehicle.
+        
+        Args:
+        - px: Ego egoVehicle position in the x-direction
+        - egoVehicle: Dictionary containing ego egoVehicle details (e.g., width, length)
+        - vehicles: Dictionary containing surrounding egoVehicle details (e.g., width, length, position of the surrounding egoVehicle)
+        - lane_width: Width of each lane
+        - version: Version of the lane change scenario ('leftChange' or 'rightChange')
+        
+        Returns:
+        - constraint_value: Value of the lane change constraint
+        """
+        # lead_width, lead_length = vehicles['width'], vehicles['length']
+        ego_width, ego_length, L_tract, L_trail = egoVehicle.getSize()
+        v0_i = vehicles['v0']
+        
+        if version == "leftChange":
+            traffic_sign = -1
+            if vehicles['y'] > lane_width:
+                traffic_shift = 2 * lane_width
+                flip = -1
+            elif vehicles['y'] < 0:
+                traffic_shift = 0
+            else:
+                traffic_shift = 0
+                flip = 1
+        elif version == "rightChange":
+            traffic_sign = 1
+            if vehicles['y'] > lane_width:
+                traffic_shift = 2 * lane_width
+                flip = -1
+            elif vehicles['y'] < 0:
+                traffic_shift = -lane_width
+                flip = -1
+            else:
+                traffic_shift = lane_width
+                flip = -1
+                
+        Time_headway = 1  # Adjust as necessary
+        min_distx = 1  # Adjust as necessary
+        
+        func1 = traffic_sign * (traffic_sign * (vehicles['y'] - traffic_shift) + ego_width + lead_width) / 2 * \
+                tanh(px - vehicles['x'] + lead_length / 2 + L_tract + v0_i * Time_headway + min_distx) + traffic_shift / 2
+
+        func2 = traffic_sign * (traffic_sign * (vehicles['y'] - traffic_shift) + ego_width + lead_width) / 2 * \
+                tanh(-(px - vehicles['x']) + lead_length / 2 + L_trail + v0_i * Time_headway + min_distx) + traffic_shift / 2
+
+        constraint_value = func1 + func2
+        
+        return constraint_value
+
     
     def calc_linear_discrete_model(self, v, phi=0, delta=0):
         """
@@ -137,6 +196,8 @@ class MPC:
         for i in range(self.N+1):
             self.IDM_constraint_list.append(self.IDM_constraint(self.p_leading + self.leading_velocity*self.Param.dt*i, 
                                                                 self.x[2, i],self.lambda_s[0,i]))
+            
+        
         # Set the y constraint 13
         self.y_upper = [143.318146+0.75] * (self.N+1)
         self.y_lower = [-143.318146+0.75] * (self.N+1)
@@ -179,14 +240,20 @@ class MPC:
         # for i in range(self.N-1):
         #     self.opti.subject_to(self.u[1,i+1]-self.u[1,i] <= 0.5)
         #     self.opti.subject_to(self.u[1,i+1]-self.u[1,i] >= -0.5)
-        
-        
-        
+          
+    
+    def setInEqConstraints_lc(self):
+        """
+        Set inequality constraints for lane change scenario.
+        """
+        v, phi, delta = self.v_ref, self.phi_ref, self.delta_ref
+
+
     def setCost(self):
         """
         Set cost function for the optimization problem.
         """
-        L, Lf = self.vehicle.getCost()
+        L, Lf = self.egoVehicle.getCost()
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
         # Add slack variable cost
         cost += 3e4*self.lambda_s@ self.lambda_s.T
@@ -194,13 +261,20 @@ class MPC:
         cost += 3e4*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
     
-    def setController(self):
-        """
-        Set constraints and cost function for the MPC controller.
-        """
-        self.setStateEqconstraints()
-        self.setInEqConstraints()
-        self.setCost()
+    # def setController(self, version='trailing'):
+    #     """
+    #     Set constraints and cost function for the MPC controller.
+    #     """
+    #     self.setStateEqconstraints()
+    #     if version == 'trailing':
+            
+    #         self.setInEqConstraints()
+    #         self.setCost()
+    #     else:
+
+            
+        
+
     
     def solve(self, x0, ref_trajectory, ref_control, p_leading, leading_velocity=10, vel_diff=5):
         """
@@ -235,7 +309,7 @@ class MPC:
         
     def get_dynammic_model(self):
         """
-        Return the dynamic model of the vehicle.
+        Return the dynamic model of the egoVehicle.
         """
         return self.A, self.B, self.C
 

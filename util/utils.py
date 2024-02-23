@@ -83,6 +83,31 @@ def get_vehicle_location(vehicle):
     # Extract and return the location from the transform
     return vehicle_transform.location
 
+def get_vehicle_dimensions(vehicle):
+    """
+    Get the dimensions (width, length, height) of a vehicle.
+
+    Args:
+        vehicle: The Carla vehicle object.
+
+    Returns:
+        tuple: A tuple containing the width, length, and height of the vehicle.
+    """
+    # Get the transform of the vehicle
+    transform = vehicle.get_transform()
+
+    # Get the bounding box of the vehicle
+    bounding_box = vehicle.bounding_box
+
+    # Get the dimensions of the bounding box
+    width = bounding_box.extent.x * 2
+    length = bounding_box.extent.y * 2
+    height = bounding_box.extent.z * 2
+
+    return width, length, height
+
+
+
 def setup_carla_environment(Sameline_ACC=True):
     """
     Sets up the CARLA environment by connecting to the server, 

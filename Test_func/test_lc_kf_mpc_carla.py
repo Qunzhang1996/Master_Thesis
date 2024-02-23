@@ -11,9 +11,10 @@ sys.path.append(r'C:\Users\A490242\Desktop\Master_Thesis')
 # import observor
 from kalman_filter.kalman_filter import kalman_filter
 # import controller
-from Controller.LTI_MPC import MPC
+from Controller.LC_MPC import LC_MPC
 from vehicleModel.vehicle_model import car_VehicleModel
 from agents.navigation.controller_upd import VehiclePIDController
+from Controller.scenarios import trailing, simpleOvertake
 # import helpers
 from util.utils import *
 
@@ -78,7 +79,18 @@ vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 P0, process_noise, possibility = set_stochastic_mpc_params()
-mpc_controller = MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N)
+
+# changes done by saeed
+# ------------------ Problem definition ---------------------
+scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
+scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
+opts1 = {"version" : "leftChange"}
+opts2 = {"version" : "rightChange"}
+opts3 = {"version" : "trailing"}
+
+# end of changes by saeed
+
+mpc_controller = LC_MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, scenarioADV)
 
 ## !----------------- get initial state and set ref for the ccontroller ------------------------
                                                                                   

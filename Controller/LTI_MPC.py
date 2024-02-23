@@ -59,6 +59,7 @@ class MPC:
         # set car velocity 
         self.leading_velocity = self.opti.parameter(1)
         self.vel_diff = self.opti.parameter(1)
+      
     
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
