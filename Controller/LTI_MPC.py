@@ -180,7 +180,7 @@ class MPC:
         L, Lf = self.vehicle.getCost()
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
         # Add slack variable cost
-        # cost += 3e-8*self.lambda_s@ self.lambda_s.T
+        # cost += 3e4*self.lambda_s@ self.lambda_s.T
         # choose the maximum value of the slack variable linear cost and quadratic cost
         # for i in range(self.N+1):
         #     cost += max(-3e2*self.lambda_s[0,i], 3e2*self.lambda_s[0,i]**2)
@@ -192,11 +192,9 @@ class MPC:
         tighten_list=[0, (2.32743), (3.3005), (4.05798), (4.70298), (5.27452), (5.79271), 
                  (6.26978), (6.7139), (7.13089), (7.52508), (7.89977), (8.25757)]
         for i in range(self.N+1):
-        #     cost += 5e4*exp(-self.lambda_s[0,i]-tighten_list[i])
-
-            cost +=if_else(self.lambda_s[0,i]<=-tighten_list[i], 3e3*self.lambda_s[0,i]**2, -3e4*self.lambda_s[0,i]) 
+            cost +=if_else(self.lambda_s[0,i]<=-tighten_list[i], 3e4*self.lambda_s[0,i]**2, -3e4*self.lambda_s[0,i]) 
         for i in range(self.N-1):
-                cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
+            cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
         # Add slack variable cost for y
         # cost += 3e4*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
