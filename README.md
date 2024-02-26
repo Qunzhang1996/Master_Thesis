@@ -25,9 +25,13 @@ This is the result of the MPC_PID_ACC without kalman filter (red bounding box is
 <p float="left">
   <img src="Figure/simulation_plots.png" width="85%" /> 
 </p>   
+## 2024/02/14 QunZhang
 For the kf_MPC, we use the workflow shown below (we did not use the sensor in carla actually):
 <p float="left">
   <img src="Figure/Work_flow.png" width="85%" /> 
+</p>   
+<p float="left">
+  <img src="Figure/ACC_in_heavy_traffic.gif" width="85%" /> 
 </p>   
 This is the result of the MPC_PID_ACC with kalman filter (red bounding box is tighten IDM_constraint):  
 <p float="left">

@@ -126,7 +126,7 @@ def setup_complex_carla_environment():
         actor.destroy()
 
     vehicles = [
-        ('vehicle.tesla.model3', 120),
+        ('vehicle.tesla.model3', 80),
         ('vehicle.carlamotors.firetruck', 20), # ! this is leading vehicle
         ('vehicle.ford.mustang', 20, -7),
         ('vehicle.carlamotors.carlacola', 20, -3.5),

@@ -134,7 +134,8 @@ for i in range(1000):
     truck_vel_mpc.append(x_iter[2])
     lambda_s_list.append(lambda_s)
     
-    
+    car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
+    truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
     truck_state_ctr = get_state(truck)
     truck_vel_ctr=truck_state_ctr[C_k.V_km].item()
     truck_vel_control.append(truck_vel_ctr)

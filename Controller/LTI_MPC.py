@@ -73,23 +73,23 @@ class MPC:
         """
         Calculate linear and discrete time dynamic model.
         """
-        A = DM([[1.0, 0.0, self.Param.dt * np.cos(phi), -self.Param.dt * v * np.sin(phi)],
+        A_d = DM([[1.0, 0.0, self.Param.dt * np.cos(phi), -self.Param.dt * v * np.sin(phi)],
                 [0.0, 1.0, self.Param.dt * np.sin(phi), self.Param.dt * v * np.cos(phi)],
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, self.Param.dt * np.tan(delta) / self.Param.WB, 1.0]])
         
-        B = DM([[0.0, 0.0],
+        B_d = DM([[0.0, 0.0],
                 [0.0, 0.0],
                 [0.0, self.Param.dt],
                 [self.Param.dt * v / (self.Param.WB * np.cos(delta) ** 2), 0.0]])
         
         
-        C = DM([self.Param.dt * v * np.sin(phi) * phi,
+        g_d = DM([self.Param.dt * v * np.sin(phi) * phi,
                 -self.Param.dt * v * np.cos(phi) * phi,
                 0.0,
                 -self.Param.dt * v * delta / (self.Param.WB * np.cos(delta) ** 2)])
         
-        return A, B, C
+        return A_d, B_d, g_d
     
     def setStateEqconstraints(self, v=15, phi=0, delta=0):
         """

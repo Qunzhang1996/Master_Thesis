@@ -62,7 +62,8 @@ IDM_constraint_list = []
 for i in range(N+1):
     IDM_constraint_list.append(100+10*i*0.2)
 IDM_constraint_list = np.array(IDM_constraint_list).reshape(-1, 1)
-tightened_bound_N_IDM_list=MPC_tighten_bound_.tighten_bound_N_IDM(IDM_constraint_list,N)
+tightened_bound_N_IDM_list,_=MPC_tighten_bound_.tighten_bound_N_IDM(IDM_constraint_list,N)
+print(tightened_bound_N_IDM_list)
 
 
 
@@ -72,7 +73,7 @@ fig, axs = plt.subplots(3, 2, figsize=(12, 8))
 fig.suptitle('Tightened Bound and IDM Constraint Comparison')
 
 # Titles for the first 4 subplots
-titles = ['Constraint for x', 'Constraint for y', 'Constraint for v', 'Constraint for psi']
+titles = ['Constraint for x', 'Constraint for y', 'Constraint for v', 'Constraint for phi']
 for i in range(4):
     row, col = divmod(i, 2)
     axs[row, col].plot(tightened_bound_N_list_up[:, i], '-o', label='upper bound')  # Plot all points for column i
@@ -88,7 +89,6 @@ ax_big.plot(IDM_constraint_list, '-o', label='IDM constraint')  # Plot all point
 ax_big.plot(tightened_bound_N_IDM_list, '-o', label='tightened bound')  # Plot all points for tightened bound
 ax_big.legend(loc='upper right')
 ax_big.set_title('IDM Constraint vs. Tightened Bound')
-ax_big.grid(True)
 
 plt.tight_layout()  
 plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg')
