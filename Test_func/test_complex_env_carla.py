@@ -17,20 +17,19 @@ from agents.navigation.controller import VehiclePIDController
 # import helpers
 from util.utils import *
 
-# #! ------------------------change map to Town06------------------------
-# import subprocess
-# # Command to run your script
-# command = (
-#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-#     r'python config.py --map Town06')
-# subprocess.run(command, shell=True)
-# #! --------------------------Run the command--------------------------
-
-
+#! ------------------------change map to Town06------------------------
+import subprocess
+# Command to run your script
+command = (
+    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+    r'python config.py --map Town06')
+subprocess.run(command, shell=True)
+exit()
+#! --------------------------Run the command--------------------------
 
 
 # ███████╗██╗   ██╗███╗   ██╗ ██████╗         ██████╗████████╗██████╗ ██╗     
-# ██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝        ██╔════╝╚══██╔══╝██╔══██╗██║     
+# ██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝        ██╔════╝╚══██╔══╝██╔══██╗██║     EE
 # ███████╗ ╚████╔╝ ██╔██╗ ██║██║             ██║        ██║   ██████╔╝██║     
 # ╚════██║  ╚██╔╝  ██║╚██╗██║██║             ██║        ██║   ██╔══██╗██║     
 # ███████║   ██║   ██║ ╚████║╚██████╗███████╗╚██████╗   ██║   ██║  ██║███████╗
@@ -39,34 +38,33 @@ from util.utils import *
 SYNC_CTRL = True  # True for syncronized control, False for different control
 frequence = 1 if SYNC_CTRL else 5  # frequence of the MPC controller
 ## !----------------- Carla Settings ------------------------
-car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes, center_line =\
-                                                        setup_complex_carla_environment()
+spawned_vehicles, center_line = setup_complex_carla_environment()
+
+car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes=spawned_vehicles
 time.sleep(1)
 ## !----------------- Set the velocity of the vehicles ------------------------
 ref_velocity = 54/3.6  # TODO: here is the reference velocity for the truck
-ref_velocity_=carla.Vector3D(ref_velocity, 0, 0)
-normal_velocity = carla.Vector3D(0.9*ref_velocity, 0, 0)
-passive_velocity = carla.Vector3D(0.7*ref_velocity, 0, 0)
-aggressive_velocity = carla.Vector3D(1.0*ref_velocity, 0, 0)
+velocities = {
+        'normal': carla.Vector3D(0.9 * ref_velocity, 0, 0),
+        'passive': carla.Vector3D(0.7 * ref_velocity, 0, 0),
+        'aggressive': carla.Vector3D(ref_velocity, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
+        'reference': carla.Vector3D(ref_velocity, 0, 0)  # Specifically for the truck
+    }
 
 # vehicle on trhe first lane
-mustang.set_target_velocity(normal_velocity)
+mustang.set_target_velocity(velocities['normal'])
 #vehicle on the second lane
-carlacola.set_target_velocity(aggressive_velocity)
-lincoln.set_target_velocity(aggressive_velocity)
+carlacola.set_target_velocity(velocities['normal'])
+lincoln.set_target_velocity(velocities['aggressive'])
 #vehicle on the third lane
-car.set_target_velocity(normal_velocity)
-truck.set_target_velocity(ref_velocity_)
-ford_ambulance.set_target_velocity(aggressive_velocity)
+car.set_target_velocity(velocities['normal'])
+truck.set_target_velocity(velocities['reference']) # ! This is ego vehicle
+ford_ambulance.set_target_velocity(velocities['aggressive'])
 #vehicle on the fourth lane
-patrol.set_target_velocity(aggressive_velocity)
-mercerdes.set_target_velocity(aggressive_velocity)
+patrol.set_target_velocity(velocities['aggressive'])
+mercerdes.set_target_velocity(velocities['aggressive'])
 time.sleep(1)
 
-
-client = carla.Client('localhost', 2000)
-world = client.get_world()
-carla_map = world.get_map()
 # ██████╗ ██╗██████╗                             
 # ██╔══██╗██║██╔══██╗                            
 # ██████╔╝██║██║  ██║                            
@@ -95,7 +93,7 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
 vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
-vx_init_ego = 15
+vx_init_ego = ref_velocity
 vehicleADV.setInit([20,center_line],vx_init_ego)
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,40]                                    # Input cost, Entries in diagonal matrix

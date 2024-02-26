@@ -114,9 +114,8 @@ def setup_carla_environment(Sameline_ACC=True):
     
 def setup_complex_carla_environment():
     """
-    Sets up the CARLA environment by connecting to the server, 
-    spawning vehicles, and setting their initial states.
-    Returns the car and truck actors.
+    Sets up a CARLA environment by connecting to the server, destroying existing vehicles,
+    and spawning a selection of vehicles with initial states.
     """
     client = carla.Client('localhost', 2000)
     world = client.get_world()
@@ -125,51 +124,29 @@ def setup_complex_carla_environment():
     # Destroy existing vehicles
     for actor in world.get_actors().filter('vehicle.*'):
         actor.destroy()
+
+    vehicles = [
+        ('vehicle.tesla.model3', 120),
+        ('vehicle.carlamotors.firetruck', 20), # ! this is leading vehicle
+        ('vehicle.ford.mustang', 20, -7),
+        ('vehicle.carlamotors.carlacola', 20, -3.5),
+        ('vehicle.lincoln.mkz_2017', 80, -3.5),
+        ('vehicle.ford.ambulance', 200),
+        ('vehicle.nissan.patrol_2021', 20, 3.5),
+        ('vehicle.mercedes.sprinter', 60, 3.5)
+    ]
     center_line = 143.318146
-    # Spawn Tesla Model 3
-    car_bp = bp_lib.find('vehicle.tesla.model3')
-    # car_bp = bp_lib.find('vehicle.ford.ambulance')
-    car_spawn_point = carla.Transform(carla.Location(x=120, y=center_line, z=0.3))
-    car = spawn_vehicle(world, car_bp, car_spawn_point)
+    spawned_vehicles = []
 
-    # Spawn Firetruck
-    truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-    # truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
-    truck_spawn_point = carla.Transform(carla.Location(x=20, y=center_line, z=0.3))
-    truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
-    
-    # !  adding more vehicles on different road
-    # Spawn vehicle.ford.mustang
-    mustang_bp = bp_lib.find('vehicle.ford.mustang')
-    mustang_spawn_point = carla.Transform(carla.Location(x=20, y=center_line-7, z=0.3))
-    mustang = spawn_vehicle(world, mustang_bp, mustang_spawn_point)
-    # Spawn vehicle.ford.mustang
-    carlacola_bp = bp_lib.find('vehicle.carlamotors.carlacola')
-    carlacola_spawn_point = carla.Transform(carla.Location(x=20, y=center_line-3.5, z=0.3))
-    carlacola = spawn_vehicle(world, carlacola_bp, carlacola_spawn_point)
-    # Spawn vehicle.lincoln.mkz_2017
-    lincoln_bp = bp_lib.find('vehicle.lincoln.mkz_2017')
-    lincoln_spawn_point = carla.Transform(carla.Location(x=80, y=center_line-3.5, z=0.3))
-    lincoln = spawn_vehicle(world, lincoln_bp, lincoln_spawn_point)
-    
-    # Spawn vehicle.ford.ambulance
-    ford_ambulance_bp = bp_lib.find('vehicle.ford.ambulance')   
-    ford_ambulance_spawn_point = carla.Transform(carla.Location(x=200, y=center_line, z=0.3))
-    ford_ambulance = spawn_vehicle(world, ford_ambulance_bp, ford_ambulance_spawn_point)
-    
-    # Spawn vehicle.nissan.patrol_2021
-    patrol_bp = bp_lib.find('vehicle.nissan.patrol_2021')
-    patrol_spawn_point = carla.Transform(carla.Location(x=20, y=center_line+3.5, z=0.3))
-    patrol = spawn_vehicle(world, patrol_bp, patrol_spawn_point)
-    
-    
-    # vehicle.mercedes.sprinter
-    mercerdes_bp = bp_lib.find('vehicle.mercedes.sprinter')
-    mercerdes_spawn_point = carla.Transform(carla.Location(x=60, y=center_line+3.5, z=0.3))
-    mercerdes = spawn_vehicle(world, mercerdes_bp, mercerdes_spawn_point)
+    for vehicle_info in vehicles:
+        bp = bp_lib.find(vehicle_info[0])
+        location = carla.Location(x=vehicle_info[1], y=center_line + vehicle_info[2] if len(vehicle_info) > 2 else center_line, z=0.3)
+        spawn_point = carla.Transform(location)
+        vehicle = spawn_vehicle(world, bp, spawn_point)
+        spawned_vehicles.append(vehicle)
 
+    return spawned_vehicles, center_line
 
-    return car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes, center_line
 
 def spawn_vehicle(world, blueprint, spawn_point):
     """
