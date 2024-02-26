@@ -96,7 +96,7 @@ p_leading = car_x
 # Simulation parameters
 start_time = time.time()  # Record the start time of the simulation
 noise = np.random.normal(0, 0.5)
-velocity_leading = 12
+velocity_leading = 11
 
 
 for i in range(1000):

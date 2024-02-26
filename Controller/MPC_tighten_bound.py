@@ -79,12 +79,15 @@ class MPC_tighten_bound:
         original_constraint = IDM_constraint # contains the 13X1 vector
         tightened_bound_N_IDM_list = []
         tightened_bound_N_IDM_list.append(original_constraint[0])
+        temp_list = []
+        temp_list.append(0)
         for i in range(0,N):
             current_sigma = sigma_list[i][0,0] # Only the first element: "x" of the sigma matrix is used
             temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
             tightened_bound_N_IDM_list.append(original_constraint[i+1] - temp)
+            temp_list.append(temp)
             
-        return np.array(tightened_bound_N_IDM_list).reshape(N+1, -1)
+        return np.array(tightened_bound_N_IDM_list).reshape(N+1, -1), temp_list
     
     def tighten_bound_N_y_upper(self, y_constrain, N):
         _, K = self.calculate_Dlqr()

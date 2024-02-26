@@ -25,6 +25,10 @@ from util.utils import *
 #     r'python config.py --map Town06')
 # subprocess.run(command, shell=True)
 # #! --------------------------Run the command--------------------------
+
+
+
+
 # ███████╗██╗   ██╗███╗   ██╗ ██████╗         ██████╗████████╗██████╗ ██╗     
 # ██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝        ██╔════╝╚══██╔══╝██╔══██╗██║     
 # ███████╗ ╚████╔╝ ██╔██╗ ██║██║             ██║        ██║   ██████╔╝██║     
@@ -35,17 +39,34 @@ from util.utils import *
 SYNC_CTRL = True  # True for syncronized control, False for different control
 frequence = 1 if SYNC_CTRL else 5  # frequence of the MPC controller
 ## !----------------- Carla Settings ------------------------
-car,truck = setup_carla_environment(Sameline_ACC=True)
+car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes, center_line =\
+                                                        setup_complex_carla_environment()
 time.sleep(1)
-velocity1 = carla.Vector3D(10, 0, 0)
-velocity2 = carla.Vector3D(15, 0, 0)
-car.set_target_velocity(velocity1)
-truck.set_target_velocity(velocity2)
+## !----------------- Set the velocity of the vehicles ------------------------
+ref_velocity = 54/3.6  # TODO: here is the reference velocity for the truck
+ref_velocity_=carla.Vector3D(ref_velocity, 0, 0)
+normal_velocity = carla.Vector3D(0.9*ref_velocity, 0, 0)
+passive_velocity = carla.Vector3D(0.7*ref_velocity, 0, 0)
+aggressive_velocity = carla.Vector3D(1.0*ref_velocity, 0, 0)
+
+# vehicle on trhe first lane
+mustang.set_target_velocity(normal_velocity)
+#vehicle on the second lane
+carlacola.set_target_velocity(aggressive_velocity)
+lincoln.set_target_velocity(aggressive_velocity)
+#vehicle on the third lane
+car.set_target_velocity(normal_velocity)
+truck.set_target_velocity(ref_velocity_)
+ford_ambulance.set_target_velocity(aggressive_velocity)
+#vehicle on the fourth lane
+patrol.set_target_velocity(aggressive_velocity)
+mercerdes.set_target_velocity(aggressive_velocity)
 time.sleep(1)
+
+
 client = carla.Client('localhost', 2000)
 world = client.get_world()
 carla_map = world.get_map()
-center_line = 143.318146
 # ██████╗ ██╗██████╗                             
 # ██╔══██╗██║██╔══██╗                            
 # ██████╔╝██║██║  ██║                            
@@ -58,8 +79,8 @@ car_contoller = VehiclePIDController(car,
                                      args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
                                      args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.05, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 1.5, 'K_I': 0.5, 'K_D': 0.05, 'dt': desired_interval}, 
-                                        args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0.02, 'dt': desired_interval})
+                                        args_lateral = {'K_P': 1.5, 'K_I': 0.5, 'K_D': 0.1, 'dt': desired_interval}, 
+                                        args_longitudinal = {'K_P': 1.7, 'K_I': 0.5, 'K_D': 0.1, 'dt': desired_interval})
 # ███╗   ███╗██████╗  ██████╗
 # ████╗ ████║██╔══██╗██╔════╝
 # ██╔████╔██║██████╔╝██║     
@@ -67,7 +88,6 @@ local_controller = VehiclePIDController(truck,
 # ██║ ╚═╝ ██║██║     ╚██████╗
 # ╚═╝     ╚═╝╚═╝      ╚═════╝                           
 ## !----------------- Robust MPC Controller Settings ------------------------                           
-ref_velocity = 15  # TODO: here is the reference velocity for the truck
 dt = desired_interval
 N=12
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 6)
@@ -111,7 +131,7 @@ mpc_controller.setController()
 #  ╚═════╝ ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝   ╚═════╝ ╚═╝  ╚═╝
 # !----------------- Kalman Filter Settings ------------------------                                                                                                                                                                                                                         
 # set the process and measurement noise
-sigma_process=0.01
+sigma_process=0.1
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
 Q_0[0,0]=2  # x bound is [0, 3]
@@ -164,7 +184,7 @@ p_leading = car_x
 
 # ! Simulation parameters
 start_time = time.time()  # Record the start time of the simulation
-velocity_leading = 11  # m/s
+velocity_leading = 12  # m/s
 
 # ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗
 # ██╔════╝██║████╗ ████║██║   ██║██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║
@@ -200,21 +220,21 @@ for i in range(1000):
     truck_estimate_positions.append((float(truck_x[0]), float(truck_y[0])))
     truck_positions.append((truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item()))
     # TODO: predict the state of car, assuming the car is moving at a constant velocity
-    p_leading=p_leading + (velocity_leading+r2[2])*desired_interval
+    # p_leading=p_leading + (car_v+r2[2])*desired_interval
     #! uncomment  here  to ignore kalman filter
     # truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
     # print("this is heading angle of the truck: ", truck_psi)
-    # p_leading=car_x + r2[0] # we can also use the car state as the leading vehicle state, more realistic
+    p_leading=car_x + r2[0] # we can also use the car state as the leading vehicle state, more realistic
     if i % frequence == 0:
         # get the CARLA state
         x_iter = vertcat(truck_x, truck_y, truck_v, truck_psi)
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
-                                                      p_leading, (velocity_leading+r2[2]), vel_diff)
+                                                      p_leading, velocity_leading, vel_diff)
         x_iter=x_opt[:,1]
         print(f"the optimal state of the truck is: {x_iter}")
         # ! get the first input of the optimal input for the kalman filter
-        # print("computional time of the MPC is: ", time.time()-iteration_start)
+        print("computional time of the MPC is: ", time.time()-iteration_start)
     
         
     all_tightened_bounds.append(tightened_bound_N_IDM_list)  
@@ -264,45 +284,3 @@ for i in range(1000):
     time.sleep(sleep_duration)
     # if i >150: velocity_leading = 3
     if i == 220: break
-
-# ██████╗ ██╗      ██████╗ ████████╗
-# ██╔══██╗██║     ██╔═══██╗╚══██╔══╝
-# ██████╔╝██║     ██║   ██║   ██║   
-# ██╔═══╝ ██║     ██║   ██║   ██║   
-# ██║     ███████╗╚██████╔╝   ██║   
-# ╚═╝     ╚══════╝ ╚═════╝    ╚═╝   
-                            
-if SYNC_CTRL==True:
-    # gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    # gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter.gif'
-    # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_name = 'CARLA_simulation_plots_with_filter.png'
-    plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-                                car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-                                figure_dir,figure_name)
-
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_name = 'CARLA_simulation_plots_kf_state_compare.png'
-    plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
-
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_name = 'CARLA_simulation_compare_ref.png'
-    plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
-else:
-    gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter_diffF.gif'
-    animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_name = 'CARLA_simulation_plots_with_filter_diffF.png'
-    plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-                                car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-                                figure_dir,figure_name)
-
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_name = 'CARLA_simulation_plots_kf_state_compare_diffF.png'
-    plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
-
-    figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    figure_name = 'CARLA_simulation_compare_ref_diffF.png'
-    plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)

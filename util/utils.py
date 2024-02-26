@@ -101,7 +101,7 @@ def setup_carla_environment(Sameline_ACC=True):
     else:
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
-        car_spawn_point = carla.Transform(carla.Location(x=124, y=center_line, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=80, y=center_line, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
@@ -110,6 +110,66 @@ def setup_carla_environment(Sameline_ACC=True):
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
 
         return car, truck, center_line
+    
+    
+def setup_complex_carla_environment():
+    """
+    Sets up the CARLA environment by connecting to the server, 
+    spawning vehicles, and setting their initial states.
+    Returns the car and truck actors.
+    """
+    client = carla.Client('localhost', 2000)
+    world = client.get_world()
+    bp_lib = world.get_blueprint_library()
+
+    # Destroy existing vehicles
+    for actor in world.get_actors().filter('vehicle.*'):
+        actor.destroy()
+    center_line = 143.318146
+    # Spawn Tesla Model 3
+    car_bp = bp_lib.find('vehicle.tesla.model3')
+    # car_bp = bp_lib.find('vehicle.ford.ambulance')
+    car_spawn_point = carla.Transform(carla.Location(x=120, y=center_line, z=0.3))
+    car = spawn_vehicle(world, car_bp, car_spawn_point)
+
+    # Spawn Firetruck
+    truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
+    # truck_bp = bp_lib.find('vehicle.carlamotors.european_hgv')
+    truck_spawn_point = carla.Transform(carla.Location(x=20, y=center_line, z=0.3))
+    truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
+    
+    # !  adding more vehicles on different road
+    # Spawn vehicle.ford.mustang
+    mustang_bp = bp_lib.find('vehicle.ford.mustang')
+    mustang_spawn_point = carla.Transform(carla.Location(x=20, y=center_line-7, z=0.3))
+    mustang = spawn_vehicle(world, mustang_bp, mustang_spawn_point)
+    # Spawn vehicle.ford.mustang
+    carlacola_bp = bp_lib.find('vehicle.carlamotors.carlacola')
+    carlacola_spawn_point = carla.Transform(carla.Location(x=20, y=center_line-3.5, z=0.3))
+    carlacola = spawn_vehicle(world, carlacola_bp, carlacola_spawn_point)
+    # Spawn vehicle.lincoln.mkz_2017
+    lincoln_bp = bp_lib.find('vehicle.lincoln.mkz_2017')
+    lincoln_spawn_point = carla.Transform(carla.Location(x=80, y=center_line-3.5, z=0.3))
+    lincoln = spawn_vehicle(world, lincoln_bp, lincoln_spawn_point)
+    
+    # Spawn vehicle.ford.ambulance
+    ford_ambulance_bp = bp_lib.find('vehicle.ford.ambulance')   
+    ford_ambulance_spawn_point = carla.Transform(carla.Location(x=200, y=center_line, z=0.3))
+    ford_ambulance = spawn_vehicle(world, ford_ambulance_bp, ford_ambulance_spawn_point)
+    
+    # Spawn vehicle.nissan.patrol_2021
+    patrol_bp = bp_lib.find('vehicle.nissan.patrol_2021')
+    patrol_spawn_point = carla.Transform(carla.Location(x=20, y=center_line+3.5, z=0.3))
+    patrol = spawn_vehicle(world, patrol_bp, patrol_spawn_point)
+    
+    
+    # vehicle.mercedes.sprinter
+    mercerdes_bp = bp_lib.find('vehicle.mercedes.sprinter')
+    mercerdes_spawn_point = carla.Transform(carla.Location(x=60, y=center_line+3.5, z=0.3))
+    mercerdes = spawn_vehicle(world, mercerdes_bp, mercerdes_spawn_point)
+
+
+    return car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes, center_line
 
 def spawn_vehicle(world, blueprint, spawn_point):
     """
@@ -130,6 +190,13 @@ def angle_trans(angle):
     elif angle < -np.pi:
         angle = angle + 2*np.pi
     return angle
+
+def smooth_max(x, beta=10):
+    """choose the max(x,x**2)
+    """
+    exp_linear = np.exp(-beta * x)
+    exp_quadratic = np.exp(beta * x**2)
+    return (exp_linear * -x + exp_quadratic * x**2) / (exp_linear + exp_quadratic)
 
 def check_dimensions_car(nx, nu):
     """
@@ -173,8 +240,6 @@ def smooth_velocity_diff(p_leading, truck_x):
     
     # Scale the sigmoid output to have a maximum of 5
     vel_diff = sigmoid * max_val
-    
-    vel_diff = max(vel_diff, 2)  # Ensure the velocity difference is 2 at least
     
     return vel_diff
 
