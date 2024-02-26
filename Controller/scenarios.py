@@ -57,7 +57,7 @@ class trailing:
     def getRoad(self):
         roadMax = 2*self.laneWidth
         roadMin = -(self.lanes-2)*self.laneWidth
-        laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
+        laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2] # [center of middle lane, center of left lane, center of right lane]
 
         return roadMin, roadMax, laneCenters
     #!!!!!!!!!!!!!!!!
@@ -97,7 +97,7 @@ class simpleOvertake:
     '''
     The ego vehicle overtakes the lead vehicle
     '''
-    def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 6.5):
+    def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 3.5):
         self.name = 'simpleOvertake'
         self.N = N
         self.nx,self.nu,_,_ = vehicle.getSystemDim()
@@ -143,12 +143,14 @@ class simpleOvertake:
         
         return roadMin, roadMax, laneCenters
 
-    def constraint(self,traffic,opts):
+    def constraint(self,traffic):
         constraints = []
-        # leadWidth, leadLength = traffic.getVehicles()[0].getSize()
-        leadWidth, leadLength = traffic.width, traffic.length
+        leadWidth, leadLength,_,_ = traffic.getVehicles()[0].getSize()
+        # leadWidth, leadLength,_,_ = traffic[0].getSize()
+        # for i in range(len(traffic)):
         for i in range(traffic.getDim()):
-            v0_i = traffic.vehicles[i].v0
+            # v0_i = traffic[i].v # initial velocity of the traffic vehicle
+            v0_i = traffic.vehicles[i].v
             func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
             

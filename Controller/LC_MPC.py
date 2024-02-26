@@ -28,8 +28,10 @@ class LC_MPC:
         NUM_OF_ACTS = 2
         self.nu = NUM_OF_ACTS
         self.egoVehicle = egoVehicle
+        self.trafficVehicles = trafficVehicles
         self.nx, self.nu, self.nrefx, self.nrefu = self.egoVehicle.getSystemDim()
-        self.Nveh = len(trafficVehicles)
+        # self.Nveh = len(trafficVehicles)
+        self.Nveh = trafficVehicles.getDim()
         self.Q = Q
         self.R = R
         self.P0 = P0
@@ -62,8 +64,15 @@ class LC_MPC:
         self.vel_diff = self.opti.parameter(1)
         # set the controller options
         self.version = version
-
         self.scenario = scenario
+        if version['version'] == 'leftChange' or version['version'] == 'rightChange':
+            self.lead = self.opti.parameter(self.Nveh,self.N+1)
+            self.traffic_x = self.opti.parameter(self.Nveh,self.N+1)
+            self.traffic_y = self.opti.parameter(self.Nveh,self.N+1)
+            self.traffic_sign = self.opti.parameter(self.Nveh,self.N+1)
+            self.traffic_shift = self.opti.parameter(self.Nveh,self.N+1)
+            self.traffic_flip = self.opti.parameter(self.Nveh,self.N+1)
+            
     
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
@@ -73,59 +82,6 @@ class LC_MPC:
         IDM constraint for tracking the egoVehicle in front.
         """
         return p_leading - L1 - d_s - T_s * v_eg + lambda_s
-    
-    def lane_change_constraint(egoVehicle, vehicles, version, lane_width = 3.5): # still working on this
-        """
-        Lane change constraint for the ego egoVehicle.
-        
-        Args:
-        - px: Ego egoVehicle position in the x-direction
-        - egoVehicle: Dictionary containing ego egoVehicle details (e.g., width, length)
-        - vehicles: Dictionary containing surrounding egoVehicle details (e.g., width, length, position of the surrounding egoVehicle)
-        - lane_width: Width of each lane
-        - version: Version of the lane change scenario ('leftChange' or 'rightChange')
-        
-        Returns:
-        - constraint_value: Value of the lane change constraint
-        """
-        # lead_width, lead_length = vehicles['width'], vehicles['length']
-        ego_width, ego_length, L_tract, L_trail = egoVehicle.getSize()
-        v0_i = vehicles['v0']
-        
-        if version == "leftChange":
-            traffic_sign = -1
-            if vehicles['y'] > lane_width:
-                traffic_shift = 2 * lane_width
-                flip = -1
-            elif vehicles['y'] < 0:
-                traffic_shift = 0
-            else:
-                traffic_shift = 0
-                flip = 1
-        elif version == "rightChange":
-            traffic_sign = 1
-            if vehicles['y'] > lane_width:
-                traffic_shift = 2 * lane_width
-                flip = -1
-            elif vehicles['y'] < 0:
-                traffic_shift = -lane_width
-                flip = -1
-            else:
-                traffic_shift = lane_width
-                flip = -1
-                
-        Time_headway = 1  # Adjust as necessary
-        min_distx = 1  # Adjust as necessary
-        
-        func1 = traffic_sign * (traffic_sign * (vehicles['y'] - traffic_shift) + ego_width + lead_width) / 2 * \
-                tanh(px - vehicles['x'] + lead_length / 2 + L_tract + v0_i * Time_headway + min_distx) + traffic_shift / 2
-
-        func2 = traffic_sign * (traffic_sign * (vehicles['y'] - traffic_shift) + ego_width + lead_width) / 2 * \
-                tanh(-(px - vehicles['x']) + lead_length / 2 + L_trail + v0_i * Time_headway + min_distx) + traffic_shift / 2
-
-        constraint_value = func1 + func2
-        
-        return constraint_value
 
     
     def calc_linear_discrete_model(self, v, phi=0, delta=0):
@@ -242,11 +198,16 @@ class LC_MPC:
         #     self.opti.subject_to(self.u[1,i+1]-self.u[1,i] >= -0.5)
           
     
-    def setInEqConstraints_lc(self):
+    def setTrafficConstraints(self):
         """
         Set inequality constraints for lane change scenario.
         """
-        v, phi, delta = self.v_ref, self.phi_ref, self.delta_ref
+        self.S = self.scenario.constraint(self.trafficVehicles)
+        if self.scenario.name == 'simpleOvertake':
+            for i in range(self.Nveh):
+                self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
+                                    >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
+                                        self.traffic_sign[i,:], self.traffic_shift[i,:]))
 
 
     def setCost(self):
@@ -261,33 +222,86 @@ class LC_MPC:
         cost += 3e4*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
     
-    # def setController(self, version='trailing'):
-    #     """
-    #     Set constraints and cost function for the MPC controller.
-    #     """
-    #     self.setStateEqconstraints()
-    #     if version == 'trailing':
-            
-    #         self.setInEqConstraints()
-    #         self.setCost()
-    #     else:
 
-            
-        
+
+    def setController(self):
+            """
+            Set constraints and cost function for the MPC controller.
+            """
+            self.setStateEqconstraints()
+            self.setInEqConstraints()
+            # if self.version == 'leftChange' or self.version == 'rightChange':
+            if self.version['version'] == 'leftChange' or self.version['version'] == 'rightChange':
+                self.setTrafficConstraints()
+            self.setCost()
+
+    def lane_change_constraint(self, traffic_state): # still working on this
+        """
+        Sets traffic parameters, to be used in the MPC controllers
+        """
+
+        sign = np.zeros((self.Nveh,self.N+1))
+        shift = np.zeros((self.Nveh,self.N+1))
+        flip = np.ones((self.Nveh,self.N+1))
+
+        if self.version['version'] == 'leftChange':
+            for ii in range(self.Nveh):
+                for jj in range(self.N+1):
+                    if traffic_state[1,jj,ii] > self.laneWidth:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = 2 * self.laneWidth
+                        flip[ii,jj] = -1
+                    elif traffic_state[1,jj,ii] < 0:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = -self.laneWidth
+                    else:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = 0
+
+        elif self.version['version'] == 'rightChange':
+            for ii in range(self.Nveh):
+                for jj in range(self.N+1):
+                    if traffic_state[1,jj,ii] > self.laneWidth:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = 2 * self.laneWidth
+                        flip[ii,jj] = -1
+                    elif traffic_state[1,jj,ii] < 0:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = -self.laneWidth
+                    else:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = self.laneWidth
+                        flip[ii,jj] = -1
+
+        traffic_state[2,:,:] = sign.T
+        traffic_state[3,:,:] = shift.T
+        traffic_state[4,:,:] = flip.T
+        return sign, shift, flip
 
     
-    def solve(self, x0, ref_trajectory, ref_control, p_leading, leading_velocity=10, vel_diff=5):
+    def solve(self, x0, ref_trajectory, ref_control, p_leading, traffic_state, leading_velocity=10, vel_diff=5):
         """
         Solve the MPC problem.
         """
         # Set the initial condition and reference trajectories
-        
-        self.opti.set_value(self.x0, x0)
-        self.opti.set_value(self.refx, ref_trajectory)
-        self.opti.set_value(self.refu, ref_control)
-        self.opti.set_value(self.p_leading, p_leading)
-        self.opti.set_value(self.leading_velocity, leading_velocity)
-        self.opti.set_value(self.vel_diff, vel_diff)
+        if self.version['version'] == 'trailing':
+            self.opti.set_value(self.x0, x0)
+            self.opti.set_value(self.refx, ref_trajectory)
+            self.opti.set_value(self.refu, ref_control)
+            self.opti.set_value(self.p_leading, p_leading)
+            self.opti.set_value(self.leading_velocity, leading_velocity)
+            self.opti.set_value(self.vel_diff, vel_diff)
+
+        # set the initial trajectories for the lane and right change scenarios
+        elif self.version['version'] == 'leftChange' or self.version['version'] == 'rightChange':
+            self.opti.set_value(self.x0, x0)
+            self.opti.set_value(self.refx, ref_trajectory)
+            self.opti.set_value(self.refu, ref_control)
+            traffic_sign, traffic_shift, traffic_flip = self.lane_change_constraint(traffic_state)
+            self.opti.set_value(self.traffic_sign,traffic_sign)
+            self.opti.set_value(self.traffic_shift,traffic_shift)
+            self.opti.set_value(self.traffic_flip,traffic_flip)
+
         # Solver options
         opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
         self.opti.solver("ipopt", opts)
@@ -305,6 +319,15 @@ class LC_MPC:
             print(f"An error occurred: {e}")
             self.opti.debug.value(self.x)
             return None, None
+        
+    def getFunction(self):
+        # if self.opts["version"] == "trailing":
+        #     return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,self.lead],[self.x,self.u],
+        #             ['x0','refx','refu','lead'],['x_opt','u_opt'])
+        # else:
+            return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,
+                    self.traffic_x,self.traffic_y,self.traffic_sign,self.traffic_shift,self.traffic_flip],[self.x,self.u],
+                    ['x0','refx','refu','t_x','t_y','t_sign','t_shift','t_flip'],['x_opt','u_opt'])
         
         
     def get_dynammic_model(self):

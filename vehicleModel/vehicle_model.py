@@ -133,6 +133,37 @@ class car_VehicleModel(vehBicycleKinematic):
         newG=  g_op * dt_sim
 
         return newA, newB,newG
+    
+    def setReferences(self,laneCenters):
+        self.laneCenters = laneCenters
+        self.refxT[1] = self.laneCenters[0]
+        self.refxL[1] = self.laneCenters[1]
+        self.refxR[1] = self.laneCenters[2]
+
+        return self.refxT, self.refxL, self.refxR
+    
+    def getReferences(self):
+        return self.refxT,self.refxL,self.refxR
+    
+    def prediction(self):
+        # self.states = np.zeros((self.nx,self.N+1,self.Nveh))
+        # for i in range(self.Nveh):
+        #     self.states[:,:,i] = self.vehicles[i].prediction(self.N)
+
+        self.states = np.zeros((self.nx,self.N_pred+1,self.Nveh))
+        for i in range(self.Nveh):
+            self.states[:,:,i] = self.vehicles[i].prediction(self.N_pred)
+
+        # Downsample to controller frequency
+        self.states = self.states[:,0::self.f_c,:]
+
+        return self.states
+    
+    def getDim(self):
+        return self.nx, self.N
+    
+    
+    
 
 # # System initialization 
 # dt = 0.1

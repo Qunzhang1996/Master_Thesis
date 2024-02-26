@@ -9,10 +9,12 @@ from Controller.LC_MPC import LC_MPC
 from vehicleModel.vehicle_model import car_VehicleModel
 from util.utils import *
 from Controller.scenarios import trailing, simpleOvertake
+from Controller.traffic import combinedTraffic
 
 
-dt = 0.1
-N=12
+dt = 0.1                    # Simulation time step (Impacts traffic model accuracy)
+N=12                        # MPC Horizon length
+f_controller = 5            # Controller update frequency, i.e updates at each t = dt*f_controller
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 4)
 trafficADV1 = car_VehicleModel(dt,N, width = 2, length = 4) # create a traffic vehicle
 trafficADV2 = car_VehicleModel(dt,N, width = 2, length = 4) # create a traffic vehicle
@@ -29,7 +31,8 @@ trafficADV1.setInit([10,0],vx_init_traffic) # the traffic vehicle is 10m ahead o
 trafficADV2.setInit([10,3.5],vx_init_traffic)
 
 # create a list of traffic vehicles
-traffic = [trafficADV1,trafficADV2]
+vehList = [trafficADV1,trafficADV2]
+traffic = combinedTraffic(vehList,vehicleADV,N,f_controller)
 
 
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
@@ -50,7 +53,8 @@ process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
 
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
 scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
-print(scenarioOvertakeADV.constraint(traffic=trafficADV1,opts=None))
+roadMin, roadMax, laneCenters = scenarioTrailADV.getRoad()
+# print(scenarioOvertakeADV.constraint(traffic=trafficADV1,opts=None))
 version1 = {"version" : "leftChange"}
 version2 = {"version" : "rightChange"}
 version3 = {"version" : "trailing"}
@@ -69,6 +73,15 @@ ref_trajectory[0,:] = 0
 ref_trajectory[1,:] = 0
 ref_trajectory[2,:] = 10
 
+ref_vx = 60/3.6             # Higway speed limit in (m/s)
+refxADV = [0,laneCenters[1],ref_vx,0,0]
+refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(laneCenters)
+
+refu_in = [0,0,0]
+refxT_out,refu_out = scenarioOvertakeADV.getReference(refxT_in,refu_in)
+refxL_out,refu_out = scenarioOvertakeADV.getReference(refxL_in,refu_in)
+refxR_out,refu_out = scenarioOvertakeADV.getReference(refxR_in,refu_in)
+
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
 # Position of the leading vehicle (for IDM constraint)
@@ -77,16 +90,23 @@ p_leading = 30
 
 # Set the controller (this step initializes the optimization problem with cost and constraints)
 mpc_controller.setController()
+mpc_controller1.setController()
+# changeLeft = mpc_controller1.getFunction()
 x_plot = [] 
 x_plot.append(x0[0].item())
 y_plot = []
 y_plot.append(x0[1].item())
 v_plot = [10]
 tightened_IDM_constraints_plot = []
+Nveh = traffic.getDim() # Number of vehicles in the traffic
+traffic_state = np.zeros((5,N+1,Nveh))
+traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
 
 # Solve the MPC problem
 for i in range(100):
-    u_opt, x_opt, lambda_s, tightened_IDM_constraints = mpc_controller.solve(x0, ref_trajectory, ref_control, p_leading)
+    # u_opt, x_opt, lambda_s, tightened_IDM_constraints = mpc_controller.solve(x0, ref_trajectory, ref_control, p_leading)
+    u_opt, x_opt, lambda_s, tightened_IDM_constraints = mpc_controller.solve(x0, refxT_out, refu_out, p_leading, traffic_state)
+    u_optL, x_optL, lambda_s, tightened_IDM_constraints = mpc_controller1.solve(x0, refxL_out, refu_out, p_leading, traffic_state)
     x0=x_opt[:,1]
     p_leading = p_leading + x0[2]*dt
     x_plot.append(x0[0])
