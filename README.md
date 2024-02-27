@@ -38,7 +38,7 @@ This is the result of the MPC_PID_ACC with kalman filter (red bounding box is ti
   <img src="Figure/CARLA_IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
 </p>   
 <p float="left">
-  <img src="Figure/CARLA_simulation_plots_kf_state_compare.png" width="85%" /> 
+  <img src="Figure/CARLA_simulation_plots_kf_state_compare.png_trajectory.gif" width="85%" /> 
 </p>   
 <p float="left">
   <img src="Figure/CARLA_simulation_plots_with_filter.png" width="85%" /> 

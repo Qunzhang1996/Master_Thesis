@@ -2,6 +2,7 @@ import math
 import carla
 import os
 import json
+import imageio
 import numpy as np
 from enum import IntEnum
 import matplotlib.pyplot as plt
@@ -356,33 +357,103 @@ def plot_kf_trajectory(truck_positions, estimated_position, figure_dir, figure_n
     figure_path = os.path.join(figure_dir, figure_name)
     plt.savefig(figure_path)
     plt.show()
+    
+# ! create kf and true trajectory plot
+def plot_and_create_gifs(truck_positions, estimated_position, figure_dir, base_figure_name):
+    # Calculate differences
+    x_difference = [(est[0] - true[0]) for est, true in zip(estimated_position, truck_positions)]
+    y_difference = [(est[1] - true[1]) for est, true in zip(estimated_position, truck_positions)]
+    
+    def plot_frame(idx, save_path):
+        fig, axs = plt.subplots(3, 1, figsize=(12, 9))  # Create a 12x12 figure, then split it into 3 subplots
+        time_array = np.arange(0, idx * 0.2, 0.2)[:idx]
+        # Trajectory plot
+        axs[0].plot([pos[0] for pos in truck_positions][:idx], [pos[1] for pos in truck_positions][:idx], label='True Trajectory', color='blue')
+        axs[0].plot([pos[0] for pos in estimated_position][:idx], [pos[1] for pos in estimated_position][:idx], label='Estimated Trajectory', color='red')
+        # plot center line
+        axs[0].plot([0, 700], [143.318146, 143.318146], 'k--')
+        #! plt road boundary
+        axs[0].plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k--')
+        axs[0].plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k--')
+        #! plt truck boundary
+        axs[0].plot([pos[0] for pos in truck_positions][:idx],  [pos[1]+2.54/2 for pos in truck_positions][:idx], label='truck upper boundary', color='green')
+        axs[0].plot([pos[0] for pos in truck_positions][:idx], [pos[1]-2.54/2 for pos in truck_positions][:idx], label='truck lower boundary', color='green')
+        
+        axs[0].legend()
+        axs[0].set_xlabel('X Position')
+        axs[0].set_ylabel('Y Position')
+        axs[0].set_title('Trajectories')
 
+        # X difference plot
+        axs[1].plot(time_array, x_difference[:idx], label='X Difference', color='orange')
+        axs[1].legend()
+        axs[1].set_xlabel('Time')
+        axs[1].set_ylabel('Difference')
+        axs[1].set_title('X Difference')
+
+        # Y difference plot
+        axs[2].plot(time_array, y_difference[:idx], label='Y Difference', color='purple')
+        axs[2].set_xlabel('Time')
+        axs[2].set_ylabel('Difference')
+        axs[2].legend()
+        axs[2].set_title('Y Difference')
+
+        plt.tight_layout()
+        plt.savefig(save_path)
+        plt.close()
+
+    if not os.path.exists(figure_dir):
+        os.makedirs(figure_dir)
+
+    frame_paths = []
+    for idx in range(1, len(truck_positions) + 1):
+        frame_path = os.path.join(figure_dir, f'frame_{idx}.png')
+        plot_frame(idx, frame_path)
+        frame_paths.append(frame_path)
+
+    # Create GIFs
+    gif_paths = [os.path.join(figure_dir, f"{base_figure_name}_{name}.gif") for name in ['trajectory', 'x_difference', 'y_difference']]
+    # Since the plots are on separate subplots, we only need to generate one set of frames
+    with imageio.get_writer(gif_paths[0], mode='I') as writer:  # Trajectory GIF
+        for frame_path in frame_paths:
+            image = imageio.imread(frame_path)
+            writer.append_data(image)
+    # The x_difference and y_difference plots are part of the same frames, so no separate GIF creation is needed
+
+    # Optionally remove the frames after creating the GIF
+    for frame_path in frame_paths:
+        os.remove(frame_path)
 
 
 def plot_mpc_y_vel(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
     # Create a 2x1 plot layout
-    fig, axs = plt.subplots(1, 2, figsize=(12, 8))
+    fig, axs = plt.subplots(2, 1, figsize=(12, 6))
     
     # Calculate time array based on 0.2s per point assumption
     time_array = np.arange(len(y_mpc)) * 0.2
     
     # Y position plot
-    axs[0].plot(time_array, y_mpc, label='MPC Y Position', color='r')
+    axs[0].plot(time_array, y_mpc, label='MPC Y Target Position', color='r')
     axs[0].plot(time_array, y_true, label='True Y Position', color='b')
+    # center line
+    axs[0].plot(time_array, [143.318146]*len(time_array), 'k--')
+    # road boundary
+    axs[0].plot(time_array, [143.318146 - 1.75]*len(time_array), 'k--')
+    axs[0].plot(time_array, [143.318146 + 1.75]*len(time_array), 'k--')
     axs[0].set_title('Y Position')
     axs[0].set_xlabel('Time (s)')
     axs[0].set_ylabel('Y Position')
-    axs[0].grid(True)
     axs[0].legend()
     
     # Velocity plot
-    axs[1].plot(time_array, vel_mpc, label='MPC Velocity', color='r')
+    axs[1].plot(time_array, vel_mpc, label='MPC Target Velocity', color='r')
     axs[1].plot(time_array, vel_true, label='True Velocity', color='b')
+    # plot the reference velocity
+    axs[1].plot(time_array, [15]*len(time_array), 'k--')
     axs[1].set_title('Velocity')
     axs[1].set_xlabel('Time (s)')
     axs[1].set_ylabel('Velocity')
     axs[1].set_ylim([5, 20])
-    axs[1].grid(True)
     axs[1].legend()
     
     # Adjust layout for a neat presentation
@@ -395,6 +466,60 @@ def plot_mpc_y_vel(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
     plt.savefig(figure_path)
     plt.show()
     
+    
+def create_gif_with_plot(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
+    # Ensure figure directory exists
+    if not os.path.exists(figure_dir):
+        os.makedirs(figure_dir)
+    figure_path = os.path.join(figure_dir, figure_name + '.gif')
+
+    # Create a 2x1 plot layout for the animation outside of the update function
+    fig, axs = plt.subplots(2, 1, figsize=(12, 6))
+
+    def update(frame):
+        # Clear the axes to redraw the updated plots
+        for ax in axs:
+            ax.clear()
+
+        time_array = np.arange(frame) * 0.2  # Calculate time array up to the current frame
+        
+        # Redrawing the plots with updated data
+        axs[0].plot(time_array, y_mpc[:frame], label='MPC Y Target Position', color='r')
+        axs[0].plot(time_array, y_true[:frame], label='True Y Position', color='b')
+        axs[0].plot(time_array, [143.318146]*len(time_array), 'k--')
+        axs[0].plot(time_array, [143.318146 - 1.75]*len(time_array), 'k--')
+        axs[0].plot(time_array, [143.318146 + 1.75]*len(time_array), 'k--')
+        axs[0].set_title('Y Position')
+        axs[0].set_xlabel('Time (s)')
+        axs[0].set_ylabel('Y Position')
+        axs[0].legend()
+        
+        axs[1].plot(time_array, vel_mpc[:frame], label='MPC Target Velocity', color='r')
+        axs[1].plot(time_array, vel_true[:frame], label='True Velocity', color='b')
+        axs[1].plot(time_array, [15]*len(time_array), 'k--')
+        axs[1].set_title('Velocity')
+        axs[1].set_xlabel('Time (s)')
+        axs[1].set_ylabel('Velocity')
+        axs[1].set_ylim([5, 20])
+        axs[1].legend()
+        
+        plt.tight_layout()
+
+    # Creating the animation using the same figure and axes
+    anim = FuncAnimation(fig, update, frames=len(y_mpc), blit=False)
+    
+    # Save the animation
+    anim.save(figure_path, writer='pillow', fps=20)
+    plt.close(fig)  # Ensure the figure is closed to free up memory
+    
+    
+    
+    
+    
+    
+    
+############################################################################################################
+    
 def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations,
                                   truck_jerks, car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                                   figure_dir,figure_name):
@@ -406,21 +531,21 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
     jerk_times = timestamps[3:] if len(timestamps) > 3 else []
 
     # save data to json file
-    parameters_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Parameters'
-    os.makedirs(parameters_dir, exist_ok=True)
+    # parameters_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Parameters'
+    # os.makedirs(parameters_dir, exist_ok=True)
 
     # Prepare the data for saving
-    data_to_save = {
-        "truck_positions": truck_positions,
-        "truck_velocities": truck_velocities,
-        "truck_accelerations": truck_accelerations,
-        "truck_jerks": truck_jerks
-    }
+    # data_to_save = {
+    #     "truck_positions": truck_positions,
+    #     "truck_velocities": truck_velocities,
+    #     "truck_accelerations": truck_accelerations,
+    #     "truck_jerks": truck_jerks
+    # }
 
-    # Save data as JSON
-    json_file_path = os.path.join(parameters_dir, 'simulation_data.json')
-    with open(json_file_path, 'w') as json_file:
-        json.dump(data_to_save, json_file, indent=4)
+    # # Save data as JSON
+    # json_file_path = os.path.join(parameters_dir, 'simulation_data.json')
+    # with open(json_file_path, 'w') as json_file:
+    #     json.dump(data_to_save, json_file, indent=4)
 
     # # Create a 2x3 plot layout
     fig, axs = plt.subplots(2, 3, figsize=(12, 10)) 

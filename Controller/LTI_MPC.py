@@ -129,7 +129,7 @@ class MPC:
         for i in range(self.N+1):
             self.IDM_constraint_list.append(self.IDM_constraint(self.p_leading + self.leading_velocity*self.Param.dt*i, 
                                                                 self.x[2, i],self.lambda_s[0,i]))
-        # Set the y constraint 13
+        #! Set the y constraint 13
         self.y_upper = [143.318146+1.75-2.54/2] * (self.N+1)
         self.y_lower = [-143.318146+1.75-2.54/2] * (self.N+1)
         for i in range(self.N+1):
@@ -160,9 +160,9 @@ class MPC:
             # Set the vel_diff constraint
             self.opti.subject_to(self.x[2, i] - self.leading_velocity <= self.tightened_bound_N_vel_diff_list[i].item())
             self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -self.tightened_bound_N_vel_diff_list[i].item())
-            # set the y constraint
-            self.opti.subject_to(self.x[1, i] <= self.tightened_bound_N_y_upper_list[i].item())
-            self.opti.subject_to(self.x[1, i] >= self.tightened_bound_N_y_lower_list[i].item())
+            # ! set the y constraint
+            # self.opti.subject_to(self.x[1, i] <= self.tightened_bound_N_y_upper_list[i].item())
+            # self.opti.subject_to(self.x[1, i] >= self.tightened_bound_N_y_lower_list[i].item())
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
@@ -196,7 +196,7 @@ class MPC:
         for i in range(self.N-1):
             cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
         # Add slack variable cost for y
-        # cost += 3e4*self.slack_y@ self.slack_y.T
+        cost += 1e5*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
     
     def setController(self):

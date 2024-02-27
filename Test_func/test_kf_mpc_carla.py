@@ -115,10 +115,14 @@ sigma_process=0.01
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
 Q_0[0,0]=2  # x bound is [0, 3]
-Q_0[1,1]=0.01  # y bound is [0, 0.1]
-Q_0[2,2]=1.8/6*2  # v bound is [0, 1.8]
+Q_0[1,1]=0.1  # y bound is [0, 0.1]
+Q_0[2,2]=1.8/6  # v bound is [0, 1.8]
 Q_0[3,3]=0.001  # psi bound is [0, 0.05]
 R_0=np.eye(nx)*sigma_measurement
+R_0[0,0]=0.01
+R_0[1,1]=0.001
+R_0[2,2]=0.001
+R_0[3,3]=0.001
 
 # set the initial state and control input
 x_0 = x_iter
@@ -182,7 +186,10 @@ for i in range(1000):
     car_state = get_state(car)
     # !----------------- get the state of the truck ------------------------
     truck_state = get_state(truck)
-    r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
+   
+    #according to R_0 matrix, we add the noise to the measurement
+
+    r = np.random.multivariate_normal(np.zeros(4), 0.001*np.eye(4), 1).reshape(-1, 1)
     r2 = np.random.normal(0.0, sigma_process, size=(nx, 1))
     measurement_truck = truck_state + r # add noise to the truck state
     
@@ -273,32 +280,33 @@ for i in range(1000):
 # ╚═╝     ╚══════╝ ╚═════╝    ╚═╝   
                             
 if SYNC_CTRL==True:
-    # gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    # gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter.gif'
-    # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
     figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     figure_name = 'CARLA_simulation_plots_with_filter.png'
     plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
                                 car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                                 figure_dir,figure_name)
-
     figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     figure_name = 'CARLA_simulation_plots_kf_state_compare.png'
     plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
+    # ! open to get gif
+    plot_and_create_gifs(truck_positions, truck_estimate_positions, figure_dir, figure_name)
+    gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter.gif'
+    animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 
     figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     figure_name = 'CARLA_simulation_compare_ref.png'
     plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+    figure_name = 'CARLA_simulation_compare_ref'
+    create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 else:
-    gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-    gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter_diffF.gif'
-    animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+    
     figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     figure_name = 'CARLA_simulation_plots_with_filter_diffF.png'
     plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
                                 car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                                 figure_dir,figure_name)
-
+    
     figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     figure_name = 'CARLA_simulation_plots_kf_state_compare_diffF.png'
     plot_kf_trajectory(truck_positions, truck_estimate_positions, figure_dir, figure_name)
@@ -306,3 +314,7 @@ else:
     figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
     figure_name = 'CARLA_simulation_compare_ref_diffF.png'
     plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+    ## ! open to get gif
+    gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+    gif_name = 'CARLA_IDM_constraint_simulation_plots_with_filter_diffF.gif'
+    animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
