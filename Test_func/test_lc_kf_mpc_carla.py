@@ -25,16 +25,20 @@ from util.utils import *
 #     r'cd C:\Users\A490242\Desktop\Documents\WindowsNoEditor\PythonAPI\util && '
 #     r'python config.py --map Town06')
 # subprocess.run(command, shell=True)
-# # --------------------------Run the command--------------------------
+# --------------------------Run the command--------------------------
 
-## !----------------- Carla Settings ------------------------
+## !----------------- Carla Settings --------------------------------
 car,truck,car2 = setup_carla_environment(Sameline_ACC=False)
 time.sleep(1)
 velocity1 = carla.Vector3D(10, 0, 0)
 velocity2 = carla.Vector3D(8, 0, 0)
-car.set_target_velocity(velocity1)
+# add traffic vehicles
+car.set_target_velocity(velocity2) # set the velocity of the car1 slower than the truck
+car2.set_target_velocity(velocity2) 
+# create a list of traffic vehicles
+trafficList = [car,car2]
+# add ego vehicle
 truck.set_target_velocity(velocity1)
-car2.set_target_velocity(velocity2) # set the velocity of the car2 slower than the truck
 time.sleep(1)
 client = carla.Client('localhost', 2000)
 world = client.get_world()
@@ -66,6 +70,7 @@ local_controller = VehiclePIDController(truck,
 ref_velocity = 15  # TODO: here is the reference velocity for the truck
 dt = desired_interval
 N=12
+# create a model for the ego vehicle
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 6)
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 int_opt = 'rk'
@@ -80,17 +85,20 @@ vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 P0, process_noise, possibility = set_stochastic_mpc_params()
 
-# changes done by saeed
 # ------------------ Problem definition ---------------------
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
-scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
-opts1 = {"version" : "leftChange"}
-opts2 = {"version" : "rightChange"}
-opts3 = {"version" : "trailing"}
+scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
+version1 = {"version" : "leftChange"}
+version2 = {"version" : "rightChange"}
+version3 = {"version" : "trailing"}
 
-# end of changes by saeed
 
-mpc_controller = LC_MPC(vehicleADV, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, scenarioADV)
+mpc_controller = LC_MPC(vehicleADV, trafficList,  np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, version3, scenarioTrailADV)
+# Set the controller (this step initializes the optimization problem with cost and constraints)
+mpc_controller.setController()
+# mpc controller for lane change
+mpc_controllerR = LC_MPC(vehicleADV, trafficList, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, version2, scenarioOvertakeADV)
+mpc_controllerR.setController()
 
 ## !----------------- get initial state and set ref for the ccontroller ------------------------
                                                                                   
@@ -99,15 +107,27 @@ x_iter[:],u_iter = vehicleADV.getInit()
 print(f"initial state of the truck is: {x_iter}")
 print(f"initial input of the truck is: {u_iter}")
 
+# reference trajectory and control for trailing
 ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
-ref_trajectory[0,:] = 0
-ref_trajectory[1,:] = 143.318146
-ref_trajectory[2,:] = ref_velocity
-ref_trajectory[3,:] = 0
-ref_control = np.zeros((nu, N))  # Reference control inputs
+# ref_trajectory[0,:] = 0
+# ref_trajectory[1,:] = 143.318146
+# ref_trajectory[2,:] = ref_velocity
+# ref_trajectory[3,:] = 0
+# ref_control = np.zeros((nu, N))  # Reference control inputs
 
-# Set the controller (this step initializes the optimization problem with cost and constraints)
-mpc_controller.setController()
+# reference trajectory and control for right lane change
+ref_trajectory_R = np.zeros((nx, N + 1)) # Reference trajectory (states)
+# ref_trajectory_R[0,:] = 0
+# ref_trajectory_R[1,:] = 143.318146
+# ref_trajectory_R[2,:] = ref_velocity
+# ref_trajectory_R[3,:] = 0
+# ref_control_R = np.zeros((nu, N))  # Reference control inputs
+
+ref_trajectory, ref_control = create_reference_trajectory(nx, nu, N, ref_velocity, version3)
+ref_trajectory_R, ref_control_R = create_reference_trajectory(nx, nu, N, ref_velocity, version2)
+ref_trajectory_L, ref_control_L = create_reference_trajectory(nx, nu, N, ref_velocity, version1)
+
+
 
 
 #  ██████╗ ██████╗ ███████╗███████╗██████╗ ██╗   ██╗ ██████╗ ██████╗ 
@@ -166,25 +186,9 @@ p_leading = car_x
 # ! Simulation parameters
 start_time = time.time()  # Record the start time of the simulation
 velocity_leading = 13
-
-# get the current ego vehicle lane
-# ego_current_lane = getCurrentLane(truck)
-# print(f"the current lane of the truck is: {ego_current_lane}")
-# car1_current_lane = getEgoLane(car)
-# print(f"the current lane of the car is: {car1_current_lane}")
-# car2_current_lane = getEgoLane(car2)
-# print(f"the current lane of the car2 is: {car2_current_lane}")
-
-
-# change the lane of the truck to the given lane
-
-
-# calculate the cost of the MPC controller for leading vehicle and lane change
-
-
-
-
-
+Nveh = len(trafficList) # Number of vehicles in the traffic
+traffic_state = np.zeros((5,N+1,Nveh)) # the size is defined as 5x(N+1)xNveh, 5: {x,y,sign,shift,flip}, N is the prediction horizon, Nveh is the number of vehicles
+traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
 
 # ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗
 # ██╔════╝██║████╗ ████║██║   ██║██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║
@@ -205,6 +209,7 @@ for i in range(1000):
 
     # get the state of the leading vehicle and truck
     car_state = get_state(car)
+    traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
     # !----------------- get the state of the truck ------------------------
     truck_state = get_state(truck)
     measurement_truck = truck_state + r # add noise to the truck state
@@ -226,12 +231,17 @@ for i in range(1000):
     # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
 
 
-    if i%10==0: # get the CARLA state every 10 steps
+    if i%1==0: # get the CARLA state every 10 steps
         # get the CARLA state
         x_iter = vertcat(truck_x, truck_y, truck_v, truck_psi)
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
-                                                      p_leading, velocity_leading, vel_diff)
+                                                      p_leading, traffic_state, velocity_leading, vel_diff)
+        u_optR, x_optR, lambda_sR, tightened_bound_N_IDM_listR = mpc_controllerR.solve(x_iter, ref_trajectory, ref_control, 
+                                                      p_leading, traffic_state, velocity_leading, vel_diff)
+        
+        print(f"the optimal input of the truck is: {u_opt}")
+        print(f"the optimal state of the truck is: {x_opt[:2,:]}")
        
 
         # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)

@@ -144,27 +144,12 @@ class car_VehicleModel(vehBicycleKinematic):
     
     def getReferences(self):
         return self.refxT,self.refxL,self.refxR
-    
-    def prediction(self):
-        # self.states = np.zeros((self.nx,self.N+1,self.Nveh))
-        # for i in range(self.Nveh):
-        #     self.states[:,:,i] = self.vehicles[i].prediction(self.N)
 
-        self.states = np.zeros((self.nx,self.N_pred+1,self.Nveh))
-        for i in range(self.Nveh):
-            self.states[:,:,i] = self.vehicles[i].prediction(self.N_pred)
-
-        # Downsample to controller frequency
-        self.states = self.states[:,0::self.f_c,:]
-
-        return self.states
     
     def getDim(self):
         return self.nx, self.N
     
     
-    
-
 # # System initialization 
 # dt = 0.1
 # N=10

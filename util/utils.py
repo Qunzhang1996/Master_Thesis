@@ -6,6 +6,7 @@ import numpy as np
 from enum import IntEnum
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from casadi import *
 
 class Param:
     """
@@ -147,14 +148,14 @@ def setup_carla_environment(Sameline_ACC=True):
         car_spawn_point = carla.Transform(carla.Location(x=124, y=143.318146, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
-        # Spawn Tesla Model 3 in the right lane
+        # Spawn Tesla Model 3 in the center lane
         # car_bp = bp_lib.find('vehicle.tesla.model3')
         car_spawn_point2 = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-50))
         car2 = spawn_vehicle(world, car_bp, car_spawn_point2)
 
-        # Spawn Firetruck behind the car2 in the right lane
+        # Spawn Firetruck behind the car2 in the left lane
         truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-        truck_spawn_point = carla.Transform(car_spawn_point2.location + carla.Location(x=-50))
+        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(x=-50))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
 
         return car, truck, car2
@@ -170,6 +171,83 @@ def spawn_vehicle(world, blueprint, spawn_point):
         print(f"Error spawning vehicle: {e}")
         return None
   
+def create_reference_trajectory(nx, nu, N, ref_velocity, version):
+    lane_width = 3.5
+    # Reference trajectory (states)
+    ref_trajectory = np.zeros((nx, N + 1))
+    ref_trajectory[0,:] = 0
+    ref_trajectory[1,:] = 143.318146
+    ref_trajectory[2,:] = ref_velocity
+    ref_trajectory[3,:] = 0
+    
+    # Reference control inputs
+    ref_control = np.zeros((nu, N))
+    
+    if version['version'] == 'rightChange':
+        # Adjust the trajectory for the right lane change scenario
+        ref_trajectory[1,:] += lane_width  # Adjust the y-coordinate for the right lane
+        # You can also adjust the control inputs if necessary for the right lane change scenario
+    elif version['version'] == 'leftChange':
+        # Adjust the trajectory for the left lane change scenario
+        ref_trajectory[1,:] -= lane_width  # Adjust the y-coordinate for the left lane
+        
+    return ref_trajectory, ref_control
+
+def get_traffic_state(vehicles, Nveh, N, dt):
+    """
+    Fill the traffic_state variable with the states of each vehicle.
+    
+    Parameters:
+        traffic_state (ndarray): Array to be filled with traffic states.
+        vehicles (list): List of vehicle objects.
+        
+    Returns:
+        ndarray: Filled traffic_state array.
+    """
+    traffic_state = np.zeros((5, N+1, Nveh))   
+    # Iterate over vehicles
+    for i in range(Nveh):
+        # Get the states of the current vehicle
+        current_state = get_state(vehicles[i])
+        vehicle_states = predict_states(current_state, N, dt)
+        
+        # Fill the traffic_state variable with the states of the current vehicle
+        traffic_state[:2, :, i] = vehicle_states[:2]  # Fill x and y positions
+    
+    return traffic_state
+
+def predict_states(current_state, N, dt):
+    """
+    Predicts the future states of a traffic vehicle with constant velocity.
+
+    Args:
+        current_state (numpy array): The initial state of the vehicle, shape (4,).
+                                     The state is assumed to be [x, y, vx, vy].
+        N (int): The number of time steps to predict into the future.
+        dt (float): The time step for prediction.
+
+    Returns:
+        predicted_states (numpy array): The predicted states of the vehicle at future time steps, shape (4, N).
+                                         Each column represents the state at a different time step.
+    """
+    # Unpack the current state
+    x, y, vx, vy = current_state
+
+    # Initialize array to store predicted states
+    predicted_states = np.zeros((4, N+1))
+
+    # Set current state
+    predicted_states[:, 0] = current_state.flatten()
+
+    # Predict future states
+    for i in range(1, N+1):
+        x += vx * dt
+        y += vy * dt
+
+        # Update the predicted state
+        predicted_states[:, i] = [x, y, vx, vy]
+
+    return predicted_states
     
 #make sure angle in -pi pi
 def angle_trans(angle):
@@ -544,5 +622,65 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
     # Show the plot
     plt.show()
 
+def tanh(x):
+    return (exp(x)-exp(-x)) / (exp(x)+exp(-x))
+
+def draw_constraint_box(traffic_state, Nveh, N, version): # to be completed - do this code to utils.py
+        # function helper to draw constraint boxes around the traffic vehicles
+        traffic_state_updated = set_lane_change_parameters(traffic_state,  Nveh, N, version)
+        traffic_sign = traffic_state_updated[2,:,:]
+        traffic_shift = traffic_state_updated[3,:,:]
+        traffic_flip = traffic_state_updated[4,:,:]
+        func1 = traffic_sign * (traffic_sign*(self.traffic_y-traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+                    tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + traffic_shift/2
+            
+        func2 = traffic_sign * (traffic_sign*(self.traffic_y-traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+                    tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + traffic_shift/2
+
+        return traffic_state_updated
+
+def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still working on this
+        """
+        Sets traffic parameters, to be used in the MPC controllers
+        """
+        laneWidth = 3.5
+        sign = np.zeros((Nveh,N+1))
+        shift = np.zeros((Nveh,N+1))
+        flip = np.ones((Nveh,N+1))
+
+        if version['version'] == 'leftChange':
+            for ii in range(Nveh):
+                for jj in range(N+1):
+                    if traffic_state[1,jj,ii] > laneWidth + 143.318146: # doubt here
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = 2 * laneWidth
+                        flip[ii,jj] = -1
+                    elif traffic_state[1,jj,ii] < 143.318146: 
+
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = -laneWidth
+                    else:                         
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = 0
+
+        elif version['version'] == 'rightChange':
+            for ii in range(Nveh):
+                for jj in range(N+1):
+                    if traffic_state[1,jj,ii] > laneWidth:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = 2 * laneWidth
+                        flip[ii,jj] = -1
+                    elif traffic_state[1,jj,ii] < 0:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = -laneWidth
+                    else:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = laneWidth
+                        flip[ii,jj] = -1
+
+        traffic_state[2,:,:] = sign.T
+        traffic_state[3,:,:] = shift.T
+        traffic_state[4,:,:] = flip.T
+        return traffic_state
 
 

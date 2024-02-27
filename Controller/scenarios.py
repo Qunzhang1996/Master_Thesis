@@ -1,6 +1,7 @@
 # Different traffic situations
 import numpy as np
 from casadi import *
+from util.utils import *
 
 from Controller.helpers import *
 
@@ -145,12 +146,13 @@ class simpleOvertake:
 
     def constraint(self,traffic):
         constraints = []
-        leadWidth, leadLength,_,_ = traffic.getVehicles()[0].getSize()
-        # leadWidth, leadLength,_,_ = traffic[0].getSize()
-        # for i in range(len(traffic)):
-        for i in range(traffic.getDim()):
+        # leadWidth, leadLength,_,_ = traffic.getVehicles()[0].getSize()
+        leadWidth, leadLength,_ = get_vehicle_dimensions(traffic[0])
+        for i in range(len(traffic)):
+        # for i in range(traffic.getDim()):
             # v0_i = traffic[i].v # initial velocity of the traffic vehicle
-            v0_i = traffic.vehicles[i].v
+            # v0_i = traffic.vehicles[i].v
+            v0_i = 8 # initial velocity of the traffic vehicle is set to 8 m/s
             func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
             
