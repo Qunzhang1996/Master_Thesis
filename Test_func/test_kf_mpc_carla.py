@@ -32,7 +32,7 @@ from util.utils import *
 # ███████║   ██║   ██║ ╚████║╚██████╗███████╗╚██████╗   ██║   ██║  ██║███████╗
 # ╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝╚══════╝ ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝                                                                                                                                                                      
 # !----------------- PID MPC Settings ------------------------                                                                                                                                     
-SYNC_CTRL = True  # True for syncronized control, False for different control
+SYNC_CTRL = False  # True for syncronized control, False for different control
 frequence = 1 if SYNC_CTRL else 5  # frequence of the MPC controller
 ## !----------------- Carla Settings ------------------------
 car,truck = setup_carla_environment(Sameline_ACC=True)
