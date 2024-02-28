@@ -45,7 +45,7 @@ time.sleep(1)
 client = carla.Client('localhost', 2000)
 world = client.get_world()
 carla_map = world.get_map()
-center_line = 143.318146
+
 # ██████╗ ██╗██████╗                             
 # ██╔══██╗██║██╔══██╗                            
 # ██████╔╝██║██║  ██║                            
@@ -66,7 +66,8 @@ local_controller = VehiclePIDController(truck,
 # ██║╚██╔╝██║██╔═══╝ ██║     
 # ██║ ╚═╝ ██║██║     ╚██████╗
 # ╚═╝     ╚═╝╚═╝      ╚═════╝                           
-## !----------------- Robust MPC Controller Settings ------------------------                           
+## !----------------- Robust MPC Controller Settings ------------------------   
+center_line = 143.318146                        
 ref_velocity = 15  # TODO: here is the reference velocity for the truck
 dt = desired_interval
 N=12
@@ -77,8 +78,8 @@ vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
 vx_init_ego = 15
 vehicleADV.setInit([20,center_line],vx_init_ego)
-Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
-R_ADV = [5,40]                                    # Input cost, Entries in diagonal matrix
+Q_ADV = [0,1e3,3e2,5]                            # State cost, Entries in diagonal matrix
+R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -114,15 +115,15 @@ mpc_controller.setController()
 sigma_process=0.01
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
-Q_0[0,0]=2  # x bound is [0, 3]
-Q_0[1,1]=0.1  # y bound is [0, 0.1]
-Q_0[2,2]=1.8/6  # v bound is [0, 1.8]
-Q_0[3,3]=0.001  # psi bound is [0, 0.05]
+Q_0[0,0]=0.01**2  # x bound is [0, 3]
+Q_0[1,1]=0.01**2  # y bound is [0, 0.1]
+Q_0[2,2]=1  # v bound is [0, 1.8]
+Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
 R_0=np.eye(nx)*sigma_measurement
-R_0[0,0]=0.01
-R_0[1,1]=0.001
-R_0[2,2]=0.001
-R_0[3,3]=0.001
+R_0[0,0]=0.1**2
+R_0[1,1]=0.1**2 
+R_0[2,2]=0.1**2
+R_0[3,3]=(1/180*np.pi)**2
 
 # set the initial state and control input
 x_0 = x_iter
@@ -189,7 +190,8 @@ for i in range(1000):
    
     #according to R_0 matrix, we add the noise to the measurement
 
-    r = np.random.multivariate_normal(np.zeros(4), 0.001*np.eye(4), 1).reshape(-1, 1)
+    r = np.random.normal(0.0, 0.1, size=(nx, 1))
+    r[3]=np.random.normal(0.0, (1/180*np.pi))
     r2 = np.random.normal(0.0, sigma_process, size=(nx, 1))
     measurement_truck = truck_state + r # add noise to the truck state
     
@@ -219,6 +221,7 @@ for i in range(1000):
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, (velocity_leading+r2[2]), vel_diff)
         x_iter=x_opt[:,1]
+        u_iter=u_opt[:,0]
         print(f"the optimal state of the truck is: {x_iter}")
         # ! get the first input of the optimal input for the kalman filter
         # print("computional time of the MPC is: ", time.time()-iteration_start)

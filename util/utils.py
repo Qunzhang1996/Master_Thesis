@@ -496,7 +496,8 @@ def create_gif_with_plot(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_na
         
         axs[1].plot(time_array, vel_mpc[:frame], label='MPC Target Velocity', color='r')
         axs[1].plot(time_array, vel_true[:frame], label='True Velocity', color='b')
-        axs[1].plot(time_array, [15]*len(time_array), 'k--')
+        axs[1].plot(time_array, [15]*len(time_array), 'r--',label='Ref Velocity')
+        axs[1].plot(time_array, [11]*len(time_array),'k--', label='Leading Velocity')
         axs[1].set_title('Velocity')
         axs[1].set_xlabel('Time (s)')
         axs[1].set_ylabel('Velocity')
@@ -529,25 +530,7 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
     velocity_times = timestamps[1:] if len(timestamps) > 1 else []
     acceleration_times = timestamps[2:] if len(timestamps) > 2 else []
     jerk_times = timestamps[3:] if len(timestamps) > 3 else []
-
-    # save data to json file
-    # parameters_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Parameters'
-    # os.makedirs(parameters_dir, exist_ok=True)
-
-    # Prepare the data for saving
-    # data_to_save = {
-    #     "truck_positions": truck_positions,
-    #     "truck_velocities": truck_velocities,
-    #     "truck_accelerations": truck_accelerations,
-    #     "truck_jerks": truck_jerks
-    # }
-
-    # # Save data as JSON
-    # json_file_path = os.path.join(parameters_dir, 'simulation_data.json')
-    # with open(json_file_path, 'w') as json_file:
-    #     json.dump(data_to_save, json_file, indent=4)
-
-    # # Create a 2x3 plot layout
+    
     fig, axs = plt.subplots(2, 3, figsize=(12, 10)) 
     # Trajectory plot
     if x_positions and y_positions:

@@ -134,7 +134,7 @@ class MPC:
         self.y_lower = [-143.318146+1.75-2.54/2] * (self.N+1)
         for i in range(self.N+1):
             self.y_upper[i] += self.slack_y[0,i]
-            self.y_lower[i] += self.slack_y[0,i]
+            self.y_lower[i] -= self.slack_y[0,i]
         
         # Set the vel_diff constraint 
         vel_diff_constrain_list = [self.vel_diff] * (self.N+1)
@@ -157,12 +157,12 @@ class MPC:
             # Set the IDM constraint
             self.opti.subject_to(self.x[0, i] - self.tightened_bound_N_IDM_list[i].item() <= 0)
             
-            # Set the vel_diff constraint
-            self.opti.subject_to(self.x[2, i] - self.leading_velocity <= self.tightened_bound_N_vel_diff_list[i].item())
-            self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -self.tightened_bound_N_vel_diff_list[i].item())
+            # ! Set the vel_diff constraint
+            # self.opti.subject_to(self.x[2, i] - self.leading_velocity <= self.tightened_bound_N_vel_diff_list[i].item())
+            # self.opti.subject_to(self.x[2, i] - self.leading_velocity >= -self.tightened_bound_N_vel_diff_list[i].item())
             # ! set the y constraint
-            # self.opti.subject_to(self.x[1, i] <= self.tightened_bound_N_y_upper_list[i].item())
-            # self.opti.subject_to(self.x[1, i] >= self.tightened_bound_N_y_lower_list[i].item())
+            self.opti.subject_to(self.x[1, i] <= self.tightened_bound_N_y_upper_list[i].item())
+            self.opti.subject_to(self.x[1, i] >= self.tightened_bound_N_y_lower_list[i].item())
             
         # set the constraints for the input  [-3.14/180,-0.7*9.81],[3.14/180,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 180)
@@ -170,6 +170,7 @@ class MPC:
         self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)
         self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
         self.opti.subject_to(self.lambda_s <= 0)
+        # self.opti.subject_to(self.slack_y >= 0)
         
         
         
@@ -192,11 +193,11 @@ class MPC:
         tighten_list=[0, (2.32743), (3.3005), (4.05798), (4.70298), (5.27452), (5.79271), 
                  (6.26978), (6.7139), (7.13089), (7.52508), (7.89977), (8.25757)]
         for i in range(self.N+1):
-            cost +=if_else(self.lambda_s[0,i]<=-tighten_list[i], 3e4*self.lambda_s[0,i]**2, -3e4*self.lambda_s[0,i]) 
+            cost +=if_else(self.lambda_s[0,i]<=self.lambda_s[0,i]**2, 3e4*self.lambda_s[0,i]**2, -3e4*self.lambda_s[0,i]) 
         for i in range(self.N-1):
-            cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
+            cost += 5e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
         # Add slack variable cost for y
-        cost += 1e5*self.slack_y@ self.slack_y.T
+        cost += 5e5*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
     
     def setController(self):
@@ -228,9 +229,11 @@ class MPC:
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
             lambda_s = sol.value(self.lambda_s)
+            lambda_y = sol.value(self.slack_y)
+            print(f"lambda_y: {lambda_y}")
             # [0, DM(2.32743), DM(3.3005), DM(4.05798), DM(4.70298), DM(5.27452), DM(5.79271), 
             #  DM(6.26978), DM(6.7139), DM(7.13089), DM(7.52508), DM(7.89977), DM(8.25757)]
-            print(f"lambda_s: {lambda_s}")
+            # print(f"lambda_y: {lambda_y}")
             # also return tightened IDM constraint with solved op
             tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
             return u_opt, x_opt, lambda_s, tightened_IDM_constraints
