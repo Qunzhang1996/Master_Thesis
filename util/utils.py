@@ -150,7 +150,7 @@ def setup_carla_environment(Sameline_ACC=True):
 
         # Spawn Tesla Model 3 in the center lane
         # car_bp = bp_lib.find('vehicle.tesla.model3')
-        car_spawn_point2 = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-50))
+        car_spawn_point2 = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-30))
         car2 = spawn_vehicle(world, car_bp, car_spawn_point2)
 
         # Spawn Firetruck behind the car2 in the left lane
@@ -625,19 +625,37 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
 def tanh(x):
     return (exp(x)-exp(-x)) / (exp(x)+exp(-x))
 
-def draw_constraint_box(traffic_state, Nveh, N, version): # to be completed - do this code to utils.py
+def draw_constraint_box(egoVehicle, traffic, traffic_state, Nveh, N, version): # to be completed - do this code to utils.py
         # function helper to draw constraint boxes around the traffic vehicles
         traffic_state_updated = set_lane_change_parameters(traffic_state,  Nveh, N, version)
-        traffic_sign = traffic_state_updated[2,:,:]
-        traffic_shift = traffic_state_updated[3,:,:]
-        traffic_flip = traffic_state_updated[4,:,:]
-        func1 = traffic_sign * (traffic_sign*(self.traffic_y-traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-                    tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + traffic_shift/2
-            
-        func2 = traffic_sign * (traffic_sign*(self.traffic_y-traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-                    tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + traffic_shift/2
+        
+        leadWidth, leadLength,_ = get_vehicle_dimensions(traffic[0])
+        egoWidth, egoLength,_ = get_vehicle_dimensions(egoVehicle)
+        Time_headway = 1.5
+        L_tract = 4.5
+        L_trail = 5.5  
+        min_distx = 1.5
+        px = 50
+        v0_i = 8 # initial velocity of the traffic vehicle is set to 8 m/s
 
-        return traffic_state_updated
+        for i in range(len(traffic)):
+            traffic_x = traffic_state_updated[0,:,i]
+            traffic_y = traffic_state_updated[1,:,i]
+            traffic_sign = traffic_state_updated[2,:,i]
+            traffic_shift = traffic_state_updated[3,:,i]
+            # traffic_flip = traffic_state_updated[4,:,:]
+            func1 = DM.zeros((N+1, Nveh))
+            func2 = DM.zeros((N+1, Nveh))
+
+            func1[:,i] = traffic_sign * (traffic_sign*(traffic_y-traffic_shift) + egoWidth + leadWidth) / 2 * \
+                        tanh(px - traffic_x + leadLength/2 + L_tract + v0_i * Time_headway + min_distx )  + traffic_shift/2
+                
+            func2[:,i] = traffic_sign * (traffic_sign*(traffic_y-traffic_shift) + egoWidth + leadWidth) / 2 * \
+                        tanh( - (px - traffic_x)  + leadLength/2 + L_trail + v0_i * Time_headway+ min_distx )  + traffic_shift/2
+        print(func1)    
+        print(func2)
+
+        return func1, func2
 
 def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still working on this
         """
@@ -651,11 +669,11 @@ def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still workin
         if version['version'] == 'leftChange':
             for ii in range(Nveh):
                 for jj in range(N+1):
-                    if traffic_state[1,jj,ii] > laneWidth + 143.318146: # doubt here
+                    if traffic_state[1,jj,ii] > laneWidth: # doubt here
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * laneWidth
                         flip[ii,jj] = -1
-                    elif traffic_state[1,jj,ii] < 143.318146: 
+                    elif traffic_state[1,jj,ii] < 0: 
 
                         sign[ii,jj] = 1
                         shift[ii,jj] = -laneWidth

@@ -25,7 +25,7 @@ from util.utils import *
 #     r'cd C:\Users\A490242\Desktop\Documents\WindowsNoEditor\PythonAPI\util && '
 #     r'python config.py --map Town06')
 # subprocess.run(command, shell=True)
-# --------------------------Run the command--------------------------
+# # --------------------------Run the command--------------------------
 
 ## !----------------- Carla Settings --------------------------------
 car,truck,car2 = setup_carla_environment(Sameline_ACC=False)
@@ -88,16 +88,16 @@ P0, process_noise, possibility = set_stochastic_mpc_params()
 # ------------------ Problem definition ---------------------
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
 scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
-version1 = {"version" : "leftChange"}
-version2 = {"version" : "rightChange"}
-version3 = {"version" : "trailing"}
+versionL = {"version" : "leftChange"}
+versionR = {"version" : "rightChange"}
+versionT = {"version" : "trailing"}
 
 
-mpc_controller = LC_MPC(vehicleADV, trafficList,  np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, version3, scenarioTrailADV)
+mpc_controller = LC_MPC(vehicleADV, trafficList,  np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, versionT, scenarioTrailADV)
 # Set the controller (this step initializes the optimization problem with cost and constraints)
 mpc_controller.setController()
 # mpc controller for lane change
-mpc_controllerR = LC_MPC(vehicleADV, trafficList, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, version2, scenarioOvertakeADV)
+mpc_controllerR = LC_MPC(vehicleADV, trafficList, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, versionR, scenarioOvertakeADV)
 mpc_controllerR.setController()
 
 ## !----------------- get initial state and set ref for the ccontroller ------------------------
@@ -123,9 +123,9 @@ ref_trajectory_R = np.zeros((nx, N + 1)) # Reference trajectory (states)
 # ref_trajectory_R[3,:] = 0
 # ref_control_R = np.zeros((nu, N))  # Reference control inputs
 
-ref_trajectory, ref_control = create_reference_trajectory(nx, nu, N, ref_velocity, version3)
-ref_trajectory_R, ref_control_R = create_reference_trajectory(nx, nu, N, ref_velocity, version2)
-ref_trajectory_L, ref_control_L = create_reference_trajectory(nx, nu, N, ref_velocity, version1)
+ref_trajectory, ref_control = create_reference_trajectory(nx, nu, N, ref_velocity, versionT)
+ref_trajectory_R, ref_control_R = create_reference_trajectory(nx, nu, N, ref_velocity, versionR)
+ref_trajectory_L, ref_control_L = create_reference_trajectory(nx, nu, N, ref_velocity, versionL)
 
 
 
@@ -189,6 +189,7 @@ velocity_leading = 13
 Nveh = len(trafficList) # Number of vehicles in the traffic
 traffic_state = np.zeros((5,N+1,Nveh)) # the size is defined as 5x(N+1)xNveh, 5: {x,y,sign,shift,flip}, N is the prediction horizon, Nveh is the number of vehicles
 traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
+traffic_statefunc1, func2 = draw_constraint_box(truck, car2, traffic_state, Nveh, N, versionR)
 
 # ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗
 # ██╔════╝██║████╗ ████║██║   ██║██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║
