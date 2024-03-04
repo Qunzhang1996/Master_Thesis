@@ -60,6 +60,7 @@ This is the result of the MPC_PID_ACC with kalman filter (PID works every 0.2s, 
 </p>   
 <p float="left">
   <img src="Figure/CARLA_simulation_compare_ref_diffF.png" width="85%" /> 
+</p>   
 
 ## 2024/02/19 QunZhang
 TODO List: 
@@ -68,3 +69,8 @@ TODO List:
 2. lane changing
 3. decision master
 ```
+
+Here is the right lane changing constraint   
+<p float="left">
+  <img src="Figure/right_lane_constraint.png" width="85%" /> 
+</p>   

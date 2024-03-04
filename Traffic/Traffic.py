@@ -87,10 +87,10 @@ class Traffic:
             pred_traj = np.zeros((2,self.N+1))
             for j in range(self.N+1):
                 # avoid the ego vehicle: truck
-                if i == 1:
-                    continue
+                # if i == 1:
+                #     continue
                 pred_traj[0,j] = vehicle_state[0] + vehicle_state[2] * j * self.dt
-                print("this is the velocity",vehicle_state[2])
+                # print("this is the velocity",vehicle_state[2])
                 pred_traj[1,j] = vehicle_state[1]
             self.trajectory.append(pred_traj)
         return self.trajectory
