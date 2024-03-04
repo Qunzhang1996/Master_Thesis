@@ -11,6 +11,13 @@ from vehicleModel.vehicle_model import car_VehicleModel
 from kalman_filter.kalman_filter import kalman_filter
 import matplotlib.animation as animation
 # System initialization 
+# ██████╗  █████╗ ███████╗███████╗
+# ██╔══██╗██╔══██╗██╔════╝██╔════╝
+# ██████╔╝███████║███████╗███████╗
+# ██╔═══╝ ██╔══██║╚════██║╚════██║
+# ██║     ██║  ██║███████║███████║
+# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
+                                
 dt = 0.2
 N=10
 end_time = 40

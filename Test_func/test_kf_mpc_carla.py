@@ -32,7 +32,7 @@ from util.utils import *
 # ███████║   ██║   ██║ ╚████║╚██████╗███████╗╚██████╗   ██║   ██║  ██║███████╗
 # ╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝╚══════╝ ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝                                                                                                                                                                      
 # !----------------- PID MPC Settings ------------------------                                                                                                                                     
-SYNC_CTRL = False  # True for syncronized control, False for different control
+SYNC_CTRL = True  # True for syncronized control, False for different control
 frequence = 1 if SYNC_CTRL else 5  # frequence of the MPC controller
 ## !----------------- Carla Settings ------------------------
 car,truck = setup_carla_environment(Sameline_ACC=True)
@@ -78,7 +78,7 @@ vehicleADV.integrator(int_opt,dt)
 F_x_ADV  = vehicleADV.getIntegrator()
 vx_init_ego = 15
 vehicleADV.setInit([20,center_line],vx_init_ego)
-Q_ADV = [0,1e3,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)

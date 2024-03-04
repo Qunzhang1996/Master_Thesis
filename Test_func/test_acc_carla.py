@@ -4,16 +4,33 @@ sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\
 sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
 from enum import IntEnum
 from util.utils import get_state, setup_carla_environment
+from Controller.IDM import IDM
 import carla
+#!      ___      .______     ______   .______      .___________. __  
+#!     /   \     |   _  \   /  __  \  |   _  \     |           ||  | 
+#!    /  ^  \    |  |_)  | |  |  |  | |  |_)  |    `---|  |----`|  | 
+#!   /  /_\  \   |   _  <  |  |  |  | |      /         |  |     |  | 
+#!  /  _____  \  |  |_)  | |  `--'  | |  |\  \----.    |  |     |__| 
+#! /__/     \__\ |______/   \______/  | _| `._____|    |__|     (__) 
 
-# ------------------------change map to Town06------------------------
-import subprocess
-# Command to run your script
-command = (
-    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-    r'python config.py --map Town06')
-subprocess.run(command, shell=True)
-# Run the command
+
+
+#!  █████╗ ██████╗  ██████╗ ██████╗ ████████╗██╗        
+#! ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝██║        
+#! ███████║██████╔╝██║   ██║██████╔╝   ██║   ██║        
+#! ██╔══██║██╔══██╗██║   ██║██╔══██╗   ██║   ╚═╝        
+#! ██║  ██║██████╔╝╚██████╔╝██║  ██║   ██║   ██╗        
+#! ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝        
+                                                                                                  
+                                                                                           
+# # ------------------------change map to Town06------------------------
+# import subprocess
+# # Command to run your script
+# command = (
+#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+#     r'python config.py --map Town06')
+# subprocess.run(command, shell=True)
+# # Run the command
 
 from agents.navigation.controller import VehiclePIDController
 class C_k(IntEnum):
@@ -59,17 +76,14 @@ while True:
     car_state = get_state(car)
     truck_state = get_state(truck)
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
+    print(f"current_speed: {car_v}")
     truck_x, truck_y, truck_v = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item()
-    
-    
-    
-
     
     # Current state of the vehicle
     current_speed = truck_v # current speed in m/s
-    print(f"current_speed: {current_speed}")
+    
     current_position = truck_x  # current position in meters
-    delta_v = car_v-truck_v  # speed difference with the vehicle in front (approaching)
+    delta_v = 10-truck_v  # speed difference with the vehicle in front (approaching)
     print(f"delta_v: {delta_v}")
     gap = car_x-truck_x-4  # gap to the vehicle in front in meters,length of the car is 4m
 

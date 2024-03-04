@@ -5,7 +5,12 @@ sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis\Controller')
 from MPC_tighten_bound import MPC_tighten_bound
 
 #test the function
-
+# ██████╗  █████╗ ███████╗███████╗
+# ██╔══██╗██╔══██╗██╔════╝██╔════╝
+# ██████╔╝███████║███████╗███████╗
+# ██╔═══╝ ██╔══██║╚════██║╚════██║
+# ██║     ██║  ██║███████║███████║
+# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
 
 #! A,B here is the linearized system, and the system is constant velocity model at x=0,y=0, v=10m/s, theta=0
 A=np.array([[1, 0, 0.2, -0],

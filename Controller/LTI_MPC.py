@@ -53,6 +53,8 @@ class MPC:
         self.lambda_s= self.opti.variable(1,self.N + 1)
         # slack variable for y 
         self.slack_y = self.opti.variable(1,self.N + 1)
+        # ! here is a test for sigma
+        self.sigma = self.opti.variable(1,self.N + 1)
 
         # IDM leading vehicle position parameter
         self.p_leading = self.opti.parameter(1)
@@ -171,6 +173,11 @@ class MPC:
         self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
         self.opti.subject_to(self.lambda_s <= 0)
         # self.opti.subject_to(self.slack_y >= 0)
+        # ! here is test for sigma
+        for i in range(self.N+1):
+            self.opti.subject_to(self.sigma[0,i] >= -3e4*self.lambda_s[0,i])
+            self.opti.subject_to(self.sigma[0,i] >= 3e4*self.lambda_s[0,i]**2)
+        
         
         
         
@@ -182,18 +189,16 @@ class MPC:
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
         # Add slack variable cost
         # cost += 3e4*self.lambda_s@ self.lambda_s.T
-        # choose the maximum value of the slack variable linear cost and quadratic cost
-        # for i in range(self.N+1):
-        #     cost += max(-3e2*self.lambda_s[0,i], 3e2*self.lambda_s[0,i]**2)
-        # for i in range(self.N+1):
-        #     cost += 3e1*smooth_max(self.lambda_s[0,i])
             
         # [0, DM(2.32743), DM(3.3005), DM(4.05798), DM(4.70298), DM(5.27452), DM(5.79271), 
             #  DM(6.26978), DM(6.7139), DM(7.13089), DM(7.52508), DM(7.89977), DM(8.25757)]
         tighten_list=[0, (2.32743), (3.3005), (4.05798), (4.70298), (5.27452), (5.79271), 
                  (6.26978), (6.7139), (7.13089), (7.52508), (7.89977), (8.25757)]
+        # for i in range(self.N+1):
+        #     cost +=if_else(self.lambda_s[0,i]<=self.lambda_s[0,i]**2, 3e4*self.lambda_s[0,i]**2, -3e4*self.lambda_s[0,i]) 
+        # ! here test the sigma
         for i in range(self.N+1):
-            cost +=if_else(self.lambda_s[0,i]<=self.lambda_s[0,i]**2, 3e4*self.lambda_s[0,i]**2, -3e4*self.lambda_s[0,i]) 
+            cost += self.sigma[0,i]
         for i in range(self.N-1):
             cost += 5e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
         # Add slack variable cost for y

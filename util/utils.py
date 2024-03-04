@@ -62,9 +62,10 @@ def get_state(vehicle):
     # Extract relevant states
     x = vehicle_loc.x 
     y = vehicle_loc.y 
-    psi = math.radians(vehicle_rot.yaw)  # Convert yaw to radians
     v = math.sqrt(vehicle_vel.x**2 + vehicle_vel.y**2)
     # v = vehicle_vel.length()  #converting it to km/hr
+    psi = math.radians(vehicle_rot.yaw)  # Convert yaw to radians
+    
 
     return np.array([[x, y, v, psi]]).T
 

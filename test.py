@@ -1,28 +1,79 @@
-from matplotlib import pyplot as plt
-import numpy as np
 from casadi import *
-# Define the smooth maximum function
-def smooth_max(x, beta=0.00001):
-    # exp_linear = np.exp(-beta * x)
-    # exp_quadratic = np.exp(beta * x**2)
-    # return (exp_linear * -x + exp_quadratic * x**2) / (exp_linear + exp_quadratic)
-    sigmoid = 1/(1+exp(-10*(x+2)))
-    cost = sigmoid*(-x)+(1-sigmoid)*x**2
-    return cost
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Generate x values
-x_values = np.linspace(-8, 2, 400)
+leadLength = 6
+N = 12
+v0_i = 15
+leadWidth = 1.7
+laneWidth = 3.5
 
-# Calculate y values using the smooth max function with a chosen beta value
-y_values_smooth_max = smooth_max(x_values, beta=10)
 
-# Plot the smooth approximation alongside the original max function
-plt.figure(figsize=(10, 8))
-# plt.plot(x_values, max(x_values), label='f(x) = max(x, x^2)', linestyle='--')
-plt.plot(x_values, y_values_smooth_max, label='Smooth Approximation of max(x, x^2)', color='red')
-plt.title('Smooth Approximation vs. Original Max Function')
-plt.xlabel('x')
-plt.ylabel('f(x)')
-plt.legend()
+class test:
+    def __init__(self, traffic_x, traffic_y, traffic_shift,traffic_sign, min_distx=5) -> None:
+        self.traffic_sign = traffic_sign
+        self.traffic_x = traffic_x
+        self.traffic_y = traffic_y
+        self.traffic_shift = traffic_shift
+        self.Time_headway = 0.5
+        self.min_distx = min_distx
+        self.L_tract=16.1544/3
+        self.L_trail=16.1544-self.L_tract
+        self.egoWidth = 2.54
+
+    def constraint(self, px):
+        func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
+                    tanh(px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
+        func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
+                    tanh( - (px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
+        # print(func1 + func2)
+        # exit()
+        return func1 + func2
+
+# Create instances for traffic_x, traffic_y, and traffic_shift
+traffic_x = np.array([10*i for i in range(30)]).reshape(-1,1)
+traffic_x_2 = np.array([10*i+60 for i in range(30)]).reshape(-1,1)
+traffic_shift =  -laneWidth 
+# traffic_shift = 0*traffic_shift
+# Create an instance of the test class
+
+my_test = test(traffic_x, traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)
+my_test_2 = test(traffic_x_2, traffic_y=laneWidth/2, traffic_shift=laneWidth,traffic_sign=-1)
+
+# Time points at which to evaluate the constraint
+time_points = np.linspace(-30, 100, 100)  # Example time points
+
+# Evaluate the constraint function at each time point
+constraint_values = [float(my_test.constraint(px)[0]) for px in time_points]
+constraint_values_2 = [float(my_test_2.constraint(px)[0]) for px in time_points]
+# Plot the constraint curve
+plt.figure(figsize=(12,4))
+plt.plot(time_points, constraint_values,'r', linewidth=2)
+plt.plot(time_points, constraint_values_2,'r', linewidth=2)
+plt.plot([-30,100],[0,0],'k--')
+plt.plot([-30,100],[laneWidth,laneWidth],'k--')
+plt.plot([-30,100],[-laneWidth,-laneWidth],'k--')
+plt.plot([-30,100],[2*laneWidth,2*laneWidth],'k--')
+plt.plot([-30,100],[laneWidth/2,laneWidth/2],'b--')
+plt.plot([-30,100],[-laneWidth/2,-laneWidth/2],'b--')
+plt.xlabel('Time')
+plt.ylabel('Constraint Value')
+plt.title('Constraint Curve')
 plt.grid(True)
 plt.show()
+
+
+    # def constraint(self,traffic,opts):
+    #         constraints = []
+    #         leadWidth, leadLength = traffic.getVehicles()[0].getSize()
+    #         for i in range(traffic.getDim()):
+    #             v0_i = traffic.vehicles[i].v0
+    #             func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+    #                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
+    #             func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+    #                     tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
+
+    #             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
+    #                                     self.traffic_sign,self.traffic_shift,],
+    #                                     [func1+func2],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
+    #         return constraints

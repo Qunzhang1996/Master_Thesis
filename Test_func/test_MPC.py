@@ -7,7 +7,12 @@ sys.path.append(path_to_add)
 from Controller.LTI_MPC import MPC
 from vehicleModel.vehicle_model import car_VehicleModel
 from util.utils import *
-
+# ██████╗  █████╗ ███████╗███████╗
+# ██╔══██╗██╔══██╗██╔════╝██╔════╝
+# ██████╔╝███████║███████╗███████╗
+# ██╔═══╝ ██╔══██║╚════██║╚════██║
+# ██║     ██║  ██║███████║███████║
+# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
 
 dt = 0.1
 N=12
