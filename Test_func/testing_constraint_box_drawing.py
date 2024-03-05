@@ -18,10 +18,11 @@ from agents.navigation.controller_upd import VehiclePIDController
 from Controller.scenarios import trailing, simpleOvertake
 # import helpers
 from util.utils import *
+from Traffic.Traffic import Traffic
 
 # # ------------------------change map to Town06------------------------
 # import subprocess
-# # Command to run your script
+# Command to run your script
 # command = (
 #     r'cd C:\Users\A490242\Desktop\Documents\WindowsNoEditor\PythonAPI\util && '
 #     r'python config.py --map Town06')
@@ -29,66 +30,91 @@ from util.utils import *
 # # --------------------------Run the command--------------------------
 
 ## !----------------- Carla Settings --------------------------------
-car,truck,car2 = setup_carla_environment(Sameline_ACC=False)
+N = 200
+Traffic = Traffic(N=200)
+# spawn the vehicle
+spawned_vehicles, center_line = Traffic.setup_complex_carla_environment()
+vehicle_list = spawned_vehicles
+trafficList = [vehicle_list[0]] + vehicle_list[2:]
+truck = vehicle_list[1]
+## !----------------- Set the velocity of the vehicles ------------------------
+ref_velocity = 54/3.6  # TODO: here is the reference velocity for the truck
+velocities = {
+        'normal': carla.Vector3D(0.9 * ref_velocity, 0, 0),
+        'passive': carla.Vector3D(0.7 * ref_velocity, 0, 0),
+        'aggressive': carla.Vector3D(ref_velocity, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
+        'reference': carla.Vector3D(ref_velocity, 0, 0)  # Specifically for the truck
+    }
+Traffic.set_velocity(vehicle_list,velocities)
 time.sleep(1)
-velocity1 = carla.Vector3D(10, 0, 0)
-velocity2 = carla.Vector3D(8, 0, 0)
-# add traffic vehicles
-car.set_target_velocity(velocity2) # set the velocity of the car1 slower than the truck
-car2.set_target_velocity(velocity2) 
-# create a list of traffic vehicles
-trafficList = [car,car2]
-# add ego vehicle
-truck.set_target_velocity(velocity1)
-time.sleep(1)
-client = carla.Client('localhost', 2000)
-world = client.get_world()
-carla_map = world.get_map()
+pred_traj = Traffic.predict_trajectory(vehicle_list)
+# print(pred_traj)
+
           
 desired_interval = 0.2  # Desired time interval in seconds                      
 ref_velocity = 15  # TODO: here is the reference velocity for the truck
 dt = desired_interval
-N=12
-# create a model for the ego vehicle
-vehicleADV = car_VehicleModel(dt,N, width = 2, length = 6)
-nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
-int_opt = 'rk'
-vehicleADV.integrator(int_opt,dt)
-F_x_ADV  = vehicleADV.getIntegrator()
-vx_init_ego = 10
-vehicleADV.setInit([20,143.318146],vx_init_ego)
-Q_ADV = [0,5e2,50,10]                            # State cost, Entries in diagonal matrix
-R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
-
-# ------------------ Problem definition ---------------------
-scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
-scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
 versionL = {"version" : "leftChange"}
 versionR = {"version" : "rightChange"}
 versionT = {"version" : "trailing"}
-
-## !----------------- get initial state of leading vehicle ------------------------
-car_state = get_state(car)
-car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
-p_leading = car_x
 
 # ! Simulation parameters
 start_time = time.time()  # Record the start time of the simulation
 velocity_leading = 13
 Nveh = len(trafficList) # Number of vehicles in the traffic
 traffic_state = np.zeros((5,N+1,Nveh)) # the size is defined as 5x(N+1)xNveh, 5: {x,y,sign,shift,flip}, N is the prediction horizon, Nveh is the number of vehicles
-traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
-func1, func2 = draw_constraint_box(truck, trafficList, traffic_state, Nveh, N, versionR)
+
+pred_traj = Traffic.predict_trajectory(vehicle_list)
+pred_traj_ego = np.transpose(np.array(Traffic.predict_trajectory([truck])),(1,2,0))
+pred_traj_traffic = np.array(Traffic.predict_trajectory(trafficList))
+
+traffic_state[:2, :, :] = np.transpose(pred_traj_traffic,(1,2,0))
+constraint_values_all = draw_constraint_box(truck, trafficList, traffic_state, pred_traj_ego, Nveh, N, versionL)
+
+px_traj_all = pred_traj_ego[0]
+laneWidth = 3.5
+
+# Now, plotting the entire trajectory
+plt.figure(figsize=(12,4))
+
+# Plotting constraints for all i
+plt.scatter(px_traj_all, constraint_values_all,label='Constraint 1')
+
+# Plotting positions of the vehicles
+plt.scatter(pred_traj[3][0],pred_traj[3][1],label='car_4')
+plt.scatter(pred_traj[0][0],pred_traj[0][1],label='car_leading')
+plt.scatter( pred_traj[1][0], pred_traj[1][1],label='ego_vehicle')
+
+# Marking lanes
+plt.plot([-30, 700], [center_line, center_line], 'k--')
+plt.plot([-30, 700], [center_line+laneWidth, center_line+laneWidth], 'k--')
+plt.plot([-30, 700], [center_line-laneWidth, center_line-laneWidth], 'k--')
+plt.plot([-30, 700], [center_line-laneWidth*3/2, center_line-laneWidth*3/2], 'b')
+plt.plot([-30, 700], [center_line+laneWidth/2, center_line+laneWidth/2], 'b')
+plt.plot([-30, 700], [center_line+laneWidth*3/2, center_line+laneWidth*3/2], 'b')
+plt.plot([-30, 700], [center_line-laneWidth/2, center_line-laneWidth/2], 'b')
+
+plt.xlabel('Position along X')
+plt.ylabel('Constraint Value')
+plt.title('Constraint Curve for the Whole Trajectory')
+plt.grid(True)
+plt.legend()
+plt.show()
 
 
-# Compute the sum of the two density matrices
-sum_output = func1 + func2
+
 
 # Define road parameters
 center_lane_x = 124 # center points of the center lane: x
 center_lane_y = 143.318146 # center points of the center lane: y
 lane_width = 3.5
 num_lanes = 3
+car_x=124
+car_y=143.318146
+car2_x = 124 - 30
+car2_y = 143.318146 + 3.5
+truck_x = 124 - 50
+truck_y = 143.318146
 
 # Plotting the lanes
 fig, ax = plt.subplots()
@@ -110,16 +136,11 @@ ax.set_ylim(top=right_lane_y - 2*lane_width, bottom=left_lane_y + 2*lane_width)
 
 # Hide x-axis
 ax.xaxis.set_visible(False)
-car_x=124
-car_y=143.318146
-car2_x = 124 - 30
-car2_y = 143.318146 + 3.5
-truck_x = 124 - 50
-truck_y = 143.318146
+
 plt.scatter(car_x, car_y, color='red', marker='o')
 plt.scatter(car2_x, car2_y, color='blue', marker='o')
 plt.scatter(truck_x, truck_y, color='green', marker='o')
 
-plt.show()
 
+plt.show()
 

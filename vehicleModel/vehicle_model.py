@@ -2,7 +2,7 @@
 #! include bicycle model for car and truck
 from casadi import*
 import sys
-path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
+path_to_add='C:\\Users\\A490242\\Desktop\\Master_Thesis'
 sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.vehicleModelGarage import vehBicycleKinematic
 from enum import IntEnum

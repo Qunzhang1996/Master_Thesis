@@ -33,7 +33,19 @@ func1 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift) + egoWidth + lead
 func2 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift) + egoWidth + leadWidth) / 2 * \
                         tanh( - (px - traffic_x)  + leadLength/2 + L_trail + v0_i * Time_headway+ min_distx )  + traffic_shift/2
 
-func = func1 + func2
+# Compute the sum of the two density matrices
+sum_output = func1 + func2
+
+# Extract the dimensions of the density matrix
+num_rows = sum_output.rows()
+num_cols = sum_output.cols()
+
+# Extract values from the density matrices
+values_func1 = np.array(sum_output).reshape(num_rows, num_cols)
+
+# Plot the sum
+for i in range(num_cols):
+    plt.plot(values_func1[:, i], label=f'Function {i+1}')
 
 
 # Define road parameters
@@ -68,9 +80,10 @@ plt.scatter(car2_x, car2_y, color='blue', marker='o')
 plt.scatter(truck_x, truck_y, color='green', marker='o')
 
 
-# Plot func
-x_values = np.linspace(0, 248, 100)  # Adjust the number of points as needed
-y_values = np.array(func)
-plt.plot(x_values, y_values, color='orange', linestyle='-')
+# # Plot func
+# x_values = np.linspace(0, 248, 100)  # Adjust the number of points as needed
+# y_values = np.array(func)
+# plt.plot(x_values, y_values, color='orange', linestyle='-')
 
 plt.show()
+
