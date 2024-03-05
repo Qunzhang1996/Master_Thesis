@@ -1,5 +1,13 @@
 # Master_Thesis
-This the repo for master_thesis
+## This the repo for master_thesis
+For the EKF_MPC, we use the workflow shown below (we did not use the sensor in carla actually):
+<p float="left">
+  <img src="Figure/Work_flow.png" width="85%" /> 
+</p>   
+<p float="left">
+  <img src="Figure/ACC_in_heavy_traffic.gif" width="85%" /> 
+</p>   
+
 ## 2024/01/24 QunZhang
 Create the repo and add some related folder   
 
@@ -25,14 +33,9 @@ This is the result of the MPC_PID_ACC without kalman filter (red bounding box is
 <p float="left">
   <img src="Figure/simulation_plots.png" width="85%" /> 
 </p>   
-## 2024/02/14 QunZhang
-For the kf_MPC, we use the workflow shown below (we did not use the sensor in carla actually):
-<p float="left">
-  <img src="Figure/Work_flow.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/ACC_in_heavy_traffic.gif" width="85%" /> 
-</p>   
+
+## 2024/02/14 QunZhang   
+
 This is the result of the MPC_PID_ACC with kalman filter (red bounding box is tighten IDM_constraint):  
 <p float="left">
   <img src="Figure/CARLA_IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
@@ -63,14 +66,15 @@ This is the result of the MPC_PID_ACC with kalman filter (PID works every 0.2s, 
 </p>   
 
 ## 2024/02/19 QunZhang
-TODO List: 
-```
-1. build heavy traffic scenerio
-2. lane changing
-3. decision master
-```
-
 Here is the right lane changing constraint   
 <p float="left">
   <img src="Figure/right_lane_constraint.png" width="85%" /> 
 </p>   
+
+## 2024/03/05 QunZhang
+TODO List: 
+```
+1. build heavy traffic scenerio, DONE (only straight line scenario)
+2. lane changing, TBD, expected date: 2024/03/08
+3. decision master
+```
