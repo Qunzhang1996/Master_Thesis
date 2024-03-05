@@ -9,9 +9,7 @@ class Traffic:
         self.trajectory = []
         self.N = N
         self.dt = dt
-        
-        
-        
+          
     def spawn_vehicle(self,world, blueprint, spawn_point):
         """
         Attempts to spawn a vehicle at a given spawn point.
@@ -69,7 +67,7 @@ class Traffic:
         carlacola.set_target_velocity(velocities['normal'])
         lincoln.set_target_velocity(velocities['aggressive'])
         #vehicle on the third lane
-        car.set_target_velocity(velocities['normal'])
+        car.set_target_velocity(velocities['passive'])
         truck.set_target_velocity(velocities['reference']) # ! This is ego vehicle
         ford_ambulance.set_target_velocity(velocities['aggressive'])
         #vehicle on the fourth lane
