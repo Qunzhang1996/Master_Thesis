@@ -25,6 +25,18 @@ import os
 import json
 # ----------------- Carla Settings ------------------------
 #! set the initial position of the car and truck
+# ██████╗  █████╗ ███████╗███████╗
+# ██╔══██╗██╔══██╗██╔════╝██╔════╝
+# ██████╔╝███████║███████╗███████╗
+# ██╔═══╝ ██╔══██║╚════██║╚════██║
+# ██║     ██║  ██║███████║███████║
+# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
+
+
+
+
+
+
 import carla
 car,truck = setup_carla_environment(Sameline_ACC=False)
 velocity1 = carla.Vector3D(10, 0, 0)

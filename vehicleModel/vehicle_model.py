@@ -23,12 +23,13 @@ class car_VehicleModel(vehBicycleKinematic):
         super().__init__(*args, **kwargs)
         self.name = "car_bicycle"
         self.nx = 4                     # State dimensions
+        self.laneWidth = 3.5
         #! rewrite the refx
         self.nrefx = self.nx
         self.nrefu = self.nu
-        self.refxT = [0,0,60/3.6,0]
-        self.refxL = [0,0,60/3.6,0]
-        self.refxR = [0,0,60/3.6,0]
+        self.refxT = [0,0,54/3.6,0]
+        self.refxL = [0,0,54/3.6,0]
+        self.refxR = [0,0,54/3.6,0]
         
          # System model variables
         self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
@@ -42,10 +43,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.p = self.x_init[:2]
         self.v = self.x_init[2]
 
-
-        self.refxT = [0,0,60/3.6,0]
-        self.refxL = [0,0,60/3.6,0]
-        self.refxR = [0,0,60/3.6,0]
+        
 
         # System model variables
         self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
@@ -53,6 +51,10 @@ class car_VehicleModel(vehBicycleKinematic):
 
         self.refx = SX.sym('refx',self.nx)
         self.refu = SX.sym('refu',self.nu)
+        #! rewrite the length of the vehicle to fit the scenario
+        self.L_tract = 8.4
+        self.L_trail = 0
+        self.ego_width = 2.54
 
         
     #! rewrite the model from vehBicycleKinematic to car_VehicleModel
@@ -133,24 +135,16 @@ class car_VehicleModel(vehBicycleKinematic):
         newG=  g_op * dt_sim
 
         return newA, newB,newG
+    
+    def setReferences(self,center_line=143.318146):
+        self.laneCenters = [center_line,center_line+self.laneWidth,center_line-self.laneWidth]
+        self.refxT[1] = self.laneCenters[0]
+        self.refxL[1] = self.laneCenters[1]
+        self.refxR[1] = self.laneCenters[2]
 
-# # System initialization 
-# dt = 0.1
-# N=10
-# end_time = 15
-# t_axis = np.arange(0, end_time, dt)
-# car_model = car_VehicleModel(dt,N, width = 2, length = 4)
-# nx,nu,nrefx,nrefu = car_model.getSystemDim()
-# int_opt = 'rk'
-# car_model.integrator(int_opt,dt)
-# F_x_ADV  = car_model.getIntegrator()
-# vx_init_ego = 10   
-# car_model.setInit([124-75,143.318146],vx_init_ego)
-# x_iter = DM(int(nx),1)
-# # get initial state and input
-# x_iter[:],u_iter = car_model.getInit()
+        return self.refxT, self.refxL, self.refxR
+    
+    
+    def get_vehicle_size(self):
+        return self.L_tract, self.L_trail, self.ego_width
 
-# # ----------------- Ego Vehicle obsver(kalman filter) Settings ------------------------
-# init_flag = True
-# F,B,G=car_model.calculate_AB(dt,init_flag=1)
-# print("F is:",F,"","B is:",B,"G is:",G)
