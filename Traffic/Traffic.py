@@ -114,5 +114,5 @@ class Traffic:
         
         return leadWidth, leadLength
     
-    def get_LaneWidth(self):
+    def get_laneWidth(self):
         return self.laneWidth

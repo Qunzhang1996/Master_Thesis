@@ -143,8 +143,26 @@ class car_VehicleModel(vehBicycleKinematic):
         self.refxR[1] = self.laneCenters[2]
 
         return self.refxT, self.refxL, self.refxR
-    
+
+
+    def cost(self,Q,R):
+        l = 0
+        for i in range(0,self.nx):
+                l += 5*Q[i]*(self.x[i]-self.refx[i]) ** 2
+        
+        for i in range(0,self.nu):
+            l += R[i]*(self.u[i]-self.refu[i]) ** 2
+        self.L = Function('L',[self.x,self.u,self.refx,self.refu],[l],['x','u','refx','refu'],['Loss'])
+
+    def costf(self,Q):
+        lf = 0
+        for i in range(0,self.nx):
+            lf += Q[i]*(self.x[i]-self.refx[i]) ** 2
+        
+        self.Lf =  Function('Lf',[self.x,self.refx],[lf],['x','refx'],['Lossf'])    
     
     def get_vehicle_size(self):
         return self.L_tract, self.L_trail, self.ego_width
+    
+    
 

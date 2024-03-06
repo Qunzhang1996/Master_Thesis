@@ -58,6 +58,14 @@ class LC_MPC:
         #! here is only one test for the right lane change
         # slack variable for the lane change constraint for  y direction
         self.slack_y = self.opti.variable(1, self.N)
+        # create a Opti stack for traffic_x, traffic_y, px
+        self.traffic_x_all = self.opti.variable(1, self.N+1)
+        self.traffic_y_all = self.opti.variable(1, self.N+1)
+        self.px_all = self.opti.variable(1, self.N+1)
+        self.leading_velocity = self.opti.parameter(1)
+        self.p_leading = self.opti.parameter(2,1)
+        # add slack for the y direction
+        self.slack_y = self.opti.variable(1, self.N+1)
     
     def compute_Dlqr(self):
         return self.MPC_tighten_bound.calculate_Dlqr()
@@ -90,6 +98,16 @@ class LC_MPC:
         
         return A_d, B_d, g_d
     
+    def setStateEqconstraints(self, v=15, phi=0, delta=0):
+        """
+        Set state equation constraints.
+        """
+        for i in range(self.N):
+            A, B, C = self.calc_linear_discrete_model(v, phi, delta)  
+            self.A, self.B, self.C = A, B, C
+            self.opti.subject_to(self.x[:, i+1] == A @ self.x[:, i] + B @ self.u[:, i] + C)
+        self.opti.subject_to(self.x[:, 0] == self.x0)
+    
     def setInEqConstraints_val(self, H_up=None, upb=None, H_low=None, lwb=None):
         """
         Set inequality constraints values.
@@ -103,42 +121,123 @@ class LC_MPC:
                                                       np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
     
-    
-    def lane_change_constraint(self):
-        constraints = []
-        leadWidth, leadLength =self.leadWidth, self.leadLength
-        for i in range(self.Traffic.getDim()):
-            # !  ignore the ego vehicle itself, the 1th is the ego vehicle
-            if i == 1:
-                continue
-            # !  ignore the ego vehicle itself, the 1th is the ego vehicle
-            v0_i = self.Traffic.get_velocity()[i]
-            
-            func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+    def lane_change_constraint_test(self):
+        '''
+        This is the test for the lane change constraint
+        '''
+        leadWidth, leadLength = self.leadWidth, self.leadLength
+        v0_i = self.leading_velocity
+        # !traffic_shift=-laneWidth, traffic_sign=1, for the right lane change
+        self.traffic_sign = 1
+        self.traffic_shift = -self.laneWidth
+        func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
-            func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-                    tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
-            constraint_shift = func1 + func2 + + 143.318146 -self.laneWidth/2
-            constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
-                                    self.traffic_sign,self.traffic_shift,],
-                                    [constraint_shift],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
-        return constraints
-            
-            
-    
-    
+        func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+                tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
+        constraint_shift = func1 + func2 + + 143.318146 -self.laneWidth/2
         
-    # def lane_change_constraint():
+        return constraint_shift
+    
+    # def lane_change_constraint(self):
     #     constraints = []
-    #     leadWidth, leadLength = traffic.getVehicles()[0].getSize()
-    #     for i in range(traffic.getDim()):
-    #         v0_i = traffic.vehicles[i].v0
-    #         func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
+    #     leadWidth, leadLength =self.leadWidth, self.leadLength
+    #     for i in range(self.Traffic.getDim()):
+    #         # !  ignore the ego vehicle itself, the 1th is the ego vehicle
+    #         if i == 1:
+    #             continue
+    #         # !  ignore the ego vehicle itself, the 1th is the ego vehicle
+    #         v0_i = self.Traffic.get_velocity()[i]
+            
+    #         func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
     #                 tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
-    #         func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
+    #         func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
     #                 tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
-
+    #         constraint_shift = func1 + func2 + + 143.318146 -self.laneWidth/2
     #         constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
     #                                 self.traffic_sign,self.traffic_shift,],
-    #                                 [func1+func2],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
+    #                                 [constraint_shift],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
     #     return constraints
+    
+    def setInEqConstraints(self):
+        """
+        Set inequality constraints.
+        """
+        lane_change_constraint_all = []
+        for i in range(self.N+1):
+            # ! calculate the px, according to the vehicle state and time
+            self.px_all[0,i] = self.x[0,i] + self.x[2,i] * self.Param.dt
+            # pleading here include the initial x, y of the leading vehicle
+            # ! calculate the self.traffic_x and self.traffic_y according to the leading velocity
+            self.traffic_x_all[0,i] = self.p_leading[0] + self.leading_velocity * self.Param.dt * i
+            self.traffic_y_all[0,i] = self.p_leading[1]
+            
+        # ! here is the lane change constraint
+        for i in range(self.N+1):
+            self.traffic_x = self.traffic_x_all[0,i]
+            self.traffic_y = self.traffic_y_all[0,i]
+            self.px = self.px_all[0,i]
+            constraint_shift = self.lane_change_constraint_test()
+            lane_change_constraint_all.append(constraint_shift)
+        
+        # ! here is the lane change constraint, the y direction
+        # for i in range(self.N+1):
+        #     self.opti.subject_to(self.x[1,i] <= lane_change_constraint_all[i]+self.slack_y[0,i])
+            
+        # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
+        self.opti.subject_to(self.u[0, :] >= -3.14 / 8)
+        self.opti.subject_to(self.u[0, :] <= 3.14 / 8)
+        self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)
+        self.opti.subject_to(self.u[1, :] <= 0.5 * 9.81)
+    
+    def setCost(self):
+        """
+        Set cost function for the optimization problem.
+        """
+        L, Lf = self.vehicle.getCost()
+        cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
+        # Add slack variable cost
+        for i in range(self.N-1):
+            cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
+        # Add slack variable cost for y
+        cost += 5e5*self.slack_y@ self.slack_y.T
+        self.opti.minimize(cost)
+        
+    def setController(self):
+        """
+        Set constraints and cost function for the MPC controller.
+        """
+        self.setStateEqconstraints()
+        self.setInEqConstraints()
+        self.setCost()
+        
+    def solve(self, x0, ref_trajectory, ref_control, p_leading, leading_velocity=10, vel_diff=6):
+        """
+        Solve the MPC problem.
+        """
+        # Set the initial condition and reference trajectories
+        
+        self.opti.set_value(self.x0, x0)
+        self.opti.set_value(self.refx, ref_trajectory)
+        self.opti.set_value(self.refu, ref_control)
+        self.opti.set_value(self.p_leading, p_leading)
+        self.opti.set_value(self.leading_velocity, leading_velocity)
+        # Solver options
+        opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
+        self.opti.solver("ipopt", opts)
+        
+        try:
+            sol = self.opti.solve()
+            u_opt = sol.value(self.u)
+            x_opt = sol.value(self.x)
+            return u_opt, x_opt
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            self.opti.debug.value(self.x)
+            return None, None
+        
+        
+    def get_dynammic_model(self):
+        """
+        Return the dynamic model of the vehicle.
+        """
+        return self.A, self.B, self.C

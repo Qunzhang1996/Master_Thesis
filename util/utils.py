@@ -28,46 +28,7 @@ class C_k(IntEnum):
     
     
     
-def set_stochastic_mpc_params():
-    
-    # process_noise=DM(process_noise)
-    P0 = np.array([[0.002071893043635329, -9.081755508401041e-07, 6.625835814018275e-06, 3.5644803460420476e-06],
-                [-9.081755508401084e-07, 0.0020727698104820867, -1.059020050149629e-05, 2.218506297137566e-06], 
-                [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
-                [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
-    process_noise=np.eye(4)  # process noise
-    process_noise[0,0]=2  # x bound is [0, 3]
-    process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
-    process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
-    process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
 
-    possibility=0.95  # possibility 
-    return P0,process_noise,possibility
-
-def get_state(vehicle):
-    """Here is the func that help to get the state of the vehicle
-
-    Args:
-        vehicle (_type_): _description_
-
-    Returns:
-        _type_: _4X1_ vector that contains the state of the vehicle
-        x, y, psi, v
-    """
-    vehicle_pos = vehicle.get_transform()
-    vehicle_loc = vehicle_pos.location
-    vehicle_rot = vehicle_pos.rotation
-    vehicle_vel = vehicle.get_velocity()
-
-    # Extract relevant states
-    x = vehicle_loc.x 
-    y = vehicle_loc.y 
-    v = math.sqrt(vehicle_vel.x**2 + vehicle_vel.y**2)
-    # v = vehicle_vel.length()  #converting it to km/hr
-    psi = math.radians(vehicle_rot.yaw)  # Convert yaw to radians
-    
-
-    return np.array([[x, y, v, psi]]).T
 
 def setup_carla_environment(Sameline_ACC=True):
     """
@@ -88,6 +49,7 @@ def setup_carla_environment(Sameline_ACC=True):
         actor.destroy()
     center_line = 143.318146
     if Sameline_ACC :
+        # ! this scenario is for the ACC
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
         # car_bp = bp_lib.find('vehicle.ford.ambulance')
@@ -101,14 +63,15 @@ def setup_carla_environment(Sameline_ACC=True):
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
         return car, truck
     else:
+        # ! this scenario is for the lane changing
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
-        car_spawn_point = carla.Transform(carla.Location(x=80, y=center_line, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=30, y=center_line+3.5, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
         truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=3.5, x=-100))
+        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=-3.5, x=0))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
 
         return car, truck, center_line
@@ -161,6 +124,51 @@ def spawn_vehicle(world, blueprint, spawn_point):
         print(f"Error spawning vehicle: {e}")
         return None
   
+def set_stochastic_mpc_params():
+    
+    # process_noise=DM(process_noise)
+    P0 = np.array([[0.002071893043635329, -9.081755508401041e-07, 6.625835814018275e-06, 3.5644803460420476e-06],
+                [-9.081755508401084e-07, 0.0020727698104820867, -1.059020050149629e-05, 2.218506297137566e-06], 
+                [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
+                [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
+    process_noise=np.eye(4)  # process noise
+    process_noise[0,0]=2  # x bound is [0, 3]
+    process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
+    process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
+    process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
+
+    possibility=0.95  # possibility 
+    return P0,process_noise,possibility
+
+def get_state(vehicle):
+    """Here is the func that help to get the state of the vehicle
+
+    Args:
+        vehicle (_type_): _description_
+
+    Returns:
+        _type_: _4X1_ vector that contains the state of the vehicle
+        x, y, psi, v
+    """
+    vehicle_pos = vehicle.get_transform()
+    vehicle_loc = vehicle_pos.location
+    vehicle_rot = vehicle_pos.rotation
+    vehicle_vel = vehicle.get_velocity()
+
+    # Extract relevant states
+    x = vehicle_loc.x 
+    y = vehicle_loc.y 
+    v = math.sqrt(vehicle_vel.x**2 + vehicle_vel.y**2)
+    # v = vehicle_vel.length()  #converting it to km/hr
+    psi = math.radians(vehicle_rot.yaw)  # Convert yaw to radians
+    
+
+    return np.array([[x, y, v, psi]]).T
+
+
+
+
+
     
 #make sure angle in -pi pi
 def angle_trans(angle):
@@ -550,7 +558,7 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
         axs[0, 0].plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k--')
         axs[0, 0].set_title('Truck Trajectory')
         axs[0, 0].set_xlabel('X Position')
-        axs[0, 0].set_ylim([143.318146 - 3.5, 143.318146 + 3.5])
+        axs[0, 0].set_ylim([143.318146 - 7, 143.318146 + 7])
         axs[0, 0].set_ylabel('Y Position')
         axs[0, 0].grid(True)
         axs[0, 0].legend()

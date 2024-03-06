@@ -93,8 +93,18 @@ for i in range(N+1):  # Loop through i = 0 to 12
     px_traj_all.append(px_traj)
     constraint_values_all.append(my_test.constraint(px_traj))
     constraint_values_2_all.append(my_test_2.constraint(px_traj))
+    
+    
+# here, test using vector of traffic_x and traffic_y to calculate the constraint
+# my_test = test(DM(pred_traj[0,:,3]), DM(-laneWidth/2), DM(-laneWidth), 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+# my_test_2 = test(DM(pred_traj[0,:,0]), DM(laneWidth/2), DM(laneWidth), -1)   #!('vehicle.tesla.model3', 80),   center line
+# px_traj = pred_traj[0,:,1]
+# px_traj_all = px_traj
+# constraint_values_all = my_test.constraint(px_traj)
+# constraint_values_2_all = my_test_2.constraint(px_traj)
+    
 
-print(len(pred_traj[1][0]))
+# print(len(pred_traj[1][0]))
 
 # Now, plotting the entire trajectory
 plt.figure(figsize=(12,4))

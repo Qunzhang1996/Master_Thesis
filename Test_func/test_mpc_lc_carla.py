@@ -17,12 +17,7 @@ from agents.navigation.controller import VehiclePIDController
 from Traffic.Traffic import Traffic
 # import helpers
 from util.utils import *
-# ██████╗  █████╗ ███████╗███████╗
-# ██╔══██╗██╔══██╗██╔════╝██╔════╝
-# ██████╔╝███████║███████╗███████╗
-# ██╔═══╝ ██╔══██║╚════██║╚════██║
-# ██║     ██║  ██║███████║███████║
-# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
+
 # #! ------------------------change map to Town06------------------------
 # import subprocess
 # # Command to run your script
