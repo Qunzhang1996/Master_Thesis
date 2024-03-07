@@ -78,10 +78,10 @@ Here is the right lane changing constraint:
   <img src="Figure/right_lane_constraint.png" width="85%" /> 
 </p>   
 
-Here is the right lane change result:  
-<p float="left">
+<!-- Here is the right lane change result:   -->
+<!-- <p float="left">
   <img src="Figure/MPC_PID_LC.gif" width="85%" /> 
 </p>   
 <p float="left">
   <img src="Figure/MPC_PID_LC.png" width="85%" /> 
-</p>   
+</p>    -->
