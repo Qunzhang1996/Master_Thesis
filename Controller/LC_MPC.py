@@ -134,7 +134,7 @@ class LC_MPC:
                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
         func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
                 tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
-        constraint_shift = func1 + func2 + + 143.318146 -self.laneWidth/2
+        constraint_shift = func1 + func2 + 143.318146 -self.laneWidth/2
         
         return constraint_shift
     
@@ -162,26 +162,47 @@ class LC_MPC:
         """
         Set inequality constraints.
         """
-        lane_change_constraint_all = []
+        v, phi, delta = self.v_ref, self.phi_ref, self.delta_ref  # Default values; adjust as necessary
+        A, B, _ = self.calc_linear_discrete_model(v, phi, delta)
+        D = np.eye(self.nx)  # Noise matrix
+        
+        self.setInEqConstraints_val()  # Set tightened bounds
+
+        self.MPC_tighten_bound = MPC_tighten_bound(A, B, D, self.Q, self.R, self.P0, self.process_noise, self.Possibility)
+        # Set the IDM constraint
+      
+
+        # Example tightened bound application (adjust according to actual implementation)
+        self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
+        self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
+
+        # the tightened bound (up/lw) is N+1 X NUM_OF_STATES  [x, y, v, psi] 
+        # according to the new bounded constraints set the constraints
+        for i in range(self.N+1):
+            self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
+        self.lane_change_constraint_all = []
         for i in range(self.N+1):
             # ! calculate the px, according to the vehicle state and time
             self.px_all[0,i] = self.x[0,i] + self.x[2,i] * self.Param.dt
             # pleading here include the initial x, y of the leading vehicle
             # ! calculate the self.traffic_x and self.traffic_y according to the leading velocity
             self.traffic_x_all[0,i] = self.p_leading[0] + self.leading_velocity * self.Param.dt * i
-            self.traffic_y_all[0,i] = self.p_leading[1]
+            # ! notice! traffic_y should be scaled according to the map, the center of the map is 143.318146
+            self.traffic_y_all[0,i] = self.p_leading[1]-143.318146
             
         # ! here is the lane change constraint
         for i in range(self.N+1):
-            self.traffic_x = self.traffic_x_all[0,i]
-            self.traffic_y = self.traffic_y_all[0,i]
-            self.px = self.px_all[0,i]
+            self.traffic_x = self.traffic_x_all[i]
+            self.traffic_y = self.traffic_y_all[i]
+            self.px = self.px_all[i]
             constraint_shift = self.lane_change_constraint_test()
-            lane_change_constraint_all.append(constraint_shift)
+            self.lane_change_constraint_all.append(constraint_shift+self.slack_y[0,i])
         
+        self.tightened_LC_list,_=self.MPC_tighten_bound.tighten_bound_N_laneChange(self.lane_change_constraint_all, self.N)
         # ! here is the lane change constraint, the y direction
-        # for i in range(self.N+1):
-        #     self.opti.subject_to(self.x[1,i] <= lane_change_constraint_all[i]+self.slack_y[0,i])
+        for i in range(self.N+1):
+            self.opti.subject_to(self.x[1,i] >= self.lane_change_constraint_all[i])
             
         # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 8)
@@ -197,9 +218,11 @@ class LC_MPC:
         cost=getTotalCost(L, Lf, self.x, self.u, self.refx, self.refu, self.N)
         # Add slack variable cost
         for i in range(self.N-1):
-            cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
+            # cost += 1e2*(self.u[0,i+1]-self.u[0,i])@(self.u[0,i+1]-self.u[0,i]).T
+            # cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
+            cost += 1e2*(self.u[:,i+1]-self.u[:,i]).T@(self.u[:,i+1]-self.u[:,i])
         # Add slack variable cost for y
-        cost += 5e5*self.slack_y@ self.slack_y.T
+        cost += 1e4*self.slack_y@ self.slack_y.T
         self.opti.minimize(cost)
         
     def setController(self):
@@ -229,7 +252,16 @@ class LC_MPC:
             sol = self.opti.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
-            return u_opt, x_opt
+            lambda_y = sol.value(self.slack_y)
+            print("this is reference of state: ", ref_trajectory[1])
+            # try to visualize the constraints of the y direction, not the slack variable, lane_change_constraint_all
+            lane_change_constraint_all=[sol.value(self.lane_change_constraint_all[i]) for i in range(self.N+1)]
+            print("this is the lane change constraint: ", lane_change_constraint_all)
+            
+            
+            
+            
+            return u_opt, x_opt, lambda_y,lane_change_constraint_all
         except Exception as e:
             print(f"An error occurred: {e}")
             self.opti.debug.value(self.x)

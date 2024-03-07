@@ -109,8 +109,8 @@ class Traffic:
     
     def get_size(self):
         """return the common size of the vehicles"""
-        leadWidth = 1.7
-        leadLength = 6
+        leadWidth = 1.9
+        leadLength = 4.694
         
         return leadWidth, leadLength
     

@@ -66,12 +66,12 @@ def setup_carla_environment(Sameline_ACC=True):
         # ! this scenario is for the lane changing
         # Spawn Tesla Model 3
         car_bp = bp_lib.find('vehicle.tesla.model3')
-        car_spawn_point = carla.Transform(carla.Location(x=30, y=center_line+3.5, z=0.3))
+        car_spawn_point = carla.Transform(carla.Location(x=30, y=center_line-3.5, z=0.3))
         car = spawn_vehicle(world, car_bp, car_spawn_point)
 
         # Spawn Firetruck
         truck_bp = bp_lib.find('vehicle.carlamotors.firetruck')
-        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=-3.5, x=0))
+        truck_spawn_point = carla.Transform(car_spawn_point.location + carla.Location(y=+3.5, x=0))
         truck = spawn_vehicle(world, truck_bp, truck_spawn_point)
 
         return car, truck, center_line
@@ -133,7 +133,7 @@ def set_stochastic_mpc_params():
                 [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
     process_noise=np.eye(4)  # process noise
     process_noise[0,0]=2  # x bound is [0, 3]
-    process_noise[1,1]=0.01/6  # y bound is [0, 0.1]
+    process_noise[1,1]=0.2  # y bound is [0, 0.1]
     process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
     process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
 
@@ -300,13 +300,13 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
         # Reset the y-axis limits after clearing
         ax.set_ylim(y_center - width - 5, y_center + width + 5)
         
-        # Constraint box
-        x_right_end = min(all_tightened_bounds[frame])
-        x_right_end2 = max(all_tightened_bounds[frame])
-        rect = plt.Rectangle((0, y_center - width / 2), x_right_end, width, fill=None, edgecolor='red', linewidth=2)
-        rect2 = plt.Rectangle((0, y_center - width / 2), x_right_end2, width, fill=None, edgecolor='red', linewidth=2)
-        ax.add_patch(rect)
-        ax.add_patch(rect2)
+        # ! Constraint box
+        # x_right_end = min(all_tightened_bounds[frame])
+        # x_right_end2 = max(all_tightened_bounds[frame])
+        # rect = plt.Rectangle((0, y_center - width / 2), x_right_end, width, fill=None, edgecolor='red', linewidth=2)
+        # rect2 = plt.Rectangle((0, y_center - width / 2), x_right_end2, width, fill=None, edgecolor='red', linewidth=2)
+        # ax.add_patch(rect)
+        # ax.add_patch(rect2)
         
         # Vehicle representation
         truck_x, truck_y = truck_positions[frame]
@@ -328,7 +328,8 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
         ax.set_ylabel('Y Position')
         ax.set_title('Constraint Box and Vehicle Position with Predicted Trajectory')
         
-        return [rect, vehicle_rect, vehicle_rect_car]
+        # return [rect, vehicle_rect, vehicle_rect_car]
+        return [vehicle_rect, vehicle_rect_car]
 
     ani = FuncAnimation(fig, update, frames=range(len(all_tightened_bounds)), init_func=init, blit=False, repeat=False)
     if not os.path.exists(figure_dir):
@@ -556,6 +557,16 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
         # plot road boundary with black dash line
         axs[0, 0].plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k--')
         axs[0, 0].plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k--')
+        axs[0, 0].plot([0, 700], [143.318146 - 1.75+3.5, 143.318146 - 1.75+3.5], 'k--')
+        axs[0, 0].plot([0, 700], [143.318146 + 1.75+3.5, 143.318146 + 1.75+3.5], 'k--')
+        axs[0, 0].plot([0, 700], [143.318146 - 1.75-3.5, 143.318146 - 1.75-3.5], 'k--')
+        axs[0, 0].plot([0, 700], [143.318146 + 1.75-3.5, 143.318146 + 1.75-3.5], 'k--')
+        axs[0, 0].plot([0, 700], [143.318146 , 143.318146], 'b')
+        axs[0, 0].plot([0, 700], [143.318146 , 143.318146], 'b')
+        axs[0, 0].plot([0, 700], [143.318146 +3.5, 143.318146 +3.5], 'b')
+        axs[0, 0].plot([0, 700], [143.318146 +3.5, 143.318146 +3.5], 'b')
+        axs[0, 0].plot([0, 700], [143.318146 -3.5, 143.318146 -3.5], 'b')
+        axs[0, 0].plot([0, 700], [143.318146 -3.5, 143.318146 -3.5], 'b')
         axs[0, 0].set_title('Truck Trajectory')
         axs[0, 0].set_xlabel('X Position')
         axs[0, 0].set_ylim([143.318146 - 7, 143.318146 + 7])

@@ -18,32 +18,72 @@ class car_VehicleModel(vehBicycleKinematic):
     x = [p_x p_y v_x theta]
     u = [steer_ang, acc_v]
     """
-    def __init__(self, *args, **kwargs):
-        #__init__(self,dt,N, width = 2.54, length = 16.1544, scaling = [0.1,1,1,1,1])
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     #__init__(self,dt,N, width = 2.54, length = 16.1544, scaling = [0.1,1,1,1,1])
+    #     super().__init__(*args, **kwargs)
+    #     self.name = "car_bicycle"
+    #     self.nx = 4                     # State dimensions
+    #     self.laneWidth = 3.5
+    #     #! rewrite the refx
+    #     self.nrefx = self.nx
+    #     self.nrefu = self.nu
+    #     self.refxT = [0,0,54/3.6,0]
+    #     self.refxL = [0,0,54/3.6,0]
+    #     self.refxR = [0,0,54/3.6,0]
+        
+    #      # System model variables
+    #     self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
+    #     self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
+
+    #     self.refx = SX.sym('refx',self.nx)
+    #     self.refu = SX.sym('refu',self.nu)
+
+    #     # Standard choices for reference and initialization
+    #     self.x_init = [0,0,45/3.6,0]
+    #     self.p = self.x_init[:2]
+    #     self.v = self.x_init[2]
+
+        
+
+    #     # System model variables
+    #     self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
+    #     self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
+
+    #     self.refx = SX.sym('refx',self.nx)
+    #     self.refu = SX.sym('refu',self.nu)
+    #     #! rewrite the length of the vehicle to fit the scenario
+    #     self.L_tract = 8.4
+    #     self.L_trail = 0
+    #     self.ego_width = 2.54
+
+    def __init__(self,dt,N, width = 2.54, length = 8.4, scaling = [0.1,1,1,1,1]):
+        
+        
         self.name = "car_bicycle"
-        self.nx = 4                     # State dimensions
+        self.laneCenters = 143.318146
         self.laneWidth = 3.5
-        #! rewrite the refx
+        self.nx = 4                    # State dimensions
+        self.nu = 2                     # Input dimensions
+        self.np = self.nx
         self.nrefx = self.nx
         self.nrefu = self.nu
-        self.refxT = [0,0,54/3.6,0]
-        self.refxL = [0,0,54/3.6,0]
-        self.refxR = [0,0,54/3.6,0]
-        
-         # System model variables
-        self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
-        self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
+        # self.dt = dt                    # Time step
+        self.N = N
 
-        self.refx = SX.sym('refx',self.nx)
-        self.refu = SX.sym('refu',self.nu)
-
-         # Standard choices for reference and initialization
+        self.width = width
+        self.ego_width = 2.54
+        self.length = length
+        self.L_tract = length                     # ! in the simulation, only have the tractor
+        self.L_trail = self.length-self.L_tract
+    
+        # Standard choices for reference and initialization
         self.x_init = [0,0,45/3.6,0]
         self.p = self.x_init[:2]
         self.v = self.x_init[2]
-
         
+        self.refxT = [0,0,60/3.6,0,0]
+        self.refxL = [0,0,60/3.6,0,0]
+        self.refxR = [0,0,60/3.6,0,0]
 
         # System model variables
         self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
@@ -51,12 +91,16 @@ class car_VehicleModel(vehBicycleKinematic):
 
         self.refx = SX.sym('refx',self.nx)
         self.refu = SX.sym('refu',self.nu)
-        #! rewrite the length of the vehicle to fit the scenario
-        self.L_tract = 8.4
-        self.L_trail = 0
-        self.ego_width = 2.54
-
         
+        # This should really change based on scenario
+        if self.x_init[1] > 143.318146+self.laneWidth/2:
+            self.lane = 1
+        elif self.x_init[1] < 143.318146-self.laneWidth/2:
+            self.lane = -1
+        else:
+            self.lane = 0
+    
+    
     #! rewrite the model from vehBicycleKinematic to car_VehicleModel
     def model(self):
         # System dynamics model
@@ -86,6 +130,9 @@ class car_VehicleModel(vehBicycleKinematic):
         x_next = x_res['xf']
 
         self.F_x = Function('F_x',[self.x,self.u],[x_next],['x','u'],['x_next'])
+        
+    def uConstraints(self):
+        return [-3.14/180,-0.5*9.81],[3.14/180,0.5*9.81]
     
     #! rewrite the xconstraint from vehBicycleKinematic to car_VehicleModel
     def xConstraints(self):

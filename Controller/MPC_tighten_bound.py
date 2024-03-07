@@ -89,6 +89,23 @@ class MPC_tighten_bound:
             
         return np.array(tightened_bound_N_IDM_list).reshape(N+1, -1), temp_list
     
+    def tighten_bound_N_laneChange(self, LC_constraint, N):
+        _, K = self.calculate_Dlqr()
+        self.reset_P0()  # Reset P0 before the loop
+        _, sigma_list = self.calculate_P_next_N(K, N)
+        original_constraint = LC_constraint # contains the 13X1 vector
+        tightened_bound_N_LC_list = []
+        tightened_bound_N_LC_list.append(original_constraint[0])
+        temp_list = []
+        temp_list.append(0)
+        for i in range(0,N):
+            current_sigma = sigma_list[i][1,1] # Only the second element: "y" of the sigma matrix is used
+            temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
+            tightened_bound_N_LC_list.append(original_constraint[i+1] + temp)
+            temp_list.append(temp)
+            
+        return np.array(tightened_bound_N_LC_list).reshape(N+1, -1), temp_list
+    
     def tighten_bound_N_y_upper(self, y_constrain, N):
         _, K = self.calculate_Dlqr()
         self.reset_P0()  # Reset P0 before the loop
