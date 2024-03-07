@@ -2,19 +2,20 @@
 import numpy as np
 from casadi import *
 
-from helpers import *
+
 
 class trailing:
     '''
     The ego vehicle keeps lane and adapts to leadning vehicle speed
     '''
-    def __init__(self,vehicle,N,min_distx = 5, lanes = 3, laneWidth = 6.5,v_legal = 60/3.6):
+    def __init__(self,vehicle,N,min_distx = 5, lanes = 3, laneWidth = 3.5,v_legal = 60/3.6):
         self.name = 'trailing'
         self.N = N
         self.vehicle = vehicle
         self.nx,self.nu,_,_ = vehicle.getSystemDim()
+        print("nx,nu",self.nx,self.nu)
         self.egoWidth, self.egoLength,self.L_tract, self.L_trail = vehicle.getSize()
-
+        print("egoWidth, egoLength, L_tract, L_trail",self.egoWidth, self.egoLength,self.L_tract, self.L_trail)
         # Road definitions
         self.lanes = lanes
         self.laneWidth = laneWidth

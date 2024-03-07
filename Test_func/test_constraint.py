@@ -61,19 +61,3 @@ plt.ylabel('Constraint Value')
 plt.title('Constraint Curve')
 plt.grid(True)
 plt.show()
-
-
-    # def constraint(self,traffic,opts):
-    #         constraints = []
-    #         leadWidth, leadLength = traffic.getVehicles()[0].getSize()
-    #         for i in range(traffic.getDim()):
-    #             v0_i = traffic.vehicles[i].v0
-    #             func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-    #                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
-    #             func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-    #                     tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
-
-    #             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
-    #                                     self.traffic_sign,self.traffic_shift,],
-    #                                     [func1+func2],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
-    #         return constraints

@@ -94,6 +94,13 @@ class Traffic:
             self.states[:,:,i] = pred_traj
         return self.states
     
+    def prejct_trajectory_complex(self):
+        """
+        Here, try to use kinematic model to predict the trajectory
+        """
+        pass
+    
+    
     def getDim(self):
         self.Nveh = len(self.vehicle_list)
         return self.Nveh

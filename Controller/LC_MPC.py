@@ -39,7 +39,7 @@ class LC_MPC:
         self.process_noise = process_noise
         self.Possibility = Possibility
         self.N = N
-        self.Param = Param()
+        self.dt = self.vehicle.get_dt()
         # ref val for the vehicle matrix
         self.v_ref = 15
         self.phi_ref = 0
@@ -80,23 +80,7 @@ class LC_MPC:
         """
         Calculate linear and discrete time dynamic model.
         """
-        A_d = DM([[1.0, 0.0, self.Param.dt * np.cos(phi), -self.Param.dt * v * np.sin(phi)],
-                [0.0, 1.0, self.Param.dt * np.sin(phi), self.Param.dt * v * np.cos(phi)],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, self.Param.dt * np.tan(delta) / self.Param.WB, 1.0]])
-        
-        B_d = DM([[0.0, 0.0],
-                [0.0, 0.0],
-                [0.0, self.Param.dt],
-                [self.Param.dt * v / (self.Param.WB * np.cos(delta) ** 2), 0.0]])
-        
-        
-        g_d = DM([self.Param.dt * v * np.sin(phi) * phi,
-                -self.Param.dt * v * np.cos(phi) * phi,
-                0.0,
-                -self.Param.dt * v * delta / (self.Param.WB * np.cos(delta) ** 2)])
-        
-        return A_d, B_d, g_d
+        return self.vehicle.vehicle_linear_discrete_model(v, phi, delta)
     
     def setStateEqconstraints(self, v=15, phi=0, delta=0):
         """
@@ -184,10 +168,10 @@ class LC_MPC:
         self.lane_change_constraint_all = []
         for i in range(self.N+1):
             # ! calculate the px, according to the vehicle state and time
-            self.px_all[0,i] = self.x[0,i] + self.x[2,i] * self.Param.dt
+            self.px_all[0,i] = self.x[0,i] + self.x[2,i] * self.dt
             # pleading here include the initial x, y of the leading vehicle
             # ! calculate the self.traffic_x and self.traffic_y according to the leading velocity
-            self.traffic_x_all[0,i] = self.p_leading[0] + self.leading_velocity * self.Param.dt * i
+            self.traffic_x_all[0,i] = self.p_leading[0] + self.leading_velocity * self.dt * i
             # ! notice! traffic_y should be scaled according to the map, the center of the map is 143.318146
             self.traffic_y_all[0,i] = self.p_leading[1]-143.318146
             

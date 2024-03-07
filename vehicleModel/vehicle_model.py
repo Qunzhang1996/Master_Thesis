@@ -1,5 +1,8 @@
-# Vehicle model setup for casadi interface
-#! include bicycle model for car and truck
+'''
+Here is the truck model, including the kinematic model (for nmpc and LTI_MPC)
+In this file, we will rewrite the vehicle model from vehBicycleKinematic to car_VehicleModel
+In this project, we will use the LTI_MPC to control the truck
+'''
 from casadi import*
 import sys
 path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
@@ -7,7 +10,12 @@ sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.vehicleModelGarage import vehBicycleKinematic
 from enum import IntEnum
 
-
+# ████████╗██████╗ ██╗   ██╗ ██████╗██╗  ██╗        ███╗   ███╗ ██████╗ ██████╗ ███████╗██╗     
+# ╚══██╔══╝██╔══██╗██║   ██║██╔════╝██║ ██╔╝        ████╗ ████║██╔═══██╗██╔══██╗██╔════╝██║     
+#    ██║   ██████╔╝██║   ██║██║     █████╔╝         ██╔████╔██║██║   ██║██║  ██║█████╗  ██║     
+#    ██║   ██╔══██╗██║   ██║██║     ██╔═██╗         ██║╚██╔╝██║██║   ██║██║  ██║██╔══╝  ██║     
+#    ██║   ██║  ██║╚██████╔╝╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║╚██████╔╝██████╔╝███████╗███████╗
+#    ╚═╝   ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝                                                                                            
 class Kinematic(IntEnum):
     X_km, Y_km, V_km, THETA_km = range(4)
 
@@ -18,48 +26,8 @@ class car_VehicleModel(vehBicycleKinematic):
     x = [p_x p_y v_x theta]
     u = [steer_ang, acc_v]
     """
-    # def __init__(self, *args, **kwargs):
-    #     #__init__(self,dt,N, width = 2.54, length = 16.1544, scaling = [0.1,1,1,1,1])
-    #     super().__init__(*args, **kwargs)
-    #     self.name = "car_bicycle"
-    #     self.nx = 4                     # State dimensions
-    #     self.laneWidth = 3.5
-    #     #! rewrite the refx
-    #     self.nrefx = self.nx
-    #     self.nrefu = self.nu
-    #     self.refxT = [0,0,54/3.6,0]
-    #     self.refxL = [0,0,54/3.6,0]
-    #     self.refxR = [0,0,54/3.6,0]
-        
-    #      # System model variables
-    #     self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
-    #     self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
-
-    #     self.refx = SX.sym('refx',self.nx)
-    #     self.refu = SX.sym('refu',self.nu)
-
-    #     # Standard choices for reference and initialization
-    #     self.x_init = [0,0,45/3.6,0]
-    #     self.p = self.x_init[:2]
-    #     self.v = self.x_init[2]
-
-        
-
-    #     # System model variables
-    #     self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
-    #     self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
-
-    #     self.refx = SX.sym('refx',self.nx)
-    #     self.refu = SX.sym('refu',self.nu)
-    #     #! rewrite the length of the vehicle to fit the scenario
-    #     self.L_tract = 8.4
-    #     self.L_trail = 0
-    #     self.ego_width = 2.54
-
     def __init__(self,dt,N, width = 2.54, length = 8.4, scaling = [0.1,1,1,1,1]):
-        
-        
-        self.name = "car_bicycle"
+        self.name = "Truck_bicycle"
         self.laneCenters = 143.318146
         self.laneWidth = 3.5
         self.nx = 4                    # State dimensions
@@ -67,15 +35,8 @@ class car_VehicleModel(vehBicycleKinematic):
         self.np = self.nx
         self.nrefx = self.nx
         self.nrefu = self.nu
-        # self.dt = dt                    # Time step
+        self.dt = dt                    # Time step
         self.N = N
-
-        self.width = width
-        self.ego_width = 2.54
-        self.length = length
-        self.L_tract = length                     # ! in the simulation, only have the tractor
-        self.L_trail = self.length-self.L_tract
-    
         # Standard choices for reference and initialization
         self.x_init = [0,0,45/3.6,0]
         self.p = self.x_init[:2]
@@ -99,6 +60,23 @@ class car_VehicleModel(vehBicycleKinematic):
             self.lane = -1
         else:
             self.lane = 0
+            
+        # ! parameters for the car
+        self.width = width
+        self.ego_width = 2.54
+        self.length = length
+        self.L_tract = length                     # ! in the simulation, only have the tractor
+        self.L_trail = self.length-self.L_tract
+        self.WB = 3/4*self.length  
+        
+        # Energy efficiency parameters
+        self.Cd = 0.31                  # []
+        self.Area = 10                  # [m2]
+        self.Air_rho = 1.225            # [kg/m3]
+        self.mass = 31000               # [kg]
+        self.C_roll = 0.005             # []
+        self.r_whl = 0.056              # [m]
+
     
     
     #! rewrite the model from vehBicycleKinematic to car_VehicleModel
@@ -113,7 +91,6 @@ class car_VehicleModel(vehBicycleKinematic):
         dx = vertcat(dp_xb,dp_yb,dv_x,dtheta)
         self.dx = dx
         return {'x':self.x,'p':self.u,'ode':dx}
-    
     
     def integrator(self,opts,dt):
         self.dt = dt
@@ -132,7 +109,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.F_x = Function('F_x',[self.x,self.u],[x_next],['x','u'],['x_next'])
         
     def uConstraints(self):
-        return [-3.14/180,-0.5*9.81],[3.14/180,0.5*9.81]
+        return [-3.14/8,-0.5*9.81],[3.14/8,0.5*9.81]
     
     #! rewrite the xconstraint from vehBicycleKinematic to car_VehicleModel
     def xConstraints(self):
@@ -143,7 +120,7 @@ class car_VehicleModel(vehBicycleKinematic):
         upper = [inf,inf,inf,3.14/8]
         return lower, upper
     
-    #! add the calculate the A and B matrix
+    #! this is the function to calculate the linear and discrete time dynamic model using casadi symbolic
     def calculate_AB(self, dt_sim=0.2,init_flag=False):
         """Calculate the A and B matrix for the linearized system
 
@@ -183,12 +160,36 @@ class car_VehicleModel(vehBicycleKinematic):
 
         return newA, newB,newG
     
+    
+    #! this is the function to calculate the linear and discrete time dynamic model
+    def vehicle_linear_discrete_model(self, v=15, phi=0, delta=0):
+        """
+        Calculate linear and discrete time dynamic model.
+        """
+        A_d = DM([[1.0, 0.0, self.dt * np.cos(phi), -self.dt * v * np.sin(phi)],
+                [0.0, 1.0, self.dt * np.sin(phi), self.dt * v * np.cos(phi)],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, self.dt * np.tan(delta) / self.WB, 1.0]])
+        
+        B_d = DM([[0.0, 0.0],
+                [0.0, 0.0],
+                [0.0, self.dt],
+                [self.dt * v / (self.WB * np.cos(delta) ** 2), 0.0]])
+        
+        
+        g_d = DM([self.dt * v * np.sin(phi) * phi,
+                -self.dt * v * np.cos(phi) * phi,
+                0.0,
+                -self.dt * v * delta / (self.WB * np.cos(delta) ** 2)])
+        
+        return A_d, B_d, g_d
+    
+    
     def setReferences(self,center_line=143.318146):
         self.laneCenters = [center_line,center_line+self.laneWidth,center_line-self.laneWidth]
         self.refxT[1] = self.laneCenters[0]
         self.refxL[1] = self.laneCenters[1]
         self.refxR[1] = self.laneCenters[2]
-
         return self.refxT, self.refxL, self.refxR
 
 
@@ -210,6 +211,9 @@ class car_VehicleModel(vehBicycleKinematic):
     
     def get_vehicle_size(self):
         return self.L_tract, self.L_trail, self.ego_width
+    
+    def get_dt(self):
+        return self.dt
     
     
 

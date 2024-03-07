@@ -111,14 +111,14 @@ velocity_leading = 10
 for i in range(1000):
     
     iteration_start = time.time()
-    control_car = car_contoller.run_step(velocity_leading*3.6, 143.318146-3.5, False)
+    control_car = car_contoller.run_step((velocity_leading+noise)*3.6, 143.318146-3.5, False)
     car.apply_control(control_car)
     
     car_state = get_state(car)
     truck_state = get_state(truck)
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
     truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
-    p_leading=vertcat(p_leading[0] + (velocity_leading)*desired_interval,car_y)
+    p_leading=vertcat(p_leading[0] + (car_v)*desired_interval,car_y)
     # print('this is p_leading', p_leading)
     # p_leading=car_x
     if i%5==0:
@@ -127,7 +127,7 @@ for i in range(1000):
         x_iter = [truck_x, truck_y, truck_v, truck_psi]
         vel_diff=smooth_velocity_diff(p_leading[0], truck_x) # prevent the vel_diff is too small
         u_opt, x_opt, lambda_y,lane_change_constraint_all= mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
-                                                      p_leading, velocity_leading)
+                                                      p_leading, car_v)
         
         Traj_ref = x_opt # Reference trajectory (states)
         x_iter=Traj_ref[:,count] #last element
