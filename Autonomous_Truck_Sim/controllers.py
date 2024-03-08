@@ -78,9 +78,10 @@ class makeController:
                                         self.traffic_sign[i,:], self.traffic_shift[i,:]))
 
         elif self.scenario.name == 'trailing':
+            T = self.scenario.Time_headway
             self.scenario.setEgoLane()
             self.scenario.getLeadVehicle(self.traffic)
-            self.opti.subject_to(self.x[0,:] <= self.S(self.lead))
+            self.opti.subject_to(self.x[0,:] + T * self.x[2,:] <= self.S(self.lead))
 
     def setCost(self):
         L,Lf = self.vehicle.getCost()
@@ -115,154 +116,6 @@ class makeController:
 # ----------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------
-
-    def testSolver(self,traffic):
-        """
-        Most errors are not visible when using the "to_function" approach
-        This functions runs one instance of the MPC controller and plots scenario at failiure
-        """
-        Nveh = traffic.Nveh
-        # # Initialize 
-        x_iter = DM(int(self.nx),1)
-
-        if self.vehicle.name == "truck_trailer_bicycle":
-            x_iter[:] = [0,self.laneCenters[0],30/3.6,0,0]
-            refx_in = [0,self.laneCenters[0],60/3.6,0,0]
-            refu_in = [0,0]
-        elif self.vehicle.name == "truck_trailer_bicycle_energyEff": 
-            x_iter[:] = [0,self.laneCenters[0],30/3.6,0,0]
-            refx_in = [0,self.laneCenters[0],60/3.6,0,0]
-            refu_in = [0,0,0]
-        else:
-            x_iter[:] = [0,self.laneCenters[0],30/3.6,0]
-
-            refx_in = [0,self.laneCenters[0],60/3.6,0]
-            refu_in = [0,0]
-
-        refx_out,refu_out = self.scenario.getReference(refx_in,refu_in)
-
-        traffic_x = DM(self.N+1,self.Nveh)
-        traffic_y = DM(self.N+1,self.Nveh)
-        traffic_sign = DM(self.N+1,self.Nveh)
-        traffic_shift = DM(self.N+1,self.Nveh)
-        traffic_flip = DM(self.N+1,self.Nveh)
-
-        traffic_state = np.zeros((5,self.N+1,Nveh))                  # ! Should be changed to DM in final implementation!
-        traffic_state[:2,:,:] = traffic.prediction()[:2,:,:]
-        traffic_state[2,:,:],traffic_state[3,:,:],traffic_state[4,:,:] = self.testControllerParameters(self.opts["version"],traffic_state)
-
-        # for i in range(self.Nveh):
-            # x_lead[i,:] = self.traffic.prediction()[0,:,i]
-
-
-        if self.scenario.name == 'trailing':
-            idx = self.scenario.getLeadVehicle(self.traffic)                             # Also sets egoLANE!
-            if len(idx) == 0:         # Move barrier very far forward
-                x_traffic = DM.ones(1,self.N+1)*10000
-            else:
-                # x_traffic = x_lead[idx[0],:]
-                pass
-        else:
-            # x_traffic = x_lead
-            traffic_x = traffic_state[0,:,:].T
-            traffic_y = traffic_state[1,:,:].T
-            traffic_sign = traffic_state[2,:,:].T
-            traffic_shift = traffic_state[3,:,:].T
-            traffic_flip = traffic_state[4,:,:].T
-
-            self.opti.set_value(self.refx,refx_out)
-            self.opti.set_value(self.refu,refu_out)
-            self.opti.set_value(self.traffic_x,traffic_x)
-            self.opti.set_value(self.traffic_y,traffic_y)
-            self.opti.set_value(self.traffic_sign,traffic_sign)
-            self.opti.set_value(self.traffic_shift,traffic_shift)
-            self.opti.set_value(self.traffic_flip,traffic_flip)
-            self.opti.set_value(self.x0,x_iter)
-
-        try:
-            sol = self.opti.solve()
-            print("-----------")
-            print("Test successful")
-            print("Controller version:",self.opts["version"])
-            print("-----------")
-            # raise ValueError
-        except:
-            x_fail = np.array(self.opti.debug.value(self.x))
-            print(self.opti.debug.value(self.x))
-            print(self.opti.debug.value(self.u))
-            print(x_fail[0,:])
-
-            plt.plot(x_fail[0,:],x_fail[1,:])
-
-            X_traffic = np.zeros((1,200))
-            X_traffic[0] = 50
-
-            ConstraintTEST = np.zeros((Nveh,200))
-            for j in range(Nveh):
-                for i in range(200):
-                    x_test = np.arange(i,i+self.N+1)
-                    
-                    t_x_i = traffic_state[0,:,:]
-                    t_y_i = traffic_state[1,:,:]
-                    t_sign_i = traffic_state[2,:,:]
-                    t_shift_i = traffic_state[3,:,:]
-                    t_flip_i = traffic_state[4,:,:]
-                    # print(np.shape(t_shift_i))
-                    ConstraintTEST[j,i] = self.S[j](x_test,t_x_i[:,j],t_y_i[:,j],t_sign_i[:,j],t_shift_i[:,j])[0]
-                    # plt.scatter(x_lead[0,0],x_lead[0,1],marker = "*")
-
-                    # Update leadVeh
-                    # traffic.update()
-                    # X_traffic[:,i] = self.traffic.vehicles[0].getState()[0]
-                plt.plot(np.arange(0,200),ConstraintTEST[j,:])
-                plt.plot(np.arange(0,200),np.ones((1,200))[0]*13/2,'--',color = 'r')
-                plt.plot(np.arange(0,200),np.zeros((1,200))[0],'--',color = 'r')
-                plt.plot(np.arange(0,200),np.ones((1,200))[0]*-6.5,'-',color = 'k')
-                plt.plot(np.arange(0,200),np.ones((1,200))[0]*13,'-',color = 'k')
-
-                x_lead_j= self.traffic.prediction()[:,0,j]
-                plt.scatter(x_lead_j[0], x_lead_j[1],marker = "*")
-                
-            plt.show()
-
-            raise ValueError("Simulation initilization failed, check traffic initialization")
-        
-    def testControllerParameters(self,version,xy):
-        sign = np.zeros((self.Nveh,self.N+1))
-        shift = np.zeros((self.Nveh,self.N+1))
-        flip = np.ones((self.Nveh,self.N+1))
-
-        if version == "leftChange":
-            for ii in range(self.Nveh):
-                for jj in range(self.N+1):
-                    if xy[1,jj,ii] > 6.5:
-                        sign[ii,jj] = -1
-                        shift[ii,jj] = 2 * 6.5
-                        flip[ii,jj] = -1
-                    elif xy[1,jj,ii] < 0:
-                        sign[ii,jj] = 1
-                        shift[ii,jj] = -6.5
-                    else:
-                        sign[ii,jj] = 1
-                        shift[ii,jj] = 0
-
-        elif version == "rightChange":
-            for ii in range(self.Nveh):
-                for jj in range(self.N+1):
-                    if xy[1,jj,ii] > 6.5:
-                        sign[ii,jj] = -1
-                        shift[ii,jj] = 2 * 6.5
-                        flip[ii,jj] = -1
-                    elif xy[1,jj,ii] < 0:
-                        sign[ii,jj] = 1
-                        shift[ii,jj] = -6.5
-                    else:
-                        sign[ii,jj] = -1
-                        shift[ii,jj] = 6.5
-                        flip[ii,jj] = -1
-
-        return sign.T, shift.T, flip.T
-
 
 class makeDecisionMaster:
     def __init__(self,vehicle,traffic,controllers,scenarios,rl_agent,changeHorizon = 10,forgettingFact = 0.90):
@@ -392,11 +245,11 @@ class makeDecisionMaster:
         Find optimal choice out of the three controllers
         """
         costMPC = np.array(costs)
-        costTotal = np.zeros((3,))
+        self.costTotal = np.zeros((3,))
 
         for i in range(3):
-            costTotal[i] = self.costDecision(i) + costMPC[i] + self.costRouteGoal(i)
-        return np.argmin(costTotal)
+            self.costTotal[i] = self.costDecision(i) + costMPC[i] + self.costRouteGoal(i)
+        return np.argmin(self.costTotal)
 
     def updateReference(self):
         """
@@ -526,6 +379,7 @@ class makeDecisionMaster:
 
         # Set controller decision based on RL agent
         self.RL_decision = self.rl_agent.getDecision()
+        self.paramLog = np.zeros((5,self.N+1,self.Nveh,3))
 
         if not(np.isnan(self.RL_decision)):
             if self.RL_decision == 0:
@@ -560,12 +414,13 @@ class makeDecisionMaster:
                 x_traffic = self.x_lead[idx[0],:]
             
             x_testT,u_testT = self.MPCs[2](self.x_iter,self.refxT_out,self.refu_out,x_traffic)
-
+            self.paramLog[0,:,idx,2] = x_traffic.full()
             costT = getTotalCost(self.L,self.Lf,x_testT,u_testT,self.refxT_out,self.refu_out,self.N)
 
         if self.doLeft:
             # Changing between left and middle lane
             self.setControllerParameters(self.controllers[0].opts["version"])
+            self.paramLog[:,:,:,0] = self.traffic_state
             x_testL,u_testL = self.MPCs[0](self.x_iter, self.refxL_out, self.refu_out,
                              self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                              self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
@@ -575,6 +430,7 @@ class makeDecisionMaster:
         if self.doRight:
             # Changing between right and middle lane
             self.setControllerParameters(self.controllers[1].opts["version"])
+            self.paramLog[:,:,:,1] = self.traffic_state
             x_testR,u_testR = self.MPCs[1](self.x_iter, self.refxR_out, self.refu_out,
                              self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                              self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
@@ -590,6 +446,7 @@ class makeDecisionMaster:
             self.decisionLog.insert(0,decision_i)
         
         print('Decision: ',self.controllers[decision_i].opts["version"])
+        print("Controller cost",[costL,costR,costT])
         
         if decision_i == 0:
             X = x_testL
@@ -605,7 +462,10 @@ class makeDecisionMaster:
 
         x_ok, u_ok, X = self.checkSolution(X,U)
 
-        return x_ok,u_ok, X
+        return x_ok,u_ok, X, decision_i
+    
+    def getTrafficState(self):
+        return self.paramLog[:,0,:,:]
 
     def getErrorCount(self):
         """
@@ -621,3 +481,4 @@ class makeDecisionMaster:
                 return "Not reached"
         else:
             return "Was not considered"
+        

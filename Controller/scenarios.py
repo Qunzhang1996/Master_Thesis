@@ -149,9 +149,6 @@ class simpleOvertake:
         # leadWidth, leadLength,_,_ = traffic.getVehicles()[0].getSize()
         leadWidth, leadLength,_ = get_vehicle_dimensions(traffic[0])
         for i in range(len(traffic)):
-        # for i in range(traffic.getDim()):
-            # v0_i = traffic[i].v # initial velocity of the traffic vehicle
-            # v0_i = traffic.vehicles[i].v
             v0_i = 8 # initial velocity of the traffic vehicle is set to 8 m/s
             func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
@@ -161,5 +158,5 @@ class simpleOvertake:
 
             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
                                     self.traffic_sign,self.traffic_shift,],
-                                    [func1+func2],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
+                                    [func1+func2 + 143.318146 -3.5/2],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
         return constraints

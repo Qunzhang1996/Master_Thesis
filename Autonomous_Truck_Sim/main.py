@@ -8,7 +8,6 @@ from scenarios import trailing, simpleOvertake
 from traffic import vehicleSUMO, combinedTraffic
 from controllers import makeController, makeDecisionMaster
 from helpers import *
-# from Mas.helpers import *
 
 from templateRLagent import RLAgent
 
@@ -18,10 +17,10 @@ directory = r"C:\\Users\A490242\\Desktop\\Master_Thesis\\Autonomous_Truck_Sim\\s
 
 # System initialization 
 dt = 0.2                    # Simulation time step (Impacts traffic model accuracy)
-f_controller = 5            # Controller update frequency, i.e updates at each t = dt*f_controller
-N =  12                     # MPC Horizon length
+f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
+N =  30                     # MPC Horizon length
 
-ref_vx = 60/3.6             # Higway speed limit in (m/s)
+ref_vx = 70/3.6             # Higway speed limit in (m/s)
 
 # -------------------------- Initilize RL agent object ----------------------------------
 # The agent is feed to the decision maker, changing names requries changing troughout code base
@@ -48,29 +47,28 @@ vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 
 # ------------------ Problem definition ---------------------
-scenarioTrailADV = trailing(vehicleADV,N,lanes = 3)
-scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3)
+testWidth = 3.75
+scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=testWidth)
+scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=testWidth)
 roadMin, roadMax, laneCenters = scenarioADV.getRoad()
     
 # -------------------- Traffic Set up -----------------------
 # * Be carful not to initilize an unfeasible scenario where a collsion can not be avoided
 # # Initilize ego vehicle
-vx_init_ego = 55/3.6                                # Initial velocity of the ego vehicle
+vx_init_ego = 50/3.6                                # Initial velocity of the ego vehicle
+vehicleADV.setRoad(roadMin,roadMax,laneCenters)
 vehicleADV.setInit([0,laneCenters[0]],vx_init_ego)
 
 # # Initilize surrounding traffic
 # Lanes [0,1,2] = [Middle,left,right]
-vx_ref_init = 50/3.6                     # (m/s)
-advVeh1 = vehicleSUMO(dt,N,[30,laneCenters[1]],[0.9*vx_ref_init,0],type = "normal")
-advVeh2 = vehicleSUMO(dt,N,[45,laneCenters[0]],[0.8*vx_ref_init,0],type = "passive")
-advVeh3 = vehicleSUMO(dt,N,[100,laneCenters[2]],[0.85*vx_ref_init,0],type = "normal")
-advVeh4 = vehicleSUMO(dt,N,[-20,laneCenters[1]],[1.2*vx_ref_init,0],type = "aggressive")
-advVeh5 = vehicleSUMO(dt,N,[40,laneCenters[2]],[1.2*vx_ref_init,0],type = "aggressive")
-
+advVeh1 = vehicleSUMO(dt,N,[30,laneCenters[1]],[0.75*ref_vx,0],type = "normal")
+advVeh2 = vehicleSUMO(dt,N,[40,laneCenters[0]],[0.7*ref_vx,0],type = "passive")
+advVeh3 = vehicleSUMO(dt,N,[100,laneCenters[2]],[0.65*ref_vx,0],type = "normal")
+advVeh4 = vehicleSUMO(dt,N,[-20,laneCenters[1]],[1*ref_vx,0],type = "aggressive")
+advVeh5 = vehicleSUMO(dt,N,[60,laneCenters[2]],[1*ref_vx,0],type = "aggressive")
 
 # # Combine choosen vehicles in list
 vehList = [advVeh1,advVeh2,advVeh3,advVeh4,advVeh5]
-
 # # Define traffic object
 leadWidth, leadLength = advVeh1.getSize()
 traffic = combinedTraffic(vehList,vehicleADV,N,f_controller)
@@ -115,7 +113,7 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # # -----------------------------------------------------------------
 # # -----------------------------------------------------------------
 
-tsim = 200                         # Total simulation time in seconds
+tsim = 35                         # Total simulation time in seconds
 Nsim = int(tsim/dt)
 tspan = np.linspace(0,tsim,Nsim)
 
@@ -125,7 +123,7 @@ x_iter[:],u_iter = vehicleADV.getInit()
 vehicleADV.update(x_iter,u_iter)
 
 refxADV = [0,laneCenters[1],ref_vx,0,0]
-refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(laneCenters)
+refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(ref_vx)
 
 refu_in = [0,0,0]
 refxT_out,refu_out = scenarioADV.getReference(refxT_in,refu_in)
@@ -141,6 +139,8 @@ traffic_state = np.zeros((5,N+1,Nveh))
 # # Store variables
 X = np.zeros((nx,Nsim,1))
 U = np.zeros((nu,Nsim,1))
+paramLog = np.zeros((5,Nsim,Nveh,3))
+decisionLog = np.zeros((Nsim,),dtype = int)
 
 X_pred = np.zeros((nx,N+1,Nsim))
 
@@ -172,24 +172,25 @@ for i in range(0,Nsim):
         refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
 
         # Compute optimal control action
-        x_test,u_test,X_out = decisionMaster.chooseController()
+        x_test, u_test, X_out, decision_i = decisionMaster.chooseController()
         u_iter = u_test[:,0]
 
     # Update traffic and store data
     X[:,i] = x_iter
     U[:,i] = u_iter
+
     X_pred[:,:,i] = X_out
     x_iter = F_x_ADV(x_iter,u_iter)
 
     traffic.update()
     vehicleADV.update(x_iter,u_iter)
-
     traffic.tryRespawn(x_iter[0])
     X_traffic[:,i,:] = traffic.getStates()
     X_traffic_ref[:,i,:] = traffic.getReference()
+    paramLog[:,i,:] = decisionMaster.getTrafficState()
+    decisionLog[i] = decision_i.item()
 
 print("Simulation finished")
-
 i_crit = i
 
 # -----------------------------------------------------------------
@@ -198,10 +199,8 @@ i_crit = i
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 
-# Creates animation of traffic scenario
-
-
-if makeMovie:
-    borvePictures(X,X_traffic,X_traffic_ref,vehList,X_pred,vehicleADV,scenarioADV,traffic,i_crit,f_controller,directory)
-
 features2CSV(feature_map,Nveh,Nsim)
+
+# Creates animation of traffic scenario
+if makeMovie:
+    borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

@@ -8,7 +8,7 @@ class trailing:
     '''
     The ego vehicle keeps lane and adapts to leadning vehicle speed
     '''
-    def __init__(self,vehicle,N,min_distx = 5, lanes = 3, laneWidth = 6.5):
+    def __init__(self,vehicle,N,min_distx = 5, lanes = 3, laneWidth = 6.5,v_legal = 60/3.6):
         self.name = 'trailing'
         self.N = N
         self.vehicle = vehicle
@@ -19,7 +19,7 @@ class trailing:
         self.lanes = lanes
         self.laneWidth = laneWidth
 
-        self.vmax = (60+5)/3.6
+        self.vmax = v_legal+5/3.6
 
         self.Time_headway = 0.5
 
@@ -50,7 +50,7 @@ class trailing:
             v0_idx = traffic.getVehicles()[idx[0]].v0
             dist_t = v0_idx * self.Time_headway
 
-        safeDist = self.min_distx + leadLength/2 + self.L_tract + dist_t
+        safeDist = self.min_distx + leadLength/2 + self.L_tract
         return Function('S',[self.p],[self.p-safeDist],['p'],['D_min'])
 
     def getRoad(self):
@@ -59,10 +59,7 @@ class trailing:
         laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
 
         return roadMin, roadMax, laneCenters
-    #!!!!!!!!!!!!!!!!
-    #FIXME: Here, notice to change when implement in CARLA
-    #truck_state is: x: [24.] y: [146.81814575] psi: [0.] v: [0]
-    #!!!!!!!!!!!!!!!     
+
     def setEgoLane(self):
         x = self.vehicle.getPosition()
         self.egoPx = x[0]
@@ -96,7 +93,7 @@ class simpleOvertake:
     '''
     The ego vehicle overtakes the lead vehicle
     '''
-    def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 6.5):
+    def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 6.5,v_legal = 60/3.6):
         self.name = 'simpleOvertake'
         self.N = N
         self.nx,self.nu,_,_ = vehicle.getSystemDim()
@@ -105,7 +102,7 @@ class simpleOvertake:
         self.lanes = lanes
         self.laneWidth = laneWidth
 
-        self.vmax = (60+5)/3.6
+        self.vmax = v_legal+5/3.6
 
         self.Time_headway = 0.5
 
@@ -147,9 +144,9 @@ class simpleOvertake:
         leadWidth, leadLength = traffic.getVehicles()[0].getSize()
         for i in range(traffic.getDim()):
             v0_i = traffic.vehicles[i].v0
-            func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+            func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
                     tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
-            func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
+            func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
                     tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
 
             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,

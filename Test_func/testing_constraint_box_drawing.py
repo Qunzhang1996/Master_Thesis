@@ -45,9 +45,12 @@ velocities = {
         'aggressive': carla.Vector3D(ref_velocity, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
         'reference': carla.Vector3D(ref_velocity, 0, 0)  # Specifically for the truck
     }
-Traffic.set_velocity(vehicle_list,velocities)
+Traffic.set_velocity(vehicle_list, velocities)
 time.sleep(1)
 pred_traj = Traffic.predict_trajectory(vehicle_list)
+pred_traj_traffic = Traffic.predict_trajectory(trafficList)
+pred_traj_ego = pred_traj[1]
+# pred_traj_traffic[0] = pred_traj[0] + pred_traj[2:]
 # print(pred_traj)
 
           
@@ -64,12 +67,9 @@ velocity_leading = 13
 Nveh = len(trafficList) # Number of vehicles in the traffic
 traffic_state = np.zeros((5,N+1,Nveh)) # the size is defined as 5x(N+1)xNveh, 5: {x,y,sign,shift,flip}, N is the prediction horizon, Nveh is the number of vehicles
 
-pred_traj = Traffic.predict_trajectory(vehicle_list)
-pred_traj_ego = np.transpose(np.array(Traffic.predict_trajectory([truck])),(1,2,0))
-pred_traj_traffic = np.array(Traffic.predict_trajectory(trafficList))
 
 traffic_state[:2, :, :] = np.transpose(pred_traj_traffic,(1,2,0))
-constraint_values_all = draw_constraint_box(truck, trafficList, traffic_state, pred_traj_ego, Nveh, N, versionL)
+constraint_values_all = draw_constraint_box(truck, trafficList, traffic_state, pred_traj_ego, Nveh, N, versionR)
 
 px_traj_all = pred_traj_ego[0]
 laneWidth = 3.5
@@ -78,10 +78,11 @@ laneWidth = 3.5
 plt.figure(figsize=(12,4))
 
 # Plotting constraints for all i
-plt.scatter(px_traj_all, constraint_values_all,label='Constraint 1')
+plt.scatter(px_traj_all, constraint_values_all[:,0],label='Constraint 1')
+plt.scatter(px_traj_all, constraint_values_all[:,1],label='Constraint 2 on car_2')
 
 # Plotting positions of the vehicles
-plt.scatter(pred_traj[3][0],pred_traj[3][1],label='car_4')
+plt.scatter(pred_traj[2][0],pred_traj[2][1],label='car_1')
 plt.scatter(pred_traj[0][0],pred_traj[0][1],label='car_leading')
 plt.scatter( pred_traj[1][0], pred_traj[1][1],label='ego_vehicle')
 
@@ -99,48 +100,48 @@ plt.ylabel('Constraint Value')
 plt.title('Constraint Curve for the Whole Trajectory')
 plt.grid(True)
 plt.legend()
+plt.savefig('C:\\Users\\A490242\\Desktop\\Master_Thesis\\Figure\\right_lane_constraint.png')
 plt.show()
 
 
 
+# # Define road parameters
+# center_lane_x = 124 # center points of the center lane: x
+# center_lane_y = 143.318146 # center points of the center lane: y
+# lane_width = 3.5
+# num_lanes = 3
+# car_x=124
+# car_y=143.318146
+# car2_x = 124 - 30
+# car2_y = 143.318146 + 3.5
+# truck_x = 124 - 50
+# truck_y = 143.318146
 
-# Define road parameters
-center_lane_x = 124 # center points of the center lane: x
-center_lane_y = 143.318146 # center points of the center lane: y
-lane_width = 3.5
-num_lanes = 3
-car_x=124
-car_y=143.318146
-car2_x = 124 - 30
-car2_y = 143.318146 + 3.5
-truck_x = 124 - 50
-truck_y = 143.318146
+# # Plotting the lanes
+# fig, ax = plt.subplots()
 
-# Plotting the lanes
-fig, ax = plt.subplots()
+# # Plot left lane
+# left_lane_y = center_lane_y + lane_width
+# plt.plot([0, 248], [left_lane_y + lane_width/2, left_lane_y + lane_width/2], color='black', linestyle='-')
 
-# Plot left lane
-left_lane_y = center_lane_y + lane_width
-plt.plot([0, 248], [left_lane_y + lane_width/2, left_lane_y + lane_width/2], color='black', linestyle='-')
+# # Plot center lane
+# plt.plot([0, 248], [center_lane_y+ lane_width/2, center_lane_y + lane_width/2], color='black', linestyle='dashed')
+# plt.plot([0, 248], [center_lane_y - lane_width/2, center_lane_y - lane_width/2], color='black', linestyle='dashed')
 
-# Plot center lane
-plt.plot([0, 248], [center_lane_y+ lane_width/2, center_lane_y + lane_width/2], color='black', linestyle='dashed')
-plt.plot([0, 248], [center_lane_y - lane_width/2, center_lane_y - lane_width/2], color='black', linestyle='dashed')
+# # Plot right lane
+# right_lane_y = center_lane_y - lane_width
+# plt.plot([0, 248], [right_lane_y - lane_width/2, right_lane_y - lane_width/2], color='black', linestyle='-')
 
-# Plot right lane
-right_lane_y = center_lane_y - lane_width
-plt.plot([0, 248], [right_lane_y - lane_width/2, right_lane_y - lane_width/2], color='black', linestyle='-')
+# # Set y limits
+# ax.set_ylim(top=right_lane_y - 2*lane_width, bottom=left_lane_y + 2*lane_width)
 
-# Set y limits
-ax.set_ylim(top=right_lane_y - 2*lane_width, bottom=left_lane_y + 2*lane_width)
+# # Hide x-axis
+# ax.xaxis.set_visible(False)
 
-# Hide x-axis
-ax.xaxis.set_visible(False)
-
-plt.scatter(car_x, car_y, color='red', marker='o')
-plt.scatter(car2_x, car2_y, color='blue', marker='o')
-plt.scatter(truck_x, truck_y, color='green', marker='o')
+# plt.scatter(car_x, car_y, color='red', marker='o')
+# plt.scatter(car2_x, car2_y, color='blue', marker='o')
+# plt.scatter(truck_x, truck_y, color='green', marker='o')
 
 
-plt.show()
+# plt.show()
 

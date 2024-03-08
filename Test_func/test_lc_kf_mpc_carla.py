@@ -15,8 +15,11 @@ from Controller.LC_MPC import LC_MPC
 from vehicleModel.vehicle_model import car_VehicleModel
 from agents.navigation.controller_upd import VehiclePIDController
 from Controller.scenarios import trailing, simpleOvertake
+from Controller.scenarios_lc import simpleLaneChange
 # import helpers
 from util.utils import *
+# from Traffic.Traffic import Traffic
+from Traffic.Traffic_qun import Traffic
 
 # # ------------------------change map to Town06------------------------
 # import subprocess
@@ -28,28 +31,40 @@ from util.utils import *
 # # --------------------------Run the command--------------------------
 
 ## !----------------- Carla Settings --------------------------------
-car,truck,car2 = setup_carla_environment(Sameline_ACC=False)
+N = 200
+Traffic = Traffic(N)
+# spawn the vehicle
+spawned_vehicles, center_line = Traffic.setup_complex_carla_environment()
+vehicle_list = spawned_vehicles
+trafficList = [vehicle_list[0]] + vehicle_list[2:]
+Ntraffic = len(trafficList)
+truck = vehicle_list[1]
+## !----------------- Set the velocity of the vehicles ------------------------
+ref_velocity = 54/3.6  # TODO: here is the reference velocity for the truck
+velocities = {
+        'normal': carla.Vector3D(0.9 * ref_velocity, 0, 0),
+        'passive': carla.Vector3D(0.7 * ref_velocity, 0, 0),
+        'aggressive': carla.Vector3D(ref_velocity, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
+        'reference': carla.Vector3D(ref_velocity, 0, 0)  # Specifically for the truck
+    }
+Traffic.set_velocity(velocities)
 time.sleep(1)
-velocity1 = carla.Vector3D(10, 0, 0)
-velocity2 = carla.Vector3D(8, 0, 0)
-# add traffic vehicles
-car.set_target_velocity(velocity2) # set the velocity of the car1 slower than the truck
-car2.set_target_velocity(velocity2) 
-# create a list of traffic vehicles
-trafficList = [car,car2]
-# add ego vehicle
-truck.set_target_velocity(velocity1)
-time.sleep(1)
-client = carla.Client('localhost', 2000)
-world = client.get_world()
-carla_map = world.get_map()
+pred_traj = Traffic.predict_trajectory()
+pred_traj_ego = pred_traj[:,:,1]
+# pred_traj_traffic = [pred_traj[:,:,0]] + pred_traj[:,:,2:]
+pred_traj_traffic = pred_traj[:, :, [0] + list(range(2, len(trafficList)+1))] # predicted trajectory of the traffic vehicles
+traffic_state = pred_traj_traffic
+
 # ██████╗ ██╗██████╗ 
 # ██╔══██╗██║██╔══██╗
 # ██████╔╝██║██║  ██║
 # ██╔═══╝ ██║██║  ██║
 # ██║     ██║██████╔╝
 # ╚═╝     ╚═╝╚═════╝ 
-## !----------------- PID Controller Settings ------------------------                   
+## !----------------- PID Controller Settings ------------------------        
+car = vehicle_list[0]
+car2 = vehicle_list[2]
+truck = vehicle_list[1]           
 desired_interval = 0.2  # Desired time interval in seconds
 car_contoller = VehiclePIDController(car, 
                                      args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
@@ -69,7 +84,6 @@ local_controller = VehiclePIDController(truck,
 ## !----------------- Robust MPC Controller Settings ------------------------                           
 ref_velocity = 15  # TODO: here is the reference velocity for the truck
 dt = desired_interval
-N=12
 # create a model for the ego vehicle
 vehicleADV = car_VehicleModel(dt,N, width = 2, length = 6)
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
@@ -87,18 +101,22 @@ P0, process_noise, possibility = set_stochastic_mpc_params()
 
 # ------------------ Problem definition ---------------------
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
-scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
+# scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
+scenarioOvertakeADV = simpleLaneChange(lanes = 3, laneWidth=3.5)
 versionL = {"version" : "leftChange"}
 versionR = {"version" : "rightChange"}
 versionT = {"version" : "trailing"}
 
 
+## set MPC controller
 mpc_controller = LC_MPC(vehicleADV, trafficList,  np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, versionT, scenarioTrailADV)
-# Set the controller (this step initializes the optimization problem with cost and constraints)
 mpc_controller.setController()
-# mpc controller for lane change
+# trailLead = mpc_controller.getFunction()
+
+# mpc controller for right lane change
 mpc_controllerR = LC_MPC(vehicleADV, trafficList, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, versionR, scenarioOvertakeADV)
 mpc_controllerR.setController()
+# changeRight = mpc_controllerR.getFunction()
 
 ## !----------------- get initial state and set ref for the ccontroller ------------------------
                                                                                   
@@ -108,20 +126,8 @@ print(f"initial state of the truck is: {x_iter}")
 print(f"initial input of the truck is: {u_iter}")
 
 # reference trajectory and control for trailing
-ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
-# ref_trajectory[0,:] = 0
-# ref_trajectory[1,:] = 143.318146
-# ref_trajectory[2,:] = ref_velocity
-# ref_trajectory[3,:] = 0
-# ref_control = np.zeros((nu, N))  # Reference control inputs
-
-# reference trajectory and control for right lane change
-ref_trajectory_R = np.zeros((nx, N + 1)) # Reference trajectory (states)
-# ref_trajectory_R[0,:] = 0
-# ref_trajectory_R[1,:] = 143.318146
-# ref_trajectory_R[2,:] = ref_velocity
-# ref_trajectory_R[3,:] = 0
-# ref_control_R = np.zeros((nu, N))  # Reference control inputs
+# ref_trajectory = np.zeros((nx, N + 1)) # Reference trajectory (states)
+# ref_trajectory_R = np.zeros((nx, N + 1)) # Reference trajectory (states)
 
 ref_trajectory, ref_control = create_reference_trajectory(nx, nu, N, ref_velocity, versionT)
 ref_trajectory_R, ref_control_R = create_reference_trajectory(nx, nu, N, ref_velocity, versionR)
@@ -187,9 +193,6 @@ p_leading = car_x
 start_time = time.time()  # Record the start time of the simulation
 velocity_leading = 13
 Nveh = len(trafficList) # Number of vehicles in the traffic
-traffic_state = np.zeros((5,N+1,Nveh)) # the size is defined as 5x(N+1)xNveh, 5: {x,y,sign,shift,flip}, N is the prediction horizon, Nveh is the number of vehicles
-traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
-traffic_statefunc1, func2 = draw_constraint_box(truck, car2, traffic_state, Nveh, N, versionR)
 
 # ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗
 # ██╔════╝██║████╗ ████║██║   ██║██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║
@@ -198,19 +201,14 @@ traffic_statefunc1, func2 = draw_constraint_box(truck, car2, traffic_state, Nveh
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
 # ╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝                                                                                                                                         
 ## !----------------- start simulation!!!!!!!!!!!!!!!!!!! ------------------------
-for i in range(1000):
+for i in range(100):
     iteration_start = time.time()
     control_car = car_contoller.run_step(velocity_leading*3.6, 143.318146, False)
     car.apply_control(control_car)
 
-    target_y = change_lane(car2, target_lane = 0)
-    print(f"the target y of the car2 is: {target_y}")
-    control_car2 = car_contoller2.run_step(8*3.6, target_y, False)
-    car2.apply_control(control_car2) 
-
     # get the state of the leading vehicle and truck
     car_state = get_state(car)
-    traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
+    # traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
     # !----------------- get the state of the truck ------------------------
     truck_state = get_state(truck)
     measurement_truck = truck_state + r # add noise to the truck state
@@ -231,6 +229,9 @@ for i in range(1000):
     p_leading=p_leading + (velocity_leading)*desired_interval
     # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
 
+    # ! set the traffic states from the prediction
+    traffic_state_i = traffic_state[:,i,:]
+
 
     if i%1==0: # get the CARLA state every 10 steps
         # get the CARLA state
@@ -238,11 +239,13 @@ for i in range(1000):
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, traffic_state, velocity_leading, vel_diff)
-        u_optR, x_optR, lambda_sR, tightened_bound_N_IDM_listR = mpc_controllerR.solve(x_iter, ref_trajectory, ref_control, 
-                                                      p_leading, traffic_state, velocity_leading, vel_diff)
+        u_optR, x_optR, lambda_sR, tightened_bound_N_IDM_listR = mpc_controllerR.solve(x_iter, ref_trajectory_R, ref_control_R, 
+                                                      p_leading, traffic_state_i, velocity_leading, vel_diff)
         
         print(f"the optimal input of the truck is: {u_opt}")
         print(f"the optimal state of the truck is: {x_opt[:2,:]}")
+        print(f"the optimal input of the truck for right lane change is: {u_optR}")
+        print(f"the optimal state of the truck for right lane change is: {x_optR[:2,:]}")
        
 
         # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)

@@ -629,14 +629,14 @@ def tanh(x):
 
 def draw_constraint_box(egoVehicle, traffic, traffic_state, pred_traj_ego, Nveh, N, version): # to be completed - do this code to utils.py
         # function helper to draw constraint boxes around the traffic vehicles
-        traffic_state_updated = set_lane_change_parameters(traffic_state,  Nveh, N, version)
+        traffic_state_updated, traffic_y = set_lane_change_parameters(traffic_state,  Nveh, N, version)
         
         leadWidth, leadLength,_ = get_vehicle_dimensions(traffic[0])
         egoWidth, egoLength,_ = get_vehicle_dimensions(egoVehicle)
         Time_headway = 0.5
         L_tract = 6
         L_trail = 0  
-        min_distx = 1.5
+        min_distx = 5
         # px = 124
         px = pred_traj_ego[0]
         v0_i = 8 # initial velocity of the traffic vehicle is set to 8 m/s
@@ -644,7 +644,8 @@ def draw_constraint_box(egoVehicle, traffic, traffic_state, pred_traj_ego, Nveh,
 
         
         traffic_x = traffic_state_updated[0]
-        traffic_y = traffic_state_updated[1]
+        # traffic_y = traffic_state_updated[1]
+        traffic_y = traffic_y.T
         traffic_sign = traffic_state_updated[2]
         traffic_shift = traffic_state_updated[3]
         # traffic_flip = traffic_state_updated[4,:,:]
@@ -653,15 +654,18 @@ def draw_constraint_box(egoVehicle, traffic, traffic_state, pred_traj_ego, Nveh,
         # func1 = DM.zeros((20, Nveh))
         # func2 = DM.zeros((20, Nveh))
 
-        func1 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift) + egoWidth + leadWidth) / 2 * \
-                    tanh(px - traffic_x + leadLength/2 + L_tract + v0_i * Time_headway + min_distx )  + traffic_shift/2 + 143.318146 /2
-            
-        func2 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift) + egoWidth + leadWidth) / 2 * \
-                    tanh( - (px - traffic_x)  + leadLength/2 + L_trail + v0_i * Time_headway+ min_distx )  + traffic_shift/2 + 143.318146 /2
+        for i in range(Nveh):
+            func1 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift)/2 + egoWidth + leadWidth) / 2 * \
+                        tanh(px - traffic_x + leadLength/2 + L_tract + v0_i * Time_headway + min_distx )  + traffic_shift/2 
+                
+            func2 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift)/2 + egoWidth + leadWidth) / 2 * \
+                        tanh( - (px - traffic_x)  + leadLength/2 + L_trail + v0_i * Time_headway+ min_distx )  + traffic_shift/2 
         print(func1)    
         print(func2)
+        func1 = np.array(func1)
+        func2 = np.array(func2)
 
-        return func1 + func2 - laneWidth/2
+        return func1 + func2 -laneWidth/2 +  143.318146
 
 def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still working on this
         """
@@ -671,6 +675,7 @@ def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still workin
         sign = np.zeros((Nveh,N+1))
         shift = np.zeros((Nveh,N+1))
         flip = np.ones((Nveh,N+1))
+        traffic_y = np.zeros((Nveh,N+1))
 
         if version['version'] == 'leftChange':
             for ii in range(Nveh):
@@ -679,13 +684,16 @@ def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still workin
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * laneWidth
                         flip[ii,jj] = -1
+                        traffic_y[ii,jj] = laneWidth/2 + laneWidth
                     elif np.round(traffic_state[1,jj,ii],2) == np.round(143.318146,2) : # check which lane the traffic vehicle is in right lane
 
                         sign[ii,jj] = 1
                         shift[ii,jj] = -laneWidth
+                        traffic_y[ii,jj] = -laneWidth/2
                     else:                         # check which lane the traffic vehicle is in center lane
                         sign[ii,jj] = 1
                         shift[ii,jj] = 0
+                        traffic_y[ii,jj] = laneWidth/2
 
         elif version['version'] == 'rightChange':
             for ii in range(Nveh):
@@ -694,18 +702,21 @@ def set_lane_change_parameters(traffic_state,  Nveh, N, version): # still workin
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * laneWidth
                         flip[ii,jj] = -1
+                        traffic_y[ii,jj] = laneWidth/2 + laneWidth
                     elif np.round(traffic_state[1,jj,ii],2) == np.round(143.318146,2):  # check which lane the traffic vehicle is in right lane
                         sign[ii,jj] = 1
                         shift[ii,jj] = -laneWidth
+                        traffic_y[ii,jj] = -laneWidth/2
                     else:                                      # check which lane the traffic vehicle is in center lane
                         sign[ii,jj] = -1
                         shift[ii,jj] = laneWidth
                         flip[ii,jj] = -1
+                        traffic_y[ii,jj] = laneWidth/2
 
         traffic_state[2,:,:] = sign.T
         traffic_state[3,:,:] = shift.T
         traffic_state[4,:,:] = flip.T
-        return traffic_state
+        return traffic_state, traffic_y
 
 
 def set_lane_change_parameters_new(traffic_state, Nveh, version):

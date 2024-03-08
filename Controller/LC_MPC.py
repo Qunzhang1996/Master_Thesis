@@ -44,28 +44,31 @@ class LC_MPC:
         self.v_ref = 15
         self.phi_ref = 0
         self.delta_ref = 0
+         # set the controller options
+        self.version = version
+        self.scenario = scenario
         
         # Create Opti Stack
         self.opti = Opti()
+
         # Initialize opti stack
         self.x = self.opti.variable(self.nx, self.N + 1)
         self.u = self.opti.variable(self.nu, self.N)
         self.refx = self.opti.parameter(self.nrefx, self.N + 1)
         self.refu = self.opti.parameter(self.nrefu, self.N)
         self.x0 = self.opti.parameter(self.nx, 1)
+
         # slack variable for the IDM constraint
         self.lambda_s= self.opti.variable(1,self.N + 1)
         # slack variable for y 
         self.slack_y = self.opti.variable(1,self.N + 1)
         # IDM leading egoVehicle position parameter
-        self.lead = self.opti.parameter(self.Nveh,self.N+1)
+        # self.lead = self.opti.parameter(self.Nveh,self.N+1)
         self.p_leading = self.opti.parameter(1)
         # set car velocity 
         self.leading_velocity = self.opti.parameter(1)
         self.vel_diff = self.opti.parameter(1)    
-        # set the controller options
-        self.version = version
-        self.scenario = scenario
+       
         if version['version'] == 'leftChange' or version['version'] == 'rightChange':
             self.lead = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_x = self.opti.parameter(self.Nveh,self.N+1)
@@ -73,6 +76,8 @@ class LC_MPC:
             self.traffic_sign = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_shift = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_flip = self.opti.parameter(self.Nveh,self.N+1)
+        else: 
+            self.lead = self.opti.parameter(1,self.N+1)
             
     
     def compute_Dlqr(self):
@@ -203,7 +208,8 @@ class LC_MPC:
         """
         Set inequality constraints for lane change scenario.
         """
-        self.S = self.scenario.constraint(self.trafficVehicles)
+        # self.S = self.scenario.constraint(self.trafficVehicles)
+        self.S = self.scenario.constraint()
         if self.scenario.name == 'simpleOvertake':
             for i in range(self.Nveh):
                 self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
@@ -296,9 +302,7 @@ class LC_MPC:
 
         # set the initial trajectories for the lane and right change scenarios
         if self.version['version'] == 'leftChange' or self.version['version'] == 'rightChange':
-            self.opti.set_value(self.x0, x0)
-            self.opti.set_value(self.refx, ref_trajectory)
-            self.opti.set_value(self.refu, ref_control)
+            # todo: set the lane changing parameters here
             traffic_sign, traffic_shift, traffic_flip, traffic_state = self.set_lane_change_parameters(traffic_state)
             self.opti.set_value(self.traffic_x,traffic_state[0,:,:].T)
             self.opti.set_value(self.traffic_y,traffic_state[1,:,:].T)
@@ -325,10 +329,10 @@ class LC_MPC:
             return None, None, None, None
         
     def getFunction(self):
-        # if self.opts["version"] == "trailing":
-        #     return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,self.lead],[self.x,self.u],
-        #             ['x0','refx','refu','lead'],['x_opt','u_opt'])
-        # else:
+        if self.version['version'] ==  "trailing":
+            return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,self.lead],[self.x,self.u],
+                    ['x0','refx','refu','lead'],['x_opt','u_opt'])
+        else:
             return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,
                     self.traffic_x,self.traffic_y,self.traffic_sign,self.traffic_shift,self.traffic_flip],[self.x,self.u],
                     ['x0','refx','refu','t_x','t_y','t_sign','t_shift','t_flip'],['x_opt','u_opt'])

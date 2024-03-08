@@ -2,18 +2,24 @@
 Author: Erik Börve, borerik@chalmers.se  
 
  ## Purpose
- This project provides an implementation of an autonomous truck in a multi-lane highway scenario. The controller utilizes non linear optimal control to compute multiple feasible trajectories, of which the most cost-efficent is choosen.
+ This project provides an implementation of an autonomous truck in a multi-lane highway scenario. The controller utilizes non linear optimal control to compute multiple trajectories, of which the most cost-efficent is choosen.
  
- ![](https://github.com/BorveErik/Autonomous-Truck-Sim/blob/main/simRes.gif)
+ ![](https://github.com/Qunzhang1996/Master_Thesis/blob/highway-env/simRes_v2.gif)
 
  ## Getting Started
 
  ### Prerequisites
 
- Clone the project in your local machine.
-
-Locate the repo and run:
-* pip
+ Clone the project in your local machine:
+  ```sh
+  git clone <repository cloning url>
+  ```
+ The environment is created for python 3.9.10. Using conda this can be set as:
+  ```sh
+ conda create --name Autonomous-Truck-Sim python=3.9.10 -y
+ source activate Autonomous-Truck-Sim
+  ```
+Finally, install dependencies:
   ```sh
   pip install -r requirements.txt
   ```

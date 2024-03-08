@@ -42,22 +42,6 @@ class vehBicycleKinematic:
         self.refx = SX.sym('refx',self.nx)
         self.refu = SX.sym('refu',self.nu)
 
-        # This should really change based on scenario
-        if self.x_init[1] > 6.5:
-            self.lane = 1
-        elif self.x_init[1] < 0:
-            self.lane = -1
-        else:
-            self.lane = 0
-
-        # Energy efficiency parameters
-        self.Cd = 0.31                  # []
-        self.Area = 10                  # [m2]
-        self.Air_rho = 1.225            # [kg/m3]
-        self.mass = 31000               # [kg]
-        self.C_roll = 0.005             # []
-        self.r_whl = 0.056              # [m]
-
     def model(self):
         # System dynamics model
         # x = [x_a y_a v_vx theta_1 theta_2]
@@ -141,6 +125,12 @@ class vehBicycleKinematic:
 
     def getPosition(self):
         return self.p
+    
+    def setRoad(self,roadMin,roadMax,laneCenters):
+        self.roadMin = roadMin
+        self.roadMax = roadMax
+        self.laneCenters = laneCenters
+        self.laneWidth = 2*laneCenters[0]
 
     def setInit(self,px,vx):
         self.x_init[0] = px[0]
@@ -148,15 +138,26 @@ class vehBicycleKinematic:
         self.x_init[2] = vx
 
         self.u_init = [0,0]
+        self.laneWidth = 3.5
+
+        if self.x_init[1] > self.laneWidth:
+            self.lane = 1
+        elif self.x_init[1] < 0:
+            self.lane = -1
+        else:
+            self.lane = 0
 
     def getInit(self):
         return self.x_init,self.u_init
 
-    def setReferences(self,laneCenters):
-        self.laneCenters = laneCenters
+    def setReferences(self,vx):
         self.refxT[1] = self.laneCenters[0]
         self.refxL[1] = self.laneCenters[1]
         self.refxR[1] = self.laneCenters[2]
+
+        self.refxT[2] = vx
+        self.refxL[2] = vx
+        self.refxR[2] = vx
 
         return self.refxT, self.refxL, self.refxR
     
@@ -167,7 +168,7 @@ class vehBicycleKinematic:
         return self.scaling
 
     def getLane(self):
-        if self.state[1] > 6.5:
+        if self.state[1] > self.laneWidth:
             self.lane = 1
         elif self.state[1] < 0:
             self.lane = -1
