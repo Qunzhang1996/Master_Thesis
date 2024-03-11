@@ -4,6 +4,28 @@ import sys
 import numpy as np
 sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
 from util.utils import *
+
+
+
+class surroundVehicle:
+    """this is the struct used to store the information of the surrounding vehicles
+    """
+    def __init__(self, name, vehicle_id, x, y, v, psi):
+        self.vehicle_id = vehicle_id
+        self.x = x
+        self.y = y
+        self.v = v  # velocity
+        self.psi = psi  # orientation or heading
+        self.name = name
+        self.state = np.array([x, y, v, psi])
+        
+    def getSize(self):
+        leadWidth = 1.9
+        leadLength = 4.694
+        
+        return leadWidth, leadLength
+
+
 class Traffic:
     def __init__(self, N=12, dt=0.2, laneWidth=3.5):
         self.trajectory = []
@@ -75,6 +97,38 @@ class Traffic:
         #vehicle on the fourth lane
         patrol.set_target_velocity(velocities['aggressive'])
         mercerdes.set_target_velocity(velocities['aggressive'])
+        
+    # ! here, return the state of the vehicle in the vehicle list
+    # def getLeadVehicle(self):
+    #     """
+    #     Get the vehicle in the same line with ego vehicle and the closest in front of the ego vehicle
+    #     """
+    #     # the second vehicle is the ego vehicle
+    #     ego_vehicle = self.vehicle_list[1]
+    #     ego_state = get_state(ego_vehicle)
+            
+        
+    def getVehicles(self):
+        '''
+        this function returns the list of vehicles, and state of each vehicle
+        vehicle id, x, y, v, psi
+        '''
+        vehicle_state = []
+        for i in range(len(self.vehicle_list)):
+            if i == 1:
+                continue  # avoid the ego vehicle
+            vehicle_name = self.vehicle_list[i]
+            vehicle_state = get_state(vehicle_name)
+            x,y,v,psi = vehicle_state[0], vehicle_state[1], vehicle_state[2], vehicle_state[3]
+            
+            
+            
+        return self.vehicle_list, self.current_state
+            
+            
+        
+        
+        
     
     # ! iterate the vehicle list, get and predict the N step trajectory
     def predict_trajectory(self):

@@ -177,13 +177,13 @@ for i in range(1000):
     
     
     
-gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_name = 'IDM_constraint_simulation_plots.gif'
-animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'simulation_plots.png'
-plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-                              car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-                              figure_dir,figure_name)
+# gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+# gif_name = 'IDM_constraint_simulation_plots.gif'
+# animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+# figure_name = 'simulation_plots.png'
+# plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+#                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+#                               figure_dir,figure_name)
 
 

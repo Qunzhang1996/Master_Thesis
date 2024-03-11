@@ -200,9 +200,10 @@ class MPC:
             cost += self.sigma[0,i]
         for i in range(self.N-1):
             cost += 1e2*(self.u[1,i+1]-self.u[1,i])@(self.u[1,i+1]-self.u[1,i]).T
+            self.cost=cost
         # Add slack variable cost for y
         # cost += 5e5*self.slack_y@ self.slack_y.T
-        self.opti.minimize(cost)
+        self.opti.minimize(self.cost)
     
     def setController(self):
         """
@@ -239,7 +240,7 @@ class MPC:
             # print(f"lambda_y: {lambda_y}")
             # also return tightened IDM constraint with solved op
             tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
-            print('this is p_leading',sol.value(self.p_leading))
+            print(f"Cost value: {sol.value(self.cost)}")
             return u_opt, x_opt, lambda_s, tightened_IDM_constraints
         except Exception as e:
             print(f"An error occurred: {e}")

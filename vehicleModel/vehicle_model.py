@@ -42,9 +42,9 @@ class car_VehicleModel(vehBicycleKinematic):
         self.p = self.x_init[:2]
         self.v = self.x_init[2]
         
-        self.refxT = [0,0,60/3.6,0,0]
-        self.refxL = [0,0,60/3.6,0,0]
-        self.refxR = [0,0,60/3.6,0,0]
+        self.refxT = [0,0,60/3.6,0]
+        self.refxL = [0,0,60/3.6,0]
+        self.refxR = [0,0,60/3.6,0]
 
         # System model variables
         self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
@@ -194,9 +194,11 @@ class car_VehicleModel(vehBicycleKinematic):
 
 
     def cost(self,Q,R):
+        self.Q = Q
+        self.R = R
         l = 0
         for i in range(0,self.nx):
-                l += 5*Q[i]*(self.x[i]-self.refx[i]) ** 2
+                l += Q[i]*(self.x[i]-self.refx[i]) ** 2
         
         for i in range(0,self.nu):
             l += R[i]*(self.u[i]-self.refu[i]) ** 2
@@ -214,6 +216,41 @@ class car_VehicleModel(vehBicycleKinematic):
     
     def get_dt(self):
         return self.dt
+    
+    
+    def getSize(self):
+        return self.width, self.length, self.L_tract, self.L_trail
+    
+    def getSystemDim(self):
+        return self.nx,self.nu,self.nrefx,self.nrefu
+    
+    def getCostParam(self):
+        return self.Q, self.R
+    
+    
+    def setRoad(self,roadMin,roadMax,laneCenters):
+        self.roadMin = roadMin
+        self.roadMax = roadMax
+        self.laneCenters = laneCenters
+        self.laneWidth = 2*laneCenters[0]
+        return self.roadMin, self.roadMax, self.laneCenters
+        
+        
+    def setInit(self,px,vx):
+        self.x_init[0] = px[0]
+        self.x_init[1] = px[1]
+        self.x_init[2] = vx
+
+        self.u_init = [0,0]
+
+        if self.x_init[1] > self.laneWidth:
+            self.lane = 1
+        elif self.x_init[1] < 0:
+            self.lane = -1
+        else:
+            self.lane = 0
+            
+        return self.x_init, self.u_init
     
     
 

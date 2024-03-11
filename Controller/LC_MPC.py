@@ -122,25 +122,6 @@ class LC_MPC:
         
         return constraint_shift
     
-    # def lane_change_constraint(self):
-    #     constraints = []
-    #     leadWidth, leadLength =self.leadWidth, self.leadLength
-    #     for i in range(self.Traffic.getDim()):
-    #         # !  ignore the ego vehicle itself, the 1th is the ego vehicle
-    #         if i == 1:
-    #             continue
-    #         # !  ignore the ego vehicle itself, the 1th is the ego vehicle
-    #         v0_i = self.Traffic.get_velocity()[i]
-            
-    #         func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-    #                 tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
-    #         func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift) + self.egoWidth + leadWidth) / 2 * \
-    #                 tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
-    #         constraint_shift = func1 + func2 + + 143.318146 -self.laneWidth/2
-    #         constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
-    #                                 self.traffic_sign,self.traffic_shift,],
-    #                                 [constraint_shift],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
-    #     return constraints
     
     def setInEqConstraints(self):
         """
@@ -207,7 +188,8 @@ class LC_MPC:
             cost += 1e2*(self.u[:,i+1]-self.u[:,i]).T@(self.u[:,i+1]-self.u[:,i])
         # Add slack variable cost for y
         cost += 1e4*self.slack_y@ self.slack_y.T
-        self.opti.minimize(cost)
+        self.cost=cost
+        self.opti.minimize(self.cost)
         
     def setController(self):
         """
@@ -237,14 +219,10 @@ class LC_MPC:
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
             lambda_y = sol.value(self.slack_y)
-            print("this is reference of state: ", ref_trajectory[1])
             # try to visualize the constraints of the y direction, not the slack variable, lane_change_constraint_all
             lane_change_constraint_all=[sol.value(self.lane_change_constraint_all[i]) for i in range(self.N+1)]
-            print("this is the lane change constraint: ", lane_change_constraint_all)
-            
-            
-            
-            
+
+            print(f"Cost value: {sol.value(self.cost)}")
             return u_opt, x_opt, lambda_y,lane_change_constraint_all
         except Exception as e:
             print(f"An error occurred: {e}")

@@ -79,29 +79,32 @@ constraint_values_2_all = []
 traffic_x_all = []
 traffic_y_all = []
 
-for i in range(N+1):  # Loop through i = 0 to 12
-    traffic_x = pred_traj[0,i,3]
-    traffic_x_2 = pred_traj[0,i,0]
+# for i in range(N+1):  # Loop through i = 0 to 12
+#     traffic_x = pred_traj[0,i,3]
+#     traffic_x_2 = pred_traj[0,i,0]
     
-    # Create instances of the test class for each scenario
-    my_test = test(traffic_x, traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-    my_test_2 = test(traffic_x_2, traffic_y=laneWidth/2, traffic_shift=laneWidth, traffic_sign=-1)   #!('vehicle.tesla.model3', 80),   center line
+#     # Create instances of the test class for each scenario
+#     my_test = test(traffic_x, traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+#     my_test_2 = test(traffic_x_2, traffic_y=laneWidth/2, traffic_shift=laneWidth, traffic_sign=-1)   #!('vehicle.tesla.model3', 80),   center line
     
-    px_traj = pred_traj[0,i,1]
+#     px_traj = pred_traj[0,i,1]
     
-    # Collecting the data for plotting
-    px_traj_all.append(px_traj)
-    constraint_values_all.append(my_test.constraint(px_traj))
-    constraint_values_2_all.append(my_test_2.constraint(px_traj))
+#     # Collecting the data for plotting
+#     px_traj_all.append(px_traj)
+#     constraint_values_all.append(my_test.constraint(px_traj))
+#     constraint_values_2_all.append(my_test_2.constraint(px_traj))
     
     
 # here, test using vector of traffic_x and traffic_y to calculate the constraint
-# my_test = test(DM(pred_traj[0,:,3]), DM(-laneWidth/2), DM(-laneWidth), 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-# my_test_2 = test(DM(pred_traj[0,:,0]), DM(laneWidth/2), DM(laneWidth), -1)   #!('vehicle.tesla.model3', 80),   center line
-# px_traj = pred_traj[0,:,1]
-# px_traj_all = px_traj
-# constraint_values_all = my_test.constraint(px_traj)
-# constraint_values_2_all = my_test_2.constraint(px_traj)
+my_test = test(DM(pred_traj[0,:,3]), -laneWidth/2, -laneWidth, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+my_test_2 = test(DM(pred_traj[0,:,0]), laneWidth/2, laneWidth, -1)   #!('vehicle.tesla.model3', 80),   center line
+px_traj = pred_traj[0,:,1]
+px_traj_all = px_traj
+constraint_values_all = my_test.constraint(px_traj).full().flatten()
+constraint_values_2_all = my_test_2.constraint(px_traj).full().flatten()
+# print(constraint_values_all.shape)
+# print(px_traj_all.shape)
+# exit()
     
 
 # print(len(pred_traj[1][0]))

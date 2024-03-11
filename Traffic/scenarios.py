@@ -23,6 +23,7 @@ class trailing:
         self.vmax = v_legal+5/3.6
 
         self.Time_headway = 0.5
+        self.init_bound = 143.318146-laneWidth/2
 
         self.min_distx = min_distx
         self.p = MX.sym('p',1,N+1)
@@ -42,6 +43,8 @@ class trailing:
 
         return refx_out, refu_out
 
+    
+    # ! define the constraint for the trailing scenario, NEED TO CHANGE
     def constraint(self,traffic,opts):
         leadWidth, leadLength = traffic.getVehicles()[0].getSize()
         idx = self.getLeadVehicle(traffic)
@@ -55,40 +58,53 @@ class trailing:
         return Function('S',[self.p],[self.p-safeDist],['p'],['D_min'])
 
     def getRoad(self):
-        roadMax = 2*self.laneWidth
-        roadMin = -(self.lanes-2)*self.laneWidth
-        laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
+        roadMax = 2*self.laneWidth + self.init_bound
+        roadMin = -(self.lanes-2)*self.laneWidth  +self.init_bound
+        laneCenters = [self.init_bound+self.laneWidth/2,self.init_bound+self.laneWidth*3/2,self.init_bound-self.laneWidth*1/2]
 
         return roadMin, roadMax, laneCenters
 
+    def getVmax(self):
+        return self.vmax
+    
+    def getEgoLane(self):
+        return self.egoLane
+    
     def setEgoLane(self):
         x = self.vehicle.getPosition()
         self.egoPx = x[0]
         self.egoPy = x[1]
-        if self.egoPy < 0:
+        if self.egoPy < self.init_bound:
             self.egoLane = -1
-        elif self.egoPy > self.laneWidth:
+        elif self.egoPy > self.init_bound+self.laneWidth:
             self.egoLane = 1
         else:
             self.egoLane = 0
-
-    def getEgoLane(self):
-        return self.egoLane
-    
+            
     def getLeadVehicle(self,traffic):
-        self.setEgoLane()
+        
+        self.vehicle_list, self.current_vehstate = traffic.getVehicles()
+        # find the closest front vehicle in the same lane
+        i = 0
         reldistance = 10000             # A large number
         leadInLane = []
-        i = 0
-        for vehicle in traffic.vehicles:
-            if self.egoLane == vehicle.getLane():
-                if vehicle.getState()[0] > self.egoPx:
-                    distance = vehicle.getState()[0] - self.egoPx
-                    if distance < reldistance:
-                        leadInLane = [i]
-                        reldistance = distance
-            i += 1
-        return leadInLane
+        for vehicle in self.vehicle_list:
+    
+    
+    # def getLeadVehicle(self,traffic):
+    #     self.setEgoLane()
+    #     reldistance = 10000             # A large number
+    #     leadInLane = []
+    #     i = 0
+    #     for vehicle in traffic.vehicles:
+    #         if self.egoLane == vehicle.getLane():
+    #             if vehicle.getState()[0] > self.egoPx:
+    #                 distance = vehicle.getState()[0] - self.egoPx
+    #                 if distance < reldistance:
+    #                     leadInLane = [i]
+    #                     reldistance = distance
+    #         i += 1
+    #     return leadInLane
 
 class simpleOvertake:
     '''
@@ -104,6 +120,7 @@ class simpleOvertake:
         self.laneWidth = laneWidth
 
         self.vmax = v_legal+5/3.6
+        self.init_bound = 143.318146-laneWidth/2
 
         self.Time_headway = 0.5
 
@@ -134,12 +151,15 @@ class simpleOvertake:
         return refx_out,refu_out
 
     def getRoad(self):
-        roadMax = 2*self.laneWidth
-        roadMin = -(self.lanes-2)*self.laneWidth
-        laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
-        
+        roadMax = 2*self.laneWidth + self.init_bound
+        roadMin = -(self.lanes-2)*self.laneWidth  +self.init_bound
+        laneCenters = [self.init_bound+self.laneWidth/2,self.init_bound+self.laneWidth*3/2,self.init_bound-self.laneWidth*1/2]
+
         return roadMin, roadMax, laneCenters
 
+    def getVmax(self):
+        return self.vmax
+    
     def constraint(self,traffic,opts):
         constraints = []
         leadWidth, leadLength = traffic.getVehicles()[0].getSize()

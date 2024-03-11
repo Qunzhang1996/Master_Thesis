@@ -27,9 +27,6 @@ class C_k(IntEnum):
     X_km, Y_km, V_km, Psi =range(4)
     
     
-    
-
-
 def setup_carla_environment(Sameline_ACC=True):
     """
     Sets up the CARLA environment by connecting to the server, 

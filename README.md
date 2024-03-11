@@ -89,3 +89,7 @@ Here is the right lane change result:
 <p float="left">
   <img src="Figure/MPC_PID_LC.png" width="85%" /> 
 </p>   
+
+## 2024/03/07 QunZhang
+remember to change the cost func and the slack of the controlller!!!!
+
