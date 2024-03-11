@@ -158,7 +158,7 @@ class MPC:
             self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
             # ! Set the IDM constraint
-            # self.opti.subject_to(self.x[0, i] - self.tightened_bound_N_IDM_list[i].item() <= 0)
+            self.opti.subject_to(self.x[0, i] - self.tightened_bound_N_IDM_list[i].item() <= 0)
             
             # ! Set the vel_diff constraint
             # self.opti.subject_to(self.x[2, i] - self.leading_velocity <= self.tightened_bound_N_vel_diff_list[i].item())
