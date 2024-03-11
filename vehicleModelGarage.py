@@ -77,8 +77,8 @@ class vehBicycleKinematic:
         # State constraints based on internal dynamics
         # 10000 arbitrarilly large number
         inf = 50000
-        lower = [0,-inf,0,-3.14/8,-3.14/8]
-        upper = [inf,inf,inf,3.14/8,3.14/8]
+        lower = [0,-inf,0,-3.14/16,-3.14/64]
+        upper = [inf,inf,inf,3.14/16,3.14/64]
         return lower, upper
 
     def cost(self,Q,R):
@@ -178,3 +178,6 @@ class vehBicycleKinematic:
 
     def getEconsParams(self):
         return self.Cd, self.Area, self.Air_rho, self.mass, self.C_roll, self.r_whl
+    
+
+

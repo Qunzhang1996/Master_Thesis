@@ -5,26 +5,22 @@ import numpy as np
 # Classes and helpers
 from vehicleModelGarage import vehBicycleKinematic
 from scenarios import trailing, simpleOvertake
-from traffic import vehicleSUMO, combinedTraffic
+from traffic import vehicleSUMO, vehicleSemiSUMO, combinedTraffic
 from controllers import makeController, makeDecisionMaster
 from helpers import *
 
-from templateRLagent import RLAgent
-
 # Set Gif-generation
 makeMovie = True
-directory = r"C:\PhD\Student_projects\Robust_MPC_carla\Autonomous-Truck-Sim\simRes.gif"
+directory = r"C:\PhD\Papers\Learning-based_Scenario_MPC\simRes.gif"
 
 # System initialization 
+np.random.seed(1)
+
 dt = 0.2                    # Simulation time step (Impacts traffic model accuracy)
 f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
 N =  30                     # MPC Horizon length
 
 ref_vx = 70/3.6             # Higway speed limit in (m/s)
-
-# -------------------------- Initilize RL agent object ----------------------------------
-# The agent is feed to the decision maker, changing names requries changing troughout code base
-RL_Agent = RLAgent()
 
 # ----------------- Ego Vehicle Dynamics and Controller Settings ------------------------
 vehicleADV = vehBicycleKinematic(dt,N)
@@ -41,30 +37,37 @@ F_x_ADV  = vehicleADV.getIntegrator()
 Q_ADV = [0,40,3e2,5,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                    # Input cost, Entries in diagonal matrix
 q_ADV_decision = 50
+q_traffic_slack = 1e4
 
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 
 # ------------------ Problem definition ---------------------
-testWidth = 3.75
-scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=testWidth)
-scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=testWidth)
-roadMin, roadMax, laneCenters = scenarioADV.getRoad()
-    
+laneWidth = 3.75
+scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
+scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
+roadMin, roadMax, laneCenters,_ = scenarioADV.getRoad()
+
+scenarioADV.slackCost(q_traffic_slack)
+scenarioTrailADV.slackCost(q_traffic_slack)
 # -------------------- Traffic Set up -----------------------
 # * Be carful not to initilize an unfeasible scenario where a collsion can not be avoided
 # # Initilize ego vehicle
-vx_init_ego = 50/3.6                                # Initial velocity of the ego vehicle
+vx_init_ego = ref_vx #50/3.6                                # Initial velocity of the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
 vehicleADV.setInit([0,laneCenters[0]],vx_init_ego)
 
 # # Initilize surrounding traffic
 # Lanes [0,1,2] = [Middle,left,right]
-advVeh1 = vehicleSUMO(dt,N,[30,laneCenters[1]],[0.75*ref_vx,0],type = "normal")
-advVeh2 = vehicleSUMO(dt,N,[40,laneCenters[0]],[0.7*ref_vx,0],type = "passive")
-advVeh3 = vehicleSUMO(dt,N,[100,laneCenters[2]],[0.65*ref_vx,0],type = "normal")
-advVeh4 = vehicleSUMO(dt,N,[-20,laneCenters[1]],[1*ref_vx,0],type = "aggressive")
+# advVeh1 = vehicleSUMO(dt,N,[30,laneCenters[1]],[0.75*ref_vx,0],type = "normal")
+# advSemi = vehicleSemiSUMO(dt,N,[-10,laneCenters[-1]],[0.9*ref_vx,0],type = "normal_truck")
+# advSemi2 = vehicleSemiSUMO(dt,N,[50,laneCenters[0]],[0.8*ref_vx,0],type = "normal_truck")
+
+advVeh1 = vehicleSUMO(dt,N,[30,laneCenters[1]],[0.8*ref_vx,0],type = "normal")
+advVeh2 = vehicleSemiSUMO(dt,N,[40,laneCenters[0]],[0.75*ref_vx,0],type = "passive_truck")
+advVeh3 = vehicleSemiSUMO(dt,N,[100,laneCenters[2]],[0.65*ref_vx,0],type = "normal_truck")
+advVeh4 = vehicleSemiSUMO(dt,N,[-20,laneCenters[1]],[1*ref_vx,0],type = "aggressive_truck")
 advVeh5 = vehicleSUMO(dt,N,[60,laneCenters[2]],[1*ref_vx,0],type = "aggressive")
 
 # # Combine choosen vehicles in list
@@ -85,13 +88,11 @@ dt_MPC = dt*f_controller
 opts1 = {"version" : "leftChange", "solver": "ipopt", "integrator":"rk"}
 MPC1 = makeController(vehicleADV,traffic,scenarioADV,N,opts1,dt_MPC)
 MPC1.setController()
-# MPC1.testSolver(traffic)
 changeLeft = MPC1.getFunction()
 
 opts2 = {"version" : "rightChange", "solver": "ipopt", "integrator":"rk"}
 MPC2 = makeController(vehicleADV,traffic,scenarioADV,N,opts2,dt_MPC)
 MPC2.setController()
-# MPC2.testSolver(traffic)
 changeRight = MPC2.getFunction()
 
 opts3 = {"version" : "trailing", "solver": "ipopt", "integrator":"rk"}
@@ -103,7 +104,7 @@ print("Initilization succesful.")
 
 # Initilize Decision maker
 decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC1,MPC2,MPC3],
-                                [scenarioTrailADV,scenarioADV],RL_Agent)
+                                [scenarioTrailADV,scenarioADV])
 
 decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of changing decision
 
@@ -113,7 +114,7 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # # -----------------------------------------------------------------
 # # -----------------------------------------------------------------
 
-tsim = 35                         # Total simulation time in seconds
+tsim = 10                         # Total simulation time in seconds
 Nsim = int(tsim/dt)
 tspan = np.linspace(0,tsim,Nsim)
 
@@ -133,8 +134,9 @@ refxR_out,refu_out = scenarioADV.getReference(refxR_in,refu_in)
 refxADV_out,refuADV_out = scenarioADV.getReference(refxADV,refu_in)
 
 # Traffic
+nx_traffic = traffic.nx
 x_lead = DM(Nveh,N+1)
-traffic_state = np.zeros((5,N+1,Nveh))
+traffic_state = np.zeros((nx_traffic,N+1,Nveh))
 
 # # Store variables
 X = np.zeros((nx,Nsim,1))
@@ -144,7 +146,7 @@ decisionLog = np.zeros((Nsim,),dtype = int)
 
 X_pred = np.zeros((nx,N+1,Nsim))
 
-X_traffic = np.zeros((4,Nsim,Nveh))
+X_traffic = np.zeros((nx_traffic,Nsim,Nveh))
 X_traffic_ref = np.zeros((4,Nsim,Nveh))
 X_traffic[:,0,:] = traffic.getStates()
 testPred = traffic.prediction()
@@ -153,10 +155,9 @@ feature_map = np.zeros((5,Nsim,Nveh+1))
 
 # # Simulation loop
 for i in range(0,Nsim):
-    # Update feature map for RL agent
+    # Update feature map (for evenetual inclusion of data extraction)
     feature_map_i = createFeatureMatrix(vehicleADV,traffic)
     feature_map[:,i:] = feature_map_i
-    RL_Agent.fetchVehicleFeatures(feature_map_i)
 
     # Get current traffic state
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
@@ -199,7 +200,7 @@ i_crit = i
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 
-features2CSV(feature_map,Nveh,Nsim)
+# features2CSV(feature_map,Nveh,Nsim)
 
 # Creates animation of traffic scenario
 if makeMovie:

@@ -44,6 +44,12 @@ def getTotalCost(L,Lf,x,u,refx,refu,N):
             cost += Lf(x[:,N],refx[:,N])
             return cost
 
+def getSlackCost(Ls,slack):
+    cost = 0
+    for i in range(slack.shape[0]):
+        cost += Ls(slack[i,:])
+    return cost
+
 def rotmatrix(L,xy,ang):
     x_new = np.cos(ang)*L[0] -np.sin(ang)*L[1] + xy[0]
     y_new = np.sin(ang)*L[0] + np.cos(ang)*L[1] + xy[1]
@@ -53,26 +59,76 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
     print("Generating gif ...")
     Nveh = traffic.getDim()
     vehWidth, vehLength,_,_ = vehicle.getSize()
-    roadMin, roadMax, laneCenters = scenario.getRoad()
-    laneWidth = 2*laneCenters[0]
-    leadWidth,leadLength = traffic.vehicles[0].getSize()
+    roadMin, roadMax, laneCenters,laneWidth = scenario.getRoad()
     decision_string = ["Change Left","Change Right","Keep Lane     "]
     figanime = plt.figure(2)
     axanime = figanime.add_subplot(111)
 
+    frameSize = 70
+
+    trees = []
+    # Plot trees at random
+    d = 2.5
+    s = 0.03e2
+    for j in range(40):
+        x_tree = np.random.uniform(-frameSize,frameSize)
+        if np.random.normal() < 0.50:
+            y_tree = np.random.uniform(roadMax+2*d,50)
+        else:
+            y_tree = np.random.uniform(-50,roadMin-3*d)
+        trees.append([x_tree,y_tree])
+
     _,_,L_tract,L_trail = vehicle.getSize()
+    egoTheta_max = vehicle.xConstraints()[1][4]
+    d_lat_spread = L_tract* np.tan(egoTheta_max)
 
     def animate(i):
         plt.cla()
 
         # Plot Road
-        frameSize = 70
         X_road  = np.append(X[0,0:i_crit,0],X[0,i_crit,0]+frameSize)
         X_road  = np.append(X[0,0,0]-frameSize,X_road)
-        plt.plot(X_road,np.ones((1,i_crit+2))[0]*roadMax/2,'--',color = 'r')
-        plt.plot(X_road,np.zeros((1,i_crit+2))[0],'--',color = 'r')
+
+        grass = Rectangle((X_road[0]+X[0,i,0],-60),width = frameSize*2+10, height = 120,
+                            linewidth=0,facecolor='lightgreen', fill=True)
+
+        axanime.add_patch(grass)
+
+        grass = Rectangle((X_road[0]+X[0,i,0],roadMin),width = frameSize*2+10, height = 3 * laneWidth,
+                            linewidth=1,facecolor='lightgray', fill=True)
+
+        axanime.add_patch(grass)
+
+
+        plt.plot(X_road,np.ones((1,i_crit+2))[0]*roadMax/2,'--',color = 'gray')
+        plt.plot(X_road,np.zeros((1,i_crit+2))[0],'--',color = 'gray')
         plt.plot(X_road,np.ones((1,i_crit+2))[0]*roadMin,'-',color = 'k')
         plt.plot(X_road,np.ones((1,i_crit+2))[0]*roadMax,'-',color = 'k')
+
+
+        # Plot trees at random
+        for k in range(2):
+            x_tree = X[0,i,0] + frameSize
+            if np.random.normal() < 0.50:
+                y_tree = np.random.uniform(roadMax+2*d,50)
+            else:
+                y_tree = np.random.uniform(-50,roadMin-3*d)
+            trees.append([x_tree,y_tree])
+
+            # trees.append([np.random])
+
+        remove_idx = []
+        for j in range(len(trees)):
+            axanime.plot(trees[j][0], trees[j][1], marker='s', markersize=s, color='C5')
+            axanime.plot(trees[j][0], trees[j][1]+2*d, marker='^', markersize=2*s, color='C2')
+            axanime.plot(trees[j][0], trees[j][1]+1.5*d, marker='^', markersize=2.8*s, color='C2')
+            axanime.plot(trees[j][0], trees[j][1]+d, marker='^', markersize=3.5*s, color='C2')
+
+            if trees[j][0] < X[0,i,0]-frameSize:
+                remove_idx.append(j)
+        
+        for j in range(len(remove_idx)):
+                trees.pop(remove_idx[j]-j)
 
         # Plot ego vehicle
         X_new = rotmatrix([0,-vehWidth/2],[X[0,i,0],X[1,i,0]],X[3,i,0])
@@ -95,16 +151,35 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                 j += 1
         X_pred_x = np.append(X[0,i],X_pred[0,start+j:,i])
         X_pred_y = np.append(X[1,i],X_pred[1,start+j:,i])
-        plt.plot(X_pred_x,X_pred_y,'--',color='k')
+        plt.plot(X_pred_x,X_pred_y,'-',color='r')
 
         # Plot traffic
-        colors= {"aggressive" : "r","normal": "b", "passive": "g"}
+        colors= {"aggressive" : "r","normal": "b", "passive": "g",
+                 "aggressive_truck" : "r","normal_truck": "b", "passive_truck": "g"}
+        
         for j in range(Nveh):
             color = colors[vehList[j].type]
-            axanime.add_patch(Rectangle(
-                            xy = (X_traffic[0,i,j]-leadLength/2,X_traffic[1,i,j]-leadWidth/2), width=leadLength, height=leadWidth,
-                            angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
-                            facecolor=color, fill=True))
+
+            plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],marker = '*',color = 'g')
+            if "truck" in vehList[j].type:
+                axanime.add_patch(Rectangle(
+                                xy = (X_traffic[0,i,j]-traffic.vehicles[j].L_tract/2,X_traffic[1,i,j]-traffic.vehicles[j].width/2),
+                                width=traffic.vehicles[j].L_tract, height=traffic.vehicles[j].width,
+                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
+                                facecolor=color, fill=True))
+                X_new = rotmatrix([-traffic.vehicles[j].L_trail-traffic.vehicles[j].L_tract/2,-traffic.vehicles[j].width/2],
+                                [X_traffic[0,i,j],X_traffic[1,i,j]],X_traffic[4,i,j])
+                trailer = Rectangle((X_new[0],X_new[1]),width = traffic.vehicles[j].L_trail, height = traffic.vehicles[j].width,
+                         angle = 180*(X_traffic[4,i,j])/np.pi,
+                        linewidth=1, edgecolor = 'k',facecolor=color, fill=True)
+                axanime.add_patch(trailer)
+                
+            else:
+                leadWidth,leadLength = traffic.vehicles[j].getSize()
+                axanime.add_patch(Rectangle(
+                                xy = (X_traffic[0,i,j]-leadLength/2,X_traffic[1,i,j]-leadWidth/2), width=leadLength, height=leadWidth,
+                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
+                                facecolor=color, fill=True))
             plt.scatter(X_traffic_ref[0,i,j],X_traffic_ref[1,i,j],marker = '.',color = color)
 
         # Plot box with info
@@ -129,7 +204,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
         constraint_laneChange = scenario.constraint(traffic,[])
         if decisionLog[i] == 0:
             # Left Change plot
-            XY = np.zeros((2,2*frameSize,Nveh))
+            XY = np.zeros((2,2*frameSize,Nveh+2))
             for j in range(Nveh):
                 p_ij = paramLog[:,i,j,0]
                 x_ij = np.arange(-frameSize,frameSize,1)
@@ -137,14 +212,22 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                     y_cons_ij = constraint_laneChange[j](x_ij[k],p_ij[0],p_ij[1],p_ij[2],p_ij[3])[0].full().item()
                     XY[0,k,j] = X[0,i,0]+x_ij[k]
                     XY[1,k,j] = y_cons_ij
+            
+            XY[0,:,-2] = XY[0,:,-3]
+            XY[1,:,-2] = vehWidth/2+d_lat_spread
+            XY[0,:,-1] = XY[0,:,-3]
+            XY[1,:,-1] = 2*laneWidth-vehWidth/2-d_lat_spread
 
             upperY = np.zeros((2*frameSize,))
             lowerY = np.zeros((2*frameSize,))
             for k in range(len(x_ij)):
                 idx = np.where(paramLog[2,i,:,0] < 0)[0]
+                idx = np.append(idx,Nveh+1)
                 idx_upper = np.argmin(XY[1,k,idx]-X[1,i,0])
                 upperY[k] = XY[1,k,idx[idx_upper]]
+
                 idx = np.where(paramLog[2,i,:,0] > 0)[0]
+                idx = np.append(idx,Nveh)
                 idx_lower = np.argmin(X[1,i,0]-XY[1,k,idx])
                 lowerY[k] = XY[1,k,idx[idx_lower]]
             
@@ -159,7 +242,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
 
         elif decisionLog[i] == 1:
             # Right Change plot
-            XY = np.zeros((2,2*frameSize,Nveh))
+            XY = np.zeros((2,2*frameSize,Nveh+2))
             for j in range(Nveh):
                 p_ij = paramLog[:,i,j,1]
                 x_ij = np.arange(-frameSize,frameSize,1)
@@ -167,14 +250,21 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                     y_cons_ij = constraint_laneChange[j](x_ij[k],p_ij[0],p_ij[1],p_ij[2],p_ij[3])[0].full().item()
                     XY[0,k,j] = X[0,i,0]+x_ij[k]
                     XY[1,k,j] = y_cons_ij
-                    
+
+            XY[0,:,-2] = XY[0,:,-3]
+            XY[1,:,-2] = -laneWidth + vehWidth/2+d_lat_spread
+            XY[0,:,-1] = XY[0,:,-3]
+            XY[1,:,-1] = laneWidth-vehWidth/2-d_lat_spread
             upperY = np.zeros((2*frameSize,))
             lowerY = np.zeros((2*frameSize,))
             for k in range(len(x_ij)):
                 idx = np.where(paramLog[2,i,:,1] < 0)[0]
+                idx =np.append(idx,Nveh+1)
                 idx_upper = np.argmin(XY[1,k,idx]-X[1,i,0])
                 upperY[k] = XY[1,k,idx[idx_upper]]
+
                 idx = np.where(paramLog[2,i,:,1] > 0)[0]
+                idx = np.append(idx,Nveh)
                 idx_lower = np.argmin(X[1,i,0]-XY[1,k,idx])
                 lowerY[k] = XY[1,k,idx[idx_lower]]
 
@@ -189,7 +279,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],'b', alpha = 1)
 
         else:
-            dX_lead = np.sum(paramLog[0,i,:,2])
+            dX_lead =  np.sum(paramLog[0,i,:,2]).item() if np.sum(paramLog[0,i,:,2]) > 0 else 2*frameSize
             min_distx = scenarioTrailADV.min_distx
             D_safe = min_distx + L_tract + leadLength/2
             t_headway = scenarioTrailADV.Time_headway
@@ -202,14 +292,14 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                 lane = 0
             laneBounds = laneCenters[lane] + np.array([-laneWidth/2,laneWidth/2])
 
-            X_limit = X[0,i,0]+dX_lead.item()-D_safe - X[2,i,0] * t_headway
+            X_limit = X[0,i,0]+dX_lead-D_safe - X[2,i,0] * t_headway
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'b')
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'b')
             plt.plot([X_limit,X_limit],laneBounds,'b')
 
-    anime = FuncAnimation(figanime, animate, frames=i_crit, interval=100, repeat=False)
+    anime = FuncAnimation(figanime, animate, frames=i_crit, interval=200, repeat=False)
 
-    writergif = animation.PillowWriter(fps=30) 
+    writergif = animation.PillowWriter(fps=int(1/vehicle.dt)) 
     anime.save(directory, writer=writergif)
     print("Finished.")
     plt.show()
