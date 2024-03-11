@@ -28,6 +28,9 @@ class trailing:
         self.min_distx = min_distx
         self.p = MX.sym('p',1,N+1)
 
+        
+        #! slack variable for the IDM constraint
+        self.traffic_slack = MX.sym('slack',1,N+1)
         self.egoPx = []
         self.egoPy = []
 
@@ -43,8 +46,8 @@ class trailing:
 
         return refx_out, refu_out
 
-    
-    # ! define the constraint for the trailing scenario, NEED TO CHANGE
+    # ! DEFINE THE CONSTRAINTS FOR THE TRAILING 
+    # ! NEED TO CHANGE, ADD SLACK VARIABLE!!!!!!!!!
     def constraint(self,traffic,opts):
         leadWidth, leadLength = traffic.getVehicles()[0].getSize()
         idx = self.getLeadVehicle(traffic)
@@ -56,6 +59,7 @@ class trailing:
 
         safeDist = self.min_distx + leadLength/2 + self.L_tract
         return Function('S',[self.p],[self.p-safeDist],['p'],['D_min'])
+
 
     def getRoad(self):
         roadMax = 2*self.laneWidth + self.init_bound
@@ -82,30 +86,33 @@ class trailing:
             self.egoLane = 0
             
     def getLeadVehicle(self,traffic):
-        
-        self.vehicle_list, self.current_vehstate = traffic.getVehicles()
-        # find the closest front vehicle in the same lane
+        """
+        Find the lead vehicle in the same lane with the ego vehicle, the cloest one in front of the ego vehicle
+        """
+        self.vehicle_list = traffic.getVehicles()
+        self.setEgoLane()
         i = 0
         reldistance = 10000             # A large number
         leadInLane = []
         for vehicle in self.vehicle_list:
+            if self.egoLane == vehicle.getLane():
+                if vehicle.getPosition()[0] > self.egoPx:
+                    distance = vehicle.getPosition()[0] - self.egoPx
+                    if distance < reldistance:
+                        leadInLane = [i]
+                        reldistance = distance
+            i += 1
+        return leadInLane
     
+    def slackCost(self,q):
+        slack_cost = q*dot(self.traffic_slack,self.traffic_slack)
+        
+        self.Ls = Function('Ls',[self.traffic_slack], [slack_cost],['slack'],['slackCost'])
+        pass
+        
+    def getSlackCost(self):
+        return self.Ls
     
-    # def getLeadVehicle(self,traffic):
-    #     self.setEgoLane()
-    #     reldistance = 10000             # A large number
-    #     leadInLane = []
-    #     i = 0
-    #     for vehicle in traffic.vehicles:
-    #         if self.egoLane == vehicle.getLane():
-    #             if vehicle.getState()[0] > self.egoPx:
-    #                 distance = vehicle.getState()[0] - self.egoPx
-    #                 if distance < reldistance:
-    #                     leadInLane = [i]
-    #                     reldistance = distance
-    #         i += 1
-    #     return leadInLane
-
 class simpleOvertake:
     '''
     The ego vehicle overtakes the lead vehicle
