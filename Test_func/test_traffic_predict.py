@@ -83,24 +83,41 @@ constraint_values_2_all = []
 traffic_x_all = []
 traffic_y_all = []
 
-for i in range(N+1):  # Loop through i = 0 to 12
-    traffic_x = pred_traj[0,i,3]
-    traffic_x_2 = pred_traj[0,i,0]
-    px_traj = pred_traj[0,i,1]
+# for i in range(N+1):  # Loop through i = 0 to 12
+#     traffic_x = pred_traj[0,i,3]
+#     traffic_x_2 = pred_traj[0,i,0]
+#     px_traj = pred_traj[0,i,1]
     
     
-    # Create instances of the test class for each scenario
-    my_test = test(traffic_x, traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-    my_test_2 = test(traffic_x_2, traffic_y=laneWidth/2, traffic_shift=laneWidth, traffic_sign=-1)   #!('vehicle.tesla.model3', 80),   center line
+#     # Create instances of the test class for each scenario
+#     my_test = test(traffic_x, traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+#     my_test_2 = test(traffic_x_2, traffic_y=laneWidth/2, traffic_shift=laneWidth, traffic_sign=-1)   #!('vehicle.tesla.model3', 80),   center line
     
     
     
-    # Collecting the data for plotting
-    px_traj_all.append(px_traj)
-    constraint_values_all.append(my_test.constraint(px_traj))
-    constraint_values_2_all.append(my_test_2.constraint(px_traj))
+#     # Collecting the data for plotting
+#     px_traj_all.append(px_traj)
+#     constraint_values_all.append(my_test.constraint(px_traj))
+#     constraint_values_2_all.append(my_test_2.constraint(px_traj))
 
-print(len(pred_traj[1][0]))
+# Collect all positions for the whole trajectory
+px_traj_all = pred_traj[0, :, 1]
+
+# Create instances of the test class for each scenario
+my_test = test(pred_traj[0, :, 3], traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)    # right lane
+my_test_2 = test(pred_traj[0, :, 0], traffic_y=laneWidth/2, traffic_shift=laneWidth, traffic_sign=-1)   # center line
+
+# Calculate constraint values for all positions at once
+constraint_values_all = my_test.constraint(px_traj_all)
+constraint_values_2_all = my_test_2.constraint(px_traj_all)
+
+# # print(len(pred_traj[1][0]))
+# print("The first constraint value is: ", constraint_values_all)
+# print("The second constraint value is: ", constraint_values_2_all)
+
+# convert casadi DM to numpy array
+constraint_values_all = np.array(constraint_values_all).flatten()
+constraint_values_2_all = np.array(constraint_values_2_all).flatten()
 
 # Now, plotting the entire trajectory
 plt.figure(figsize=(12,4))

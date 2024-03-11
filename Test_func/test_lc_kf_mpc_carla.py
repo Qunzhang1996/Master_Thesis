@@ -31,7 +31,7 @@ from Traffic.Traffic_qun import Traffic
 # # --------------------------Run the command--------------------------
 
 ## !----------------- Carla Settings --------------------------------
-N = 200
+N = 12
 Traffic = Traffic(N)
 # spawn the vehicle
 spawned_vehicles, center_line = Traffic.setup_complex_carla_environment()
@@ -102,7 +102,7 @@ P0, process_noise, possibility = set_stochastic_mpc_params()
 # ------------------ Problem definition ---------------------
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3, laneWidth=3.5)
 # scenarioOvertakeADV = simpleOvertake(vehicleADV,N,lanes = 3, laneWidth=3.5)
-scenarioOvertakeADV = simpleLaneChange(lanes = 3, laneWidth=3.5)
+scenarioOvertakeADV = simpleLaneChange(N, Ntraffic, lanes = 3, laneWidth=3.5)
 versionL = {"version" : "leftChange"}
 versionR = {"version" : "rightChange"}
 versionT = {"version" : "trailing"}
@@ -201,7 +201,7 @@ Nveh = len(trafficList) # Number of vehicles in the traffic
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
 # ╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝                                                                                                                                         
 ## !----------------- start simulation!!!!!!!!!!!!!!!!!!! ------------------------
-for i in range(100):
+for i in range(1000):
     iteration_start = time.time()
     control_car = car_contoller.run_step(velocity_leading*3.6, 143.318146, False)
     car.apply_control(control_car)
@@ -229,9 +229,6 @@ for i in range(100):
     p_leading=p_leading + (velocity_leading)*desired_interval
     # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
 
-    # ! set the traffic states from the prediction
-    traffic_state_i = traffic_state[:,i,:]
-
 
     if i%1==0: # get the CARLA state every 10 steps
         # get the CARLA state
@@ -240,7 +237,7 @@ for i in range(100):
         u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
                                                       p_leading, traffic_state, velocity_leading, vel_diff)
         u_optR, x_optR, lambda_sR, tightened_bound_N_IDM_listR = mpc_controllerR.solve(x_iter, ref_trajectory_R, ref_control_R, 
-                                                      p_leading, traffic_state_i, velocity_leading, vel_diff)
+                                                      p_leading, traffic_state, velocity_leading, vel_diff)
         
         print(f"the optimal input of the truck is: {u_opt}")
         print(f"the optimal state of the truck is: {x_opt[:2,:]}")

@@ -250,6 +250,7 @@ class LC_MPC:
         sign = np.zeros((self.Nveh,self.N+1))
         shift = np.zeros((self.Nveh,self.N+1))
         flip = np.ones((self.Nveh,self.N+1))
+        y_pos = np.zeros((self.Nveh,self.N+1))
 
         if self.version['version'] == 'leftChange':
             for ii in range(self.Nveh):
@@ -258,33 +259,38 @@ class LC_MPC:
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * self.laneWidth
                         flip[ii,jj] = -1
+                        y_pos[ii,jj] = self.laneWidth
                     elif traffic_state[1,jj,ii] < 143.318146: 
-
                         sign[ii,jj] = 1
                         shift[ii,jj] = -self.laneWidth
+                        y_pos[ii,jj] = -self.laneWidth
                     else:                         
                         sign[ii,jj] = 1
                         shift[ii,jj] = 0
+                        y_pos[ii,jj] = self.laneWidth + self.laneWidth/2
 
         elif self.version['version'] == 'rightChange':
             for ii in range(self.Nveh):
                 for jj in range(self.N+1):
-                    if traffic_state[1,jj,ii] > self.laneWidth:
+                    if traffic_state[1,jj,ii] > self.laneWidth + 143.318146:
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * self.laneWidth
                         flip[ii,jj] = -1
-                    elif traffic_state[1,jj,ii] < 0:
+                        y_pos[ii,jj] = self.laneWidth
+                    elif traffic_state[1,jj,ii] < 143.318146:
                         sign[ii,jj] = 1
                         shift[ii,jj] = -self.laneWidth
+                        y_pos[ii,jj] = -self.laneWidth
                     else:
                         sign[ii,jj] = -1
                         shift[ii,jj] = self.laneWidth
                         flip[ii,jj] = -1
+                        y_pos[ii,jj] = self.laneWidth + self.laneWidth/2
 
-        traffic_state[2,:,:] = sign.T
-        traffic_state[3,:,:] = shift.T
-        traffic_state[4,:,:] = flip.T
-        return sign, shift, flip, traffic_state
+        # traffic_state[2,:,:] = sign.T
+        # traffic_state[3,:,:] = shift.T
+        # traffic_state[4,:,:] = flip.T
+        return sign, shift, flip, y_pos
 
     
     
@@ -296,19 +302,23 @@ class LC_MPC:
         self.opti.set_value(self.x0, x0)
         self.opti.set_value(self.refx, ref_trajectory)
         self.opti.set_value(self.refu, ref_control)
-        self.opti.set_value(self.p_leading, p_leading)
-        self.opti.set_value(self.leading_velocity, leading_velocity)
-        self.opti.set_value(self.vel_diff, vel_diff)
+        
 
         # set the initial trajectories for the lane and right change scenarios
         if self.version['version'] == 'leftChange' or self.version['version'] == 'rightChange':
             # todo: set the lane changing parameters here
-            traffic_sign, traffic_shift, traffic_flip, traffic_state = self.set_lane_change_parameters(traffic_state)
+            traffic_sign, traffic_shift, traffic_flip, y_pos = self.set_lane_change_parameters(traffic_state)
             self.opti.set_value(self.traffic_x,traffic_state[0,:,:].T)
-            self.opti.set_value(self.traffic_y,traffic_state[1,:,:].T)
+            # self.opti.set_value(self.traffic_y,traffic_state[1,:,:].T)
+            self.opti.set_value(self.traffic_y,y_pos)
             self.opti.set_value(self.traffic_sign,traffic_sign)
             self.opti.set_value(self.traffic_shift,traffic_shift)
             self.opti.set_value(self.traffic_flip,traffic_flip)
+        else:
+            self.opti.set_value(self.p_leading, p_leading)
+            self.opti.set_value(self.leading_velocity, leading_velocity)
+            self.opti.set_value(self.vel_diff, vel_diff)
+
 
         # Solver options
         opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}

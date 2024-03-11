@@ -65,7 +65,6 @@ class Traffic:
         """
         # car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes=self.vehicle_list
         car, truck, mustang=self.vehicle_list
-        # car, truck, mustang =self.vehicle_list
         mustang.set_target_velocity(velocities['normal'])
         #vehicle on the second lane
         # carlacola.set_target_velocity(velocities['normal'])
