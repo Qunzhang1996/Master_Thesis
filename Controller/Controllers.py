@@ -24,14 +24,21 @@ class makeController:
         self.N = N
         self.vehocleWidth,_,_,_ = self.vehicle.getSize()
         self.roadMin, self.roadMax, self.laneCenters = self.scenario.getRoad()
+        self.nx,self.nu,self.nrefx,self.nrefu = self.vehicle.getSystemDim()
         self.opts = opts
         # ! get ref velocity 
         self.Vmax = scenario.getVmax()
-        # ! set the LTI model from the vehicle model
-        self.A, self.B, self.C = self.vehicle.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
+        
+        
+        if self.opts["integrator"] == "rk":
+            self.vehicle.integrator(opts["integrator"],dt)
+            self.F_x  = self.vehicle.getIntegrator()
+        else:
+            # ! set the LTI model from the vehicle model
+            self.A, self.B, self.C = self.vehicle.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
         # ! get the cost param from the vehicle model
         self.Q, self.R = self.vehicle.getCostParam()
-        
+            
         #! P0, process_noise, possibility will be obtained from set_stochastic_mpc_params
         #! Used for tighten the MPC bound
         self.P0, self.process_noise, self.Possibility = set_stochastic_mpc_params()
@@ -51,19 +58,18 @@ class makeController:
         # ! change this according to the LC_MPC AND TRAILING_MPC
         if opts["version"] == "trailing":
             self.lead = self.opti.parameter(1,self.N+1)
-            # slack variable for the IDM constraint
-            self.lambda_s= self.opti.variable(1,self.N + 1)
+            self.traffic_slack = self.opti.variable(1,self.N+1)
         else:
+            self.traffic_slack = self.opti.variable(self.Nveh,self.N+1)
             self.lead = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_x = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_y = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_sign = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_shift = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_flip = self.opti.parameter(self.Nveh,self.N+1)
-            # add slack for the y direction
-            self.slack_y = self.opti.variable(1, self.N+1)
             
         #! NEED TO CHANGE THIS
+        # # solver
         
         
     def setStateEqconstraints(self):
@@ -86,12 +92,6 @@ class makeController:
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
     
-    
-    # def IDM_constraint(self, p_leading_x, v_eg, d_s=1, L1=8.4, T_s=1, lambda_s=0):
-    #     """
-    #     IDM constraint for tracking the vehicle in front.
-    #     """
-    #     return p_leading_x - L1 - d_s - T_s * v_eg - lambda_s
     def setTrafficConstraints(self):
         self.S = self.scenario.constraint(self.traffic,self.opts)
 
@@ -99,31 +99,44 @@ class makeController:
             for i in range(self.Nveh):
                 self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
                                     >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
-                                        self.traffic_sign[i,:], self.traffic_shift[i,:]))
+                                        self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
+            
+            # Set default road boundries, given that there is a "phantom vehicle" in the lane we can not enter
+            d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
+            if self.opts["version"] == "leftChange":
+                self.y_lanes = [self.vehWidth/2+d_lat_spread,2*self.laneWidth-self.vehWidth/2-d_lat_spread]
+            elif self.opts["version"] == "rightChange":
+                self.y_lanes = [-self.laneWidth + self.vehWidth/2+d_lat_spread,self.laneWidth-self.vehWidth/2-d_lat_spread]
+            self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
 
         elif self.scenario.name == 'trailing':
+            T = self.scenario.Time_headway
             self.scenario.setEgoLane()
             self.scenario.getLeadVehicle(self.traffic)
-            self.opti.subject_to(self.x[0,:] <= self.S(self.lead)) 
-    
-    
-    
+            self.IDM_constraint_list = self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:]
+            self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
+            # ! tighten the TRAILING CONSTRAINTS  
+            self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
+            for i in range(self.N+1):
+                self.opti.subject_to(self.x[0,i] <= self.tightened_bound_N_IDM_list[i].item())
+
     def setInEqConstraints(self):
         """
-        Set inequality constraints, only for default constraints and tihgtened constraints
+        Set inequality constraints, only for default constraints and tihgtened  default  constraints
         
         """
         D = np.eye(self.nx)  # Noise matrix
         lbx,ubx = self.vehicle.xConstraints()
-        self.setInEqConstraints_val(H_up=lbx, upb=None, H_low=ubx, lwb=None)  # Set default constraints
+        # print((np.array([[5000], [5000], [30], [3.14/8]]).shape))
+        self.setInEqConstraints_val(H_up=None, upb=np.array(lbx).reshape(4,1), H_low=None, lwb=np.array(ubx).reshape(4,1))  # Set default constraints
         lbu,ubu = self.vehicle.uConstraints()
         #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
-        self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, D, self.Q, self.R, self.P0, self.process_noise, self.Possibility)
+        self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
         for i in range(self.N+1):
             self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
-            self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1))) 
         # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
         #! set the constraints for the INPUT
         self.opti.subject_to(self.opti.bounded(lbu, self.u, ubu))
@@ -131,5 +144,15 @@ class makeController:
         self.opti.subject_to(self.opti.bounded(0,self.x[2,:],self.scenario.vmax))
         
         
-        ######! just put IDM in to test it
-        
+    
+    def setController(self):
+        """
+        Sets all constraints and cost
+        """
+        # Constraints
+        self.setStateEqconstraints()
+        self.setInEqConstraints()
+        self.setTrafficConstraints()
+
+        # Cost
+        # self.setCost()

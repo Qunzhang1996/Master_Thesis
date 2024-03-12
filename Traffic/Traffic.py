@@ -14,6 +14,7 @@ class surroundVehicle:
         self.x = x
         self.y = y
         self.v = v  # velocity
+        self.v0=v
         self.psi = psi  # orientation or heading
         self.state = np.array([x, y, v, psi])
         self.N = N
@@ -102,6 +103,7 @@ class Traffic:
             spawn_point = carla.Transform(location)
             vehicle = self.spawn_vehicle(world, bp, spawn_point)
             self.vehicle_list.append(vehicle)
+        print(f"spawned {len(self.vehicle_list)} vehicles")
         return self.vehicle_list, center_line
     
     # ! set the velocity of the vehicles
@@ -127,14 +129,16 @@ class Traffic:
         '''
         this function returns the list of vehicles(class)
         '''
-        self.vehicle_list=[]
+        self.Total_vehicle_list = []
         for i in range(len(self.vehicle_list)):
             if i==1:
                 continue  # avoid putting the ego vehicle in the list
             vehicle_name = self.vehicle_list[i]
             vehicle_state = get_state(vehicle_name)
-            self.vehicle_list.append(surroundVehicle(vehicle_name, i, vehicle_state[0], vehicle_state[1], vehicle_state[2], vehicle_state[3]))
-        return self.vehicle_list        
+            surroundVehicle_=surroundVehicle(vehicle_name, i, vehicle_state[0], \
+                                                                vehicle_state[1], vehicle_state[2], vehicle_state[3])
+            self.Total_vehicle_list.append(surroundVehicle_)
+        return self.Total_vehicle_list      
     
     # ! iterate the vehicle list, get and predict the N step trajectory
     def predict_trajectory(self):
@@ -184,3 +188,6 @@ class Traffic:
     
     def get_laneWidth(self):
         return self.laneWidth
+    
+    def getNveh(self):
+        return len(self.vehicle_list)
