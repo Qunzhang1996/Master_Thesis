@@ -64,3 +64,6 @@ opts1 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
 scenarioTrailADV.slackCost(q_traffic_slack)
 MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts1,dt)
 MPC_trailing.setController()
+testPred = traffic.prediction()
+print("this is testPred",testPred)
+print("this is testPred size",testPred.shape)

@@ -137,6 +137,11 @@ def set_stochastic_mpc_params():
     possibility=0.95  # possibility 
     return P0,process_noise,possibility
 
+
+
+
+
+
 def get_state(vehicle):
     """Here is the func that help to get the state of the vehicle
 
@@ -195,14 +200,22 @@ def check_dimensions_car(nx, nu):
     """
     if nx != 4 or nu != 2:
         raise ValueError("Error: nx must be equal to 4 and nu must be equal to 2.")
-    
+
+  
 def getTotalCost(L,Lf,x,u,refx,refu,N):
-            cost = 0
-            for i in range(0,N):
-                cost += L(x[:,i],u[:,i],refx[:,i],refu[:,i])
-            cost += Lf(x[:,N],refx[:,N])
-            return cost
+    cost = 0
+    for i in range(0,N):
+        cost += L(x[:,i],u[:,i],refx[:,i],refu[:,i])
+    cost += Lf(x[:,N],refx[:,N])
+    return cost
+
+def getSlackCost(Ls,slack):
+    cost = 0
+    for i in range(slack.shape[0]):
+        cost += Ls(slack[i,:])
+    return cost   
         
+
         
 def smooth_velocity_diff(p_leading, truck_x):
     # Desired maximum value

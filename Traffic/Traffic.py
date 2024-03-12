@@ -141,7 +141,7 @@ class Traffic:
         return self.Total_vehicle_list      
     
     # ! iterate the vehicle list, get and predict the N step trajectory
-    def predict_trajectory(self):
+    def prediction(self):
         """Here, assume the surrounding vehicles go straight line
         """
         self.states = np.zeros((self.nx,self.N+1,len(self.vehicle_list)))

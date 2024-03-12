@@ -9,9 +9,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 from Controller.MPC_tighten_bound import MPC_tighten_bound
 from util.utils import *
-class makeController:
+class makeController:   
     """
-    Creates a MPC based on current vehicle, traffic and scenario
+    ██████╗  ██████╗ ██████╗      ██████╗ ██╗     ███████╗███████╗███████╗    ███╗   ███╗██████╗  ██████╗            
+    ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
+    ██║  ███╗██║   ██║██║  ██║    ██████╔╝██║     █████╗  ███████╗███████╗    ██╔████╔██║██████╔╝██║                 
+    ██║   ██║██║   ██║██║  ██║    ██╔══██╗██║     ██╔══╝  ╚════██║╚════██║    ██║╚██╔╝██║██╔═══╝ ██║                 
+    ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗            
+     ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
+    """
+    """
+    #! Creates a MPC based on current vehicle, traffic and scenario
     """
     def __init__(self, vehicle,traffic,scenario,N,opts,dt):
         self.vehicle = vehicle
@@ -70,6 +78,9 @@ class makeController:
             
         #! NEED TO CHANGE THIS
         # # solver
+        if opts["version"] == "trailing":
+            opts_trailing = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
+            self.opti.solver("ipopt", opts_trailing)
         
         
     def setStateEqconstraints(self):
@@ -143,8 +154,16 @@ class makeController:
         #! extra constraints for the V_MAX
         self.opti.subject_to(self.opti.bounded(0,self.x[2,:],self.scenario.vmax))
         
+    def setCost(self):
+        L,Lf = self.vehicle.getCost()
+        Ls = self.scenario.getSlackCost()
+        costMain = getTotalCost(L,Lf,self.x,self.u,self.refx,self.refu,self.N)
+        costSlack = getSlackCost(Ls,self.traffic_slack)
+        self.total_cost = costMain + costSlack
+        self.opti.minimize(self.total_cost)    
         
-    
+        
+         
     def setController(self):
         """
         Sets all constraints and cost
@@ -155,4 +174,24 @@ class makeController:
         self.setTrafficConstraints()
 
         # Cost
-        # self.setCost()
+        self.setCost()
+        
+    def solve(self):
+        """
+        Solve the optimization problem
+        """
+        # Solve the optimization problem
+        if self.opts["version"] == "trailing":
+            sol = self.opti.solve()
+        
+class makeDecisionMaster:
+    """
+    #! This is the Decision Master used for decision making
+    """
+    def __init__(self,vehicle,traffic,controllers,scenarios,changeHorizon = 10,forgettingFact = 0.90): 
+        self.vehicle = vehicle
+        self.traffic = traffic
+        self.controllers = controllers
+        self.scenarios = scenarios
+        
+        
