@@ -31,6 +31,7 @@ class LC_MPC:
         self.trafficVehicles = trafficVehicles
         self.nx, self.nu, self.nrefx, self.nrefu = self.egoVehicle.getSystemDim()
         self.Nveh = len(trafficVehicles)
+        self.leadWidth, self.leadLength = 1.7, 6
         # self.Nveh = trafficVehicles.getDim()
         self.Q = Q
         self.R = R
@@ -47,6 +48,7 @@ class LC_MPC:
          # set the controller options
         self.version = version
         self.scenario = scenario
+        self.dt = self.egoVehicle.get_dt()
         
         # Create Opti Stack
         self.opti = Opti()
@@ -62,22 +64,20 @@ class LC_MPC:
         self.lambda_s= self.opti.variable(1,self.N + 1)
         # slack variable for y 
         self.slack_y = self.opti.variable(1,self.N + 1)
-        # IDM leading egoVehicle position parameter
-        # self.lead = self.opti.parameter(self.Nveh,self.N+1)
-        self.p_leading = self.opti.parameter(1)
         # set car velocity 
         self.leading_velocity = self.opti.parameter(1)
         self.vel_diff = self.opti.parameter(1)    
        
         if version['version'] == 'leftChange' or version['version'] == 'rightChange':
-            self.lead = self.opti.parameter(self.Nveh,self.N+1)
+            self.p_leading = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_x = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_y = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_sign = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_shift = self.opti.parameter(self.Nveh,self.N+1)
             self.traffic_flip = self.opti.parameter(self.Nveh,self.N+1)
+            self.px = self.opti.variable(self.Nveh,self.N+1)
         else: 
-            self.lead = self.opti.parameter(1,self.N+1)
+            self.p_leading = self.opti.parameter(1,self.N+1)
             
     
     def compute_Dlqr(self):
@@ -132,15 +132,6 @@ class LC_MPC:
         
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
-        
-        # set slack variable for the y
-        # print("the upb is: ",self.upb[1,0])
-        # print("the slack_y is: ",self.slack_y)
-        # self.upb[1,0] = 143.318146+1.75 
-        # self.lwb[1,0] = -143.318146+1.75 
-
-        # self.upb[1,0] += self.slack_y
-        # self.lwb[1,0] += self.slack_y
     
     def setInEqConstraints(self):
         """
@@ -208,12 +199,22 @@ class LC_MPC:
         """
         Set inequality constraints for lane change scenario.
         """
+        for j in range(self.Nveh):
+            for i in range(self.N+1):
+                # ! calculate the px, according to the vehicle state and time
+                self.px[j,i] = self.x[0,i] + self.x[2,i] * self.dt
+                # pleading here include the initial x, y of the leading vehicle
+                # ! calculate the self.traffic_x and self.traffic_y according to the leading velocity
+                self.traffic_x[j,i] = self.p_leading[j,0] + self.leading_velocity[j] * self.dt * i
+                # ! notice! traffic_y should be scaled according to the map, the center of the map is 143.318146
+                self.traffic_y[j,i] = self.p_leading[j,1] - 143.318146
+
         # self.S = self.scenario.constraint(self.trafficVehicles)
         self.S = self.scenario.constraint()
         if self.scenario.name == 'simpleOvertake':
             for i in range(self.Nveh):
                 self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
-                                    >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
+                                    >= self.traffic_flip[i,:] * self.S[i](self.px[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
                                         self.traffic_sign[i,:], self.traffic_shift[i,:]))
 
 
@@ -235,11 +236,12 @@ class LC_MPC:
             """
             Set constraints and cost function for the MPC controller.
             """
-            self.setStateEqconstraints()
-            self.setInEqConstraints()
+            self.setStateEqconstraints()           
             # if self.version == 'leftChange' or self.version == 'rightChange':
             if self.version['version'] == 'leftChange' or self.version['version'] == 'rightChange':
                 self.setTrafficConstraints()
+            else: 
+                self.setInEqConstraints()
             self.setCost()
 
     def set_lane_change_parameters(self, traffic_state): # still working on this
@@ -255,37 +257,37 @@ class LC_MPC:
         if self.version['version'] == 'leftChange':
             for ii in range(self.Nveh):
                 for jj in range(self.N+1):
-                    if traffic_state[1,jj,ii] > self.laneWidth + 143.318146: # doubt here
+                    if np.round(traffic_state[1,jj,ii],2) == np.round(143.318146,2) - self.laneWidth: # the vehicle is in the left lane
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * self.laneWidth
                         flip[ii,jj] = -1
-                        y_pos[ii,jj] = self.laneWidth
-                    elif traffic_state[1,jj,ii] < 143.318146: 
+                        y_pos[ii,jj] = self.laneWidth + self.laneWidth/2
+                    elif np.round(traffic_state[1,jj,ii],2) == np.round(143.318146,2): # the vehicle is in the middle lane
                         sign[ii,jj] = 1
                         shift[ii,jj] = -self.laneWidth
-                        y_pos[ii,jj] = -self.laneWidth
-                    else:                         
+                        y_pos[ii,jj] = self.laneWidth
+                    else:                                                               # the vehicle is in the right lane
                         sign[ii,jj] = 1
                         shift[ii,jj] = 0
-                        y_pos[ii,jj] = self.laneWidth + self.laneWidth/2
+                        y_pos[ii,jj] = -self.laneWidth/2
 
         elif self.version['version'] == 'rightChange':
             for ii in range(self.Nveh):
                 for jj in range(self.N+1):
-                    if traffic_state[1,jj,ii] > self.laneWidth + 143.318146:
+                    if np.round(traffic_state[1,jj,ii],2) == np.round(143.318146,2) - self.laneWidth: # the vehicle is in the left lane
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * self.laneWidth
                         flip[ii,jj] = -1
-                        y_pos[ii,jj] = self.laneWidth
-                    elif traffic_state[1,jj,ii] < 143.318146:
+                        y_pos[ii,jj] = self.laneWidth + self.laneWidth/2
+                    elif np.round(traffic_state[1,jj,ii],2) == np.round(143.318146,2): # the vehicle is in the middle lane
                         sign[ii,jj] = 1
                         shift[ii,jj] = -self.laneWidth
-                        y_pos[ii,jj] = -self.laneWidth
-                    else:
+                        y_pos[ii,jj] = self.laneWidth
+                    else:                                                                # the vehicle is in the right lane
                         sign[ii,jj] = -1
                         shift[ii,jj] = self.laneWidth
                         flip[ii,jj] = -1
-                        y_pos[ii,jj] = self.laneWidth + self.laneWidth/2
+                        y_pos[ii,jj] = -self.laneWidth/2
 
         # traffic_state[2,:,:] = sign.T
         # traffic_state[3,:,:] = shift.T
@@ -314,33 +316,44 @@ class LC_MPC:
             self.opti.set_value(self.traffic_sign,traffic_sign)
             self.opti.set_value(self.traffic_shift,traffic_shift)
             self.opti.set_value(self.traffic_flip,traffic_flip)
-        else:
             self.opti.set_value(self.p_leading, p_leading)
             self.opti.set_value(self.leading_velocity, leading_velocity)
-            self.opti.set_value(self.vel_diff, vel_diff)
 
 
         # Solver options
         opts = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
         self.opti.solver("ipopt", opts)
-        
-        try:
-            sol = self.opti.solve()
-            u_opt = sol.value(self.u)
-            x_opt = sol.value(self.x)
-            lambda_s = sol.value(self.lambda_s)
-            # print(f"slack_y: {sol.value(self.slack_y)}")
-            # also return tightened IDM constraint with solved op
-            tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
-            return u_opt, x_opt, lambda_s, tightened_IDM_constraints
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            self.opti.debug.value(self.x)
-            return None, None, None, None
+
+        if self.version['version'] == 'leftChange' or self.version['version'] == 'rightChange':
+            try:
+                sol = self.opti.solve()
+                u_opt = sol.value(self.u)
+                x_opt = sol.value(self.x)
+                lane_change_constraint_all=[sol.value(self.lane_change_constraint_all[i]) for i in range(self.N+1)]
+                return u_opt, x_opt
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                self.opti.debug.value(self.x)
+                return None, None
+        else:
+            try:
+                sol = self.opti.solve()
+                u_opt = sol.value(self.u)
+                x_opt = sol.value(self.x)
+                lambda_s = sol.value(self.lambda_s)
+                # print(f"slack_y: {sol.value(self.slack_y)}")
+                # also return tightened IDM constraint with solved op
+                tightened_IDM_constraints = [sol.value(constraint) for constraint in self.IDM_constraint_list]
+                return u_opt, x_opt, lambda_s, tightened_IDM_constraints        
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                self.opti.debug.value(self.x)
+                return None, None, None, None
+      
         
     def getFunction(self):
         if self.version['version'] ==  "trailing":
-            return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,self.lead],[self.x,self.u],
+            return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,self.p_leading],[self.x,self.u],
                     ['x0','refx','refu','lead'],['x_opt','u_opt'])
         else:
             return self.opti.to_function('MPC',[self.x0,self.refx,self.refu,

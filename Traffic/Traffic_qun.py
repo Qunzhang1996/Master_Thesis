@@ -40,7 +40,7 @@ class Traffic:
         vehicles = [
             ('vehicle.tesla.model3', 80),
             ('vehicle.carlamotors.firetruck', 20), # ! this is ego vehicle
-            ('vehicle.ford.mustang', 20, -2*self.laneWidth),
+            ('vehicle.ford.mustang', 20, -self.laneWidth),
             # ('vehicle.carlamotors.carlacola', 20, -self.laneWidth),
             # ('vehicle.lincoln.mkz_2017', 80, -self.laneWidth),
             # ('vehicle.ford.ambulance', 200),

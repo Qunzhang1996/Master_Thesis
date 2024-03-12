@@ -10,7 +10,7 @@ class simpleLaneChange:
     def __init__(self,N, Ntraffic, min_distx = 5, lanes = 3, laneWidth = 3.5):
         self.N = N
         self.name = 'simpleOvertake'
-        self.Ntraffic = Ntraffic
+        self.Nveh = Ntraffic
 
         # Road definitions
         self.lanes = lanes
@@ -33,15 +33,15 @@ class simpleLaneChange:
         self.traffic_sign = MX.sym('sign',1,N+1)
         self.traffic_shift = MX.sym('shift',1,N+1)
 
-
-
         
+    
     def constraint(self):
+        
         leadLength = 6
         v0_i = 15
         leadWidth = 1.7
         constraints = []
-        for i in range(self.Ntraffic):
+        for i in range(self.Nveh):
             func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
                         tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2 
             func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \

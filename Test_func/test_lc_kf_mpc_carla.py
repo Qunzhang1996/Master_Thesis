@@ -73,8 +73,8 @@ car_contoller2 = VehiclePIDController(car2,
                                      args_lateral = {'K_P': 1.1, 'K_I': 0.2, 'K_D': 0.02, 'dt': desired_interval}, 
                                      args_longitudinal = {'K_P': 0.950, 'K_I': 0.1, 'K_D': 0.02, 'dt': desired_interval})
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 0.95, 'K_I': 0.1, 'K_D': 0.03, 'dt': desired_interval}, 
-                                        args_longitudinal = {'K_P': 1.5, 'K_I': 0.5, 'K_D': 0.02, 'dt': desired_interval})
+                                        args_lateral = {'K_P': 1.5, 'K_I': 0.05, 'K_D': 0.2, 'dt': desired_interval/10}, 
+                                        args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0.2, 'dt': desired_interval/10})
 # ███╗   ███╗██████╗  ██████╗
 # ████╗ ████║██╔══██╗██╔════╝
 # ██╔████╔██║██████╔╝██║     
@@ -107,22 +107,16 @@ versionL = {"version" : "leftChange"}
 versionR = {"version" : "rightChange"}
 versionT = {"version" : "trailing"}
 
-
-## set MPC controller
-mpc_controller = LC_MPC(vehicleADV, trafficList,  np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, versionT, scenarioTrailADV)
-mpc_controller.setController()
-# trailLead = mpc_controller.getFunction()
-
 # mpc controller for right lane change
 mpc_controllerR = LC_MPC(vehicleADV, trafficList, np.diag(Q_ADV), np.diag(R_ADV), P0, process_noise, possibility, N, versionR, scenarioOvertakeADV)
 mpc_controllerR.setController()
-# changeRight = mpc_controllerR.getFunction()
+# changeRight = mpc_controllerR.getFunction() # this function is not working. why?
 
 ## !----------------- get initial state and set ref for the ccontroller ------------------------
                                                                                   
-x_iter = DM(int(nx),1)
-x_iter[:],u_iter = vehicleADV.getInit()
-print(f"initial state of the truck is: {x_iter}")
+x_iterR = DM(int(nx),1)
+x_iterR[:],u_iter = vehicleADV.getInit()
+print(f"initial state of the truck is: {x_iterR}")
 print(f"initial input of the truck is: {u_iter}")
 
 # reference trajectory and control for trailing
@@ -154,12 +148,12 @@ Q_0[3,3]=0.001  # psi bound is [0, 0.05]
 R_0=np.eye(nx)*sigma_measurement**2
 r = np.random.normal(0.0, sigma_measurement, size=(nx, 1))
 # set the initial state and control input
-x_0 = x_iter
+x_0 = x_iterR
 P_kf=np.eye(nx)*(sigma_process)**4  # initial state covariance
 u_iter = np.array([0,0])
 # get system dynamic matrices
-A,B,_=mpc_controller.get_dynammic_model()
-H=np.eye(nx)   #measurement matrix, y=H@x_iter
+A,B,_=mpc_controllerR.get_dynammic_model()
+H=np.eye(nx)   #measurement matrix, y=H@x_iterR
 # initial the Kalman Filter
 ekf=kalman_filter(A,B,H,x_0,P_kf,Q_0,R_0)
 
@@ -180,7 +174,7 @@ truck_vel_mpc = []
 lambda_s_list = []
 truck_vel_control = []
 timestamps = []  # To store timestamps for calculating acceleration and jerk
-all_tightened_bounds = []  # To store all tightened bounds for visualization
+# all_tightened_bounds = []  # To store all tightened bounds for visualization
 Trajectory_pred = []  # To store the predicted trajectory
 previous_acceleration = 0  # To help in jerk calculation
 
@@ -201,14 +195,13 @@ Nveh = len(trafficList) # Number of vehicles in the traffic
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
 # ╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝                                                                                                                                         
 ## !----------------- start simulation!!!!!!!!!!!!!!!!!!! ------------------------
-for i in range(1000):
+for i in range(500):
     iteration_start = time.time()
     control_car = car_contoller.run_step(velocity_leading*3.6, 143.318146, False)
     car.apply_control(control_car)
 
     # get the state of the leading vehicle and truck
     car_state = get_state(car)
-    # traffic_state = get_traffic_state(trafficList, Nveh, N, dt)
     # !----------------- get the state of the truck ------------------------
     truck_state = get_state(truck)
     measurement_truck = truck_state + r # add noise to the truck state
@@ -224,45 +217,30 @@ for i in range(1000):
     truck_x, truck_y, truck_v, truck_psi = truck_estimate[C_k.X_km], truck_estimate[C_k.Y_km],truck_estimate[C_k.V_km], truck_estimate[C_k.Psi]
     car_positions.append((car_x, car_y))
     truck_positions.append((truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item()))
-    # print(f"truck state is: {truck_estimate}")
-    # TODO: predict the state of car, assuming the car is moving at a constant velocity
     p_leading=p_leading + (velocity_leading)*desired_interval
-    # p_leading=car_x  # we can also use the car state as the leading vehicle state, more realistic
 
 
     if i%1==0: # get the CARLA state every 10 steps
         # get the CARLA state
-        x_iter = vertcat(truck_x, truck_y, truck_v, truck_psi)
+        x_iterR = vertcat(truck_x, truck_y, truck_v, truck_psi)
         vel_diff=smooth_velocity_diff(p_leading, truck_x) # prevent the vel_diff is too small
-        u_opt, x_opt, lambda_s, tightened_bound_N_IDM_list = mpc_controller.solve(x_iter, ref_trajectory, ref_control, 
+        # !-----------------  solve the MPC problem ------------------------
+        u_optR, x_optR = mpc_controllerR.solve(x_iterR, ref_trajectory_R, ref_control_R, 
                                                       p_leading, traffic_state, velocity_leading, vel_diff)
-        u_optR, x_optR, lambda_sR, tightened_bound_N_IDM_listR = mpc_controllerR.solve(x_iter, ref_trajectory_R, ref_control_R, 
-                                                      p_leading, traffic_state, velocity_leading, vel_diff)
-        
-        print(f"the optimal input of the truck is: {u_opt}")
-        print(f"the optimal state of the truck is: {x_opt[:2,:]}")
-        print(f"the optimal input of the truck for right lane change is: {u_optR}")
-        print(f"the optimal state of the truck for right lane change is: {x_optR[:2,:]}")
-       
-
-        # print("this the constrained tightened_bound_N_IDM_list: ",tightened_bound_N_IDM_list)
-        
-        # print("the type of x_opt is:",type(x_opt[:2,:]))
-        # exit()
-        x_iter=x_opt[:,1]
-        print(f"the optimal state of the truck is: {x_iter}")
-        # ! get the first input of the optimal input for the kalman filter
+        x_iterR=x_optR[:,1]
         
         
-    all_tightened_bounds.append(tightened_bound_N_IDM_list)  
-    Trajectory_pred.append(x_opt[:2,:]) # store the predicted trajectory
+    # all_tightened_bounds.append(tightened_bound_N_IDM_list)  
+    Trajectory_pred.append(x_optR[:2,:]) # store the predicted trajectory
     
-    #PID controller according to the x_iter of the MPC
-    control_truck = local_controller.run_step(x_iter[2]*3.6, x_iter[1], False)
+    #PID controller according to the x_iterR of the MPC for 
+    control_truck = local_controller.run_step(x_iterR[2]*3.6, x_iterR[1], False)
+    print(f"the y position of the truck is: {x_iterR[1]}")
+    print(f"the velocity of the truck is: {x_iterR[2]}")
     truck.apply_control(control_truck)
     
-    truck_vel_mpc.append(x_iter[2])
-    lambda_s_list.append(lambda_s)
+    truck_vel_mpc.append(x_iterR[2])
+    # lambda_s_list.append(lambda_s)
     
     
     truck_state_ctr = get_state(truck)
@@ -303,7 +281,7 @@ for i in range(1000):
 
 gif_dir = r'C:\Users\A490242\Desktop\Master_Thesis\Figure'
 gif_name = 'IDM_constraint_simulation_plots_with_filter.gif'
-animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+# animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 figure_dir = r'C:\Users\A490242\Desktop\Master_Thesis\Figure'
 figure_name = 'simulation_plots_with_filter.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
