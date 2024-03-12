@@ -13,9 +13,7 @@ class trailing:
         self.N = N
         self.vehicle = vehicle
         self.nx,self.nu,_,_ = vehicle.getSystemDim()
-        print("nx,nu",self.nx,self.nu)
         self.egoWidth, self.egoLength,self.L_tract, self.L_trail = vehicle.getSize()
-        print("egoWidth, egoLength, L_tract, L_trail",self.egoWidth, self.egoLength,self.L_tract, self.L_trail)
         # Road definitions
         self.lanes = lanes
         self.laneWidth = laneWidth

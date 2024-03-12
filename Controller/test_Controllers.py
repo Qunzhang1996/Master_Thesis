@@ -10,7 +10,7 @@ from Traffic.Scenarios import trailing, simpleOvertake
 from util.utils import *
 
 
-# #! ------------------------change map to Town06------------------------
+# # ------------------------change map to Town06------------------------
 # import subprocess
 # # Command to run your script
 # command = (
@@ -18,7 +18,7 @@ from util.utils import *
 #     r'python config.py --map Town06')
 # subprocess.run(command, shell=True)
 # exit()
-# #! --------------------------Run the command--------------------------
+# # Run the command
 
 # System initialization 
 dt = 0.2                    # Simulation time step (Impacts traffic model accuracy)
@@ -36,6 +36,7 @@ velocities = {
     }
 spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
 traffic.set_velocity(velocities)
+Nveh = traffic.getDim()
 
 vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
@@ -64,6 +65,53 @@ opts1 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
 scenarioTrailADV.slackCost(q_traffic_slack)
 MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts1,dt)
 MPC_trailing.setController()
+
+# # -----------------------------------------------------------------
+# # -----------------------------------------------------------------
+# #                         Simulate System
+# # -----------------------------------------------------------------
+# # -----------------------------------------------------------------
+
+tsim = 10                         # Total simulation time in seconds
+Nsim = int(tsim/dt)
+tspan = np.linspace(0,tsim,Nsim)
+
+# # Initialize simulation
+x_iter = DM(int(nx),1)
+x_iter[:],u_iter = vehicleADV.getInit()
+vehicleADV.update(x_iter,u_iter)
+
+refxADV = [0,laneCenters[1],ref_vx,0,0]
+refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(ref_vx)
+
+refu_in = [0,0,0]
+refxT_out,refu_out = scenarioTrailADV.getReference(refxT_in,refu_in)
+refxL_out,refu_out = scenarioTrailADV.getReference(refxL_in,refu_in)
+refxR_out,refu_out = scenarioTrailADV.getReference(refxR_in,refu_in)
+refxADV_out,refuADV_out = scenarioTrailADV.getReference(refxADV,refu_in)
+
+# Traffic
+nx_traffic = traffic.nx
+x_lead = DM(Nveh,N+1)
+traffic_state = np.zeros((nx_traffic,N+1,Nveh))
+
+# # Store variables
+X = np.zeros((nx,Nsim,1))
+U = np.zeros((nu,Nsim,1))
+paramLog = np.zeros((5,Nsim,Nveh,3))
+decisionLog = np.zeros((Nsim,),dtype = int)
+
+X_pred = np.zeros((nx,N+1,Nsim))
+
+X_traffic = np.zeros((nx_traffic,Nsim,Nveh))
+X_traffic_ref = np.zeros((4,Nsim,Nveh))
+print("this is the size of teh traffic",(traffic.getStates()).shape)
+X_traffic[:,0,:] = traffic.getStates()
+print(X_traffic)
 testPred = traffic.prediction()
-print("this is testPred",testPred)
-print("this is testPred size",testPred.shape)
+
+feature_map = np.zeros((5,Nsim,Nveh+1))
+
+#! TEST THOSE SHOWN BELOW:!!!!!
+x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
+traffic_state[:2,:,] = traffic.prediction()[:2,:,:]

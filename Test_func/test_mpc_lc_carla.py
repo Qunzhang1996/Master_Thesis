@@ -20,7 +20,7 @@ from util.utils import *
 # ██╔═══╝ ██╔══██║╚════██║╚════██║
 # ██║     ██║  ██║███████║███████║
 # ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
-# # ------------------------change map to Town06------------------------
+# ------------------------change map to Town06------------------------
 # import subprocess
 # # Command to run your script
 # command = (

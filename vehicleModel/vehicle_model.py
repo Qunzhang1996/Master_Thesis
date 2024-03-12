@@ -185,12 +185,17 @@ class car_VehicleModel(vehBicycleKinematic):
         return A_d, B_d, g_d
     
     
-    def setReferences(self,center_line=143.318146):
+    def setReferences(self,vx,center_line=143.318146):
         self.laneCenters = [center_line,center_line+self.laneWidth,center_line-self.laneWidth]
         self.refxT[1] = self.laneCenters[0]
         self.refxL[1] = self.laneCenters[1]
         self.refxR[1] = self.laneCenters[2]
+
+        self.refxT[2] = vx
+        self.refxL[2] = vx
+        self.refxR[2] = vx
         return self.refxT, self.refxL, self.refxR
+    
 
 
     def cost(self,Q,R):
@@ -232,7 +237,6 @@ class car_VehicleModel(vehBicycleKinematic):
         self.roadMin = roadMin
         self.roadMax = roadMax
         self.laneCenters = laneCenters
-        self.laneWidth = 2*laneCenters[0]
         return self.roadMin, self.roadMax, self.laneCenters
         
         

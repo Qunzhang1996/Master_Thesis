@@ -138,7 +138,16 @@ class Traffic:
             surroundVehicle_=surroundVehicle(vehicle_name, i, vehicle_state[0], \
                                                                 vehicle_state[1], vehicle_state[2], vehicle_state[3])
             self.Total_vehicle_list.append(surroundVehicle_)
-        return self.Total_vehicle_list      
+        return self.Total_vehicle_list     
+    
+    def getStates(self):
+        """ return the state of all surrounding vehicles
+        """ 
+        states = np.zeros((self.nx,self.Nveh))
+        for i in range(len(self.vehicle_list)):
+            vehicle_name = self.vehicle_list[i]
+            states[:,i]=get_state(vehicle_name).flatten()
+        return states
     
     # ! iterate the vehicle list, get and predict the N step trajectory
     def prediction(self):
