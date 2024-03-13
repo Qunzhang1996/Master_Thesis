@@ -32,7 +32,9 @@ dt_PID = 0.2/10                # Time step for the PID controller
 f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
 N =  12                    # MPC Horizon length
 laneWidth = 3.5
+
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
+ref_velocity=ref_vx
 q_traffic_slack = 1e4
 traffic = Traffic()
 velocities = {
@@ -134,6 +136,22 @@ traffic_state = np.zeros((nx_traffic,N+1,Nveh))
 X = np.zeros((nx,Nsim,1))
 U = np.zeros((nu,Nsim,1))    
 
+#! Data storage initialization
+car_positions = []  # To store (x, y) positions
+truck_positions = []  # To store (x, y) positions
+truck_velocities = []  # To store velocity
+leading_velocities = []  # To store leading vehicle velocity
+truck_accelerations = []  # To store acceleration
+truck_jerks = []  # To store jerk
+truck_vel_mpc = []
+lambda_s_list = []
+truck_vel_control = []
+Trajectory_pred = []  # To store the predicted trajectory
+timestamps = []  # To store timestamps for calculating acceleration and jerk
+all_tightened_bounds = []  # To store all tightened bounds for visualization
+previous_acceleration = 0  # To help in jerk calculation
+#! TEST
+
 
 X_pred = np.zeros((nx,N+1,Nsim))
 X_traffic = np.zeros((nx_traffic,Nsim,Nveh))
@@ -154,7 +172,7 @@ for i in range(Nsim):
         # refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
         u_opt, x_opt, cost = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
-        # print("this is the reference trajectory",Traj_ref)
+        u_iter = u_opt[:,0].reshape(-1,1)
         X_ref=Traj_ref[:,count] #last element
         print("INFO:  The Cost is: ", cost)
     else: #! when mpc is asleep, the PID will track the Traj_ref step by step
@@ -166,10 +184,51 @@ for i in range(Nsim):
         truck.apply_control(control_truck)
         
     #TODO: Update traffic and store data
-    # X[:,i] = x_iter
-    # U[:,i] = u_iter
+    X[:,i] = x_iter
+    U[:,i] = u_iter
     x_iter = get_state(truck)
+    truck_vel_mpc.append(x_iter[2])
     print("this is the state of the truck",x_iter.T)
+    
+    
+    #! ------------------------------------------------------------------------------------------------
+    car_state = traffic.getStates()[:,0]
+    truck_state = traffic.getStates()[:,1]
+    car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
+    truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
+    truck_state_ctr = get_state(truck)
+    # print(f"current state of the truck is: {truck_state_ctr}")
+    truck_vel_ctr=truck_state_ctr[C_k.V_km].item()
+    truck_vel_control.append(truck_vel_ctr)
+    # Data collection inside the loop
+    Trajectory_pred.append(x_opt[:2,:]) # store the predicted trajectory
+    current_time = time.time()
+    timestamps.append(current_time)
+    car_positions.append((car_x, car_y))
+    truck_positions.append((truck_x, truck_y))
+    truck_velocities.append(truck_v)
+    leading_velocities.append(car_v)
+
+    # Calculate acceleration if possible
+    if len(timestamps) > 1:
+        delta_v = truck_velocities[-1] - truck_velocities[-2]
+        delta_t = timestamps[-1] - timestamps[-2]
+        acceleration = delta_v / delta_t
+        truck_accelerations.append(acceleration)
+
+        # Calculate jerk if possible
+        if len(truck_accelerations) > 1:
+            delta_a = truck_accelerations[-1] - previous_acceleration
+            jerk = delta_a / delta_t
+            truck_jerks.append(jerk)
+            previous_acceleration = truck_accelerations[-1]
+    else:
+        truck_accelerations.append(0)  # Initial acceleration is 0
+        truck_jerks.append(0)  # Initial jerk is 0
+    #! ------------------------------------------------------------------------------------------------
+    
+ 
+    
 
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
@@ -177,4 +236,9 @@ for i in range(Nsim):
     
     if i == 220: break
         
-                                                       
+                                                
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'Make_Controller_TEST.png'
+plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+                              car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+                              figure_dir,figure_name)
