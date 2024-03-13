@@ -119,10 +119,10 @@ class simpleOvertake:
     '''
     The ego vehicle overtakes the lead vehicle
     '''
-    #! HERE SHOULD FOLLOW THE CHANGE OF THE TRAILING
     def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 6.5,v_legal = 60/3.6):
         self.name = 'simpleOvertake'
         self.N = N
+        self.vehicle = vehicle
         self.nx,self.nu,_,_ = vehicle.getSystemDim()
 
         # Road definitions
@@ -130,13 +130,13 @@ class simpleOvertake:
         self.laneWidth = laneWidth
 
         self.vmax = v_legal+5/3.6
-        self.init_bound = 143.318146-laneWidth/2
 
         self.Time_headway = 0.5
+        self.init_bound = 143.318146-laneWidth/2
 
         # Ego vehicle dimensions
         self.egoWidth, self.egoLength,self.L_tract, self.L_trail = vehicle.getSize()
-        
+        # self.egoTheta_max = vehicle.xConstraints()[1][4]
         # Safety constraint definitions
         self.min_distx = min_distx
         self.pxL = MX.sym('pxL',1,N+1)
@@ -146,6 +146,8 @@ class simpleOvertake:
         self.traffic_y = MX.sym('y',1,N+1)
         self.traffic_sign = MX.sym('sign',1,N+1)
         self.traffic_shift = MX.sym('shift',1,N+1)
+        self.traffic_slack = MX.sym("slack",1,N+1)
+        
 
 
     def getReference(self,refx,refu):
@@ -160,27 +162,49 @@ class simpleOvertake:
 
         return refx_out,refu_out
 
+    # def getRoad(self):
+    #     roadMax = 2*self.laneWidth
+    #     roadMin = -(self.lanes-2)*self.laneWidth
+    #     laneCenters = [self.laneWidth/2,self.laneWidth*3/2,-self.laneWidth*1/2]
+        
+    #     return roadMin, roadMax, laneCenters, self.laneWidth
     def getRoad(self):
         roadMax = 2*self.laneWidth + self.init_bound
         roadMin = -(self.lanes-2)*self.laneWidth  +self.init_bound
         laneCenters = [self.init_bound+self.laneWidth/2,self.init_bound+self.laneWidth*3/2,self.init_bound-self.laneWidth*1/2]
-
+        print(roadMin, roadMax, laneCenters)
         return roadMin, roadMax, laneCenters
 
-    def getVmax(self):
-        return self.vmax
-    
     def constraint(self,traffic,opts):
         constraints = []
-        leadWidth, leadLength = traffic.getVehicles()[0].getSize()
+        d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
         for i in range(traffic.getDim()):
+            # Get Vehicle Properties
             v0_i = traffic.vehicles[i].v0
-            func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
-                    tanh(self.px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2
-            func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
-                    tanh( - (self.px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
+            l_front,l_rear = traffic.vehicles[i].getLength()
+            leadWidth, _ = traffic.getVehicles()[i].getSize()
+
+            # Define vehicle specific constants
+            alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)+leadWidth/2)
+            alpha_1 = l_rear + self.L_tract + v0_i * self.Time_headway + self.min_distx 
+            alpha_2 = l_front + self.L_trail + v0_i * self.Time_headway+ self.min_distx 
+            alpha_3 = self.traffic_shift
+            d_w_e = (self.egoWidth/2+d_lat_spread)*self.traffic_sign
+            # Construct function
+            func1 = alpha_0 / 2 * tanh(self.px - self.traffic_x + alpha_1)+alpha_3/2
+            func2 = alpha_0 / 2 * tanh(self.traffic_x - self.px + alpha_2)+alpha_3/2
+            S = func1+func2 + d_w_e
 
             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
                                     self.traffic_sign,self.traffic_shift,],
-                                    [func1+func2],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
+                                    [S],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
         return constraints
+    
+    def slackCost(self,q):
+        slack_cost = q*dot(self.traffic_slack,self.traffic_slack)
+        
+        self.Ls = Function('Ls',[self.traffic_slack], [slack_cost],['slack'],['slackCost'])
+
+        
+    def getSlackCost(self):
+        return self.Ls

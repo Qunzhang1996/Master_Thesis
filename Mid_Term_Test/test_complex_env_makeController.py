@@ -47,7 +47,6 @@ spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
 traffic.set_velocity(velocities)
 Nveh = traffic.getDim()
 px_init,py_init,vx_init=traffic.getStates()[:3,1] # get the initial position of the truck
-print("this is vx_init",vx_init)
 truck = traffic.getEgo()  # get the ego vehicle
 
 
@@ -79,12 +78,12 @@ L_ADV,Lf_ADV = vehicleADV.getCost()
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
 scenarioTrailADV.slackCost(q_traffic_slack)
 #TODO: ADD scenarioADV LATTER
-# scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
-# scenarioTrailADV.slackCost(q_traffic_slack)
+scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
+scenarioTrailADV.slackCost(q_traffic_slack)
 roadMin, roadMax, laneCenters = scenarioTrailADV.getRoad()
 #! initilize the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
-vehicleADV.setInit([px_init,py_init],10 )
+vehicleADV.setInit([px_init,py_init],ref_vx )
 
 
 #! -----------------------------------------------------------------
@@ -97,13 +96,22 @@ vehicleADV.setInit([px_init,py_init],10 )
 opts1 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
 MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts1,dt)
 MPC_trailing.setController()
-#TODO: ADD LEFT AND RIGHT LANE CHANGE LATTER
+
+#TODO: MPC_LC.setController()
+opts2 = {"version" : "rightChange", "solver": "ipopt", "integrator":"LTI"}
+MPC_RC= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts2,dt)
+# MPC_RC.setController()
+
+opts3 = {"version" : "leftChange", "solver": "ipopt", "integrator":"LTI"}
+MPC_LC= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt)
+# MPC_LC.setController()
+
 print("INFO:  Initilization succesful.")               
 
                                                                                           
 #! -----------------------------------------Initilize Decision Master-----------------------------------------
-decisionMaster = makeDecisionMaster(vehicleADV,traffic,MPC_trailing,
-                                [scenarioTrailADV])
+decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC_trailing,MPC_RC,MPC_LC],
+                                [scenarioTrailADV,scenarioADV])
 decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of changing decision
 
 # ███████╗██╗███╗   ███╗██╗   ██╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗

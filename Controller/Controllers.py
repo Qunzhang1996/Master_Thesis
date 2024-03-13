@@ -11,6 +11,9 @@ from Controller.MPC_tighten_bound import MPC_tighten_bound
 from util.utils import *
 class makeController:   
     """
+    #! Creates a MPC based on current vehicle, traffic and scenario
+    """
+    """
     ██████╗  ██████╗ ██████╗      ██████╗ ██╗     ███████╗███████╗███████╗    ███╗   ███╗██████╗  ██████╗            
     ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
     ██║  ███╗██║   ██║██║  ██║    ██████╔╝██║     █████╗  ███████╗███████╗    ██╔████╔██║██████╔╝██║                 
@@ -18,9 +21,7 @@ class makeController:
     ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗            
      ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
     """
-    """
-    #! Creates a MPC based on current vehicle, traffic and scenario
-    """
+    
     def __init__(self, vehicle,traffic,scenario,N,opts,dt):
         self.vehicle = vehicle
         self.traffic = traffic
@@ -111,7 +112,7 @@ class makeController:
                 self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
                                     >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
                                         self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
-            
+            #TODO: DO The Tighten Finally
             # Set default road boundries, given that there is a "phantom vehicle" in the lane we can not enter
             d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
             if self.opts["version"] == "leftChange":
@@ -181,27 +182,42 @@ class makeController:
         # Cost
         self.setCost()
         
-    def solve(self, x_iter, refxT_out, refu_out, x_traffic):
+    def solve(self, *args, **kwargs):
         """
-        Solve the optimization problem
+        Solve the optimization problem with flexible inputs based on configuration in self.opts.
         """
-        # Solve the optimization problem
         if self.opts["version"] == "trailing":
+            x_iter, refxT_out, refu_out, x_traffic = args[:4]
             self.opti.set_value(self.x0, x_iter)
             self.opti.set_value(self.refx, refxT_out)
             self.opti.set_value(self.refu, refu_out) 
             self.opti.set_value(self.lead, x_traffic)
+        else:
+            '''
+            used for the overtake issue
+            '''
+            x_iter, refxT_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
+            self.opti.set_value(self.x0, x_iter)
+            self.opti.set_value(self.refx, refxT_out)
+            self.opti.set_value(self.refu, refu_out)
+            self.opti.set_value(self.traffic_x, traffic_x)
+            self.opti.set_value(self.traffic_y, traffic_y)
+            self.opti.set_value(self.traffic_sign, traffic_sign) 
+            self.opti.set_value(self.traffic_shift, traffic_shift)
+            self.opti.set_value(self.traffic_flip, traffic_flip)
+            #! check if this is useful
+            #! self.lead = self.opti.parameter(self.Nveh,self.N+1)
+
         try:
             sol = self.opti.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
-            # print(f"this is the x_opt {x_opt}")
             cost = sol.value(self.total_cost)
             return u_opt, x_opt, cost
         except Exception as e:
             print(f"An error occurred: {e}")
-            self.opti.debug.value(self.x)
-            return None, None
+            self.opti.debug()
+            return None, None, None
         
         
 class makeDecisionMaster:
@@ -213,6 +229,31 @@ class makeDecisionMaster:
         self.traffic = traffic
         self.controllers = controllers
         self.scenarios = scenarios
+        
+        self.laneCenters = self.scenarios[1].getRoad()[2]
+        self.laneWidth = self.scenarios[1].laneWidth
+        
+        self.egoLane = self.scenarios[0].getEgoLane()
+        self.egoPx = self.traffic.getStates()[0,1]
+        
+        self.nx,self.nu,self.nrefx,self.nrefu = vehicle.getSystemDim()
+        self.N = vehicle.N
+        self.Nveh = self.traffic.getDim()
+        
+        self.doRouteGoalScenario = 0
+        
+        self.state = np.zeros((self.nx,))
+        self.x_pred = np.zeros((self.nx,self.N))
+        self.u_pred = np.zeros((self.nu,self.N))
+        self.tol = 0.1
+        
+        self.MPCs = []
+        for i in range(len(self.controllers)):
+            self.MPCs.append(controllers[i])
+
+        self.errors = 0
+
+        self.decisionLog = []
         
     def storeInput(self,input):
         """
@@ -231,11 +272,23 @@ class makeDecisionMaster:
         Main function, finds optimal choice of controller for the current step
         """
         self.egoLane = self.scenarios[0].getEgoLane()
+
+        # Revoke controller usage if initialized unfeasible
+        self.doTrailing = 1
+        if self.egoLane == 0:
+            self.doLeft = 1
+            self.doRight = 1
+        elif self.egoLane == 1:
+            self.doLeft = 1
+            self.doRight = 0
+        elif self.egoLane == -1:
+            self.doLeft = 0
+            self.doRight = 1
         idx = self.scenarios[0].getLeadVehicle(self.traffic)  
         if len(idx) == 0:         #No leading vehicle,  Move barrier very far forward
                 x_traffic = DM(1,self.N+1)
                 x_traffic[0,:] = self.x_iter[0] + 200
         else:
             x_traffic = self.x_lead[idx[0],:]
-        u_opt, x_opt, cost=self.controllers.solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+        u_opt, x_opt, cost=self.MPCs[0].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
         return u_opt, x_opt, cost

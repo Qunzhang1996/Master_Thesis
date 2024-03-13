@@ -207,6 +207,9 @@ def getTotalCost(L,Lf,x,u,refx,refu,N):
     for i in range(0,N):
         cost += L(x[:,i],u[:,i],refx[:,i],refu[:,i])
     cost += Lf(x[:,N],refx[:,N])
+    # add penalty to the change of the change of the u
+    for i in range(N-1):
+        cost += 1e2*(u[:,i+1]-u[:,i]).T@(u[:,i+1]-u[:,i])
     return cost
 
 def getSlackCost(Ls,slack):
