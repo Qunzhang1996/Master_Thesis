@@ -231,14 +231,17 @@ class car_VehicleModel(vehBicycleKinematic):
     
     def getCostParam(self):
         return self.Q, self.R
-    
+
+    def getPosition(self):
+        return self.p
     
     def setRoad(self,roadMin,roadMax,laneCenters):
         self.roadMin = roadMin
         self.roadMax = roadMax
         self.laneCenters = laneCenters
         return self.roadMin, self.roadMax, self.laneCenters
-        
+    
+    
         
     def setInit(self,px,vx):
         self.x_init[0] = px[0]

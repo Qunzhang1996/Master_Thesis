@@ -4,8 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import time
-import os
-import json
 sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
 sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
 # import observor
@@ -14,7 +12,6 @@ from kalman_filter.kalman_filter import kalman_filter
 from Controller.LTI_MPC import MPC
 from vehicleModel.vehicle_model import car_VehicleModel
 from agents.navigation.controller import VehiclePIDController
-# import helpers
 from util.utils import *
 
 # #! ------------------------change map to Town06------------------------

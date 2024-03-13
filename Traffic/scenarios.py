@@ -72,10 +72,12 @@ class trailing:
     def getEgoLane(self):
         return self.egoLane
     
-    def setEgoLane(self):
-        x = self.vehicle.getPosition()
+    def setEgoLane(self,traffic):
+        x = traffic.getStates()[:2,1]
+        # print(f"this is the ego position {x[0]} and {x[1]}")
         self.egoPx = x[0]
         self.egoPy = x[1]
+        # print(f"this is the ego position {self.egoPx} and {self.egoPy}")
         if self.egoPy < self.init_bound:
             self.egoLane = -1
         elif self.egoPy > self.init_bound+self.laneWidth:
@@ -83,25 +85,27 @@ class trailing:
         else:
             self.egoLane = 0
             
-    def getLeadVehicle(self,traffic):
+
+    def getLeadVehicle(self, traffic):
         """
-        Find the lead vehicle in the same lane with the ego vehicle, the cloest one in front of the ego vehicle
+        Find the lead vehicle in the same lane as the ego vehicle, the closest one in front of the ego vehicle.
         """
         self.vehicle_list = traffic.getVehicles()
-        self.setEgoLane()
-        i = 0
-        reldistance = 10000             # A large number
-        leadInLane = []
-        for vehicle in self.vehicle_list:
-            if self.egoLane == vehicle.getLane():
-                if vehicle.getPosition()[0] > self.egoPx:
-                    distance = vehicle.getPosition()[0] - self.egoPx
-                    if distance < reldistance:
-                        leadInLane = [i]
-                        reldistance = distance
-            i += 1
-        return leadInLane
-    
+        self.setEgoLane(traffic)
+        closestDistance = 10000 # Use infinity as the initial comparison value
+        leadVehicleIdx = []  # Initialize with None to indicate no vehicle is found initially
+
+        for idx, vehicle in enumerate(self.vehicle_list):
+            # since the get_state have some error, so the self.egoPx here should be ascope variable
+            if self.egoLane == vehicle.getLane() and vehicle.getPosition()[0] > self.egoPx:
+                # print(f"vehicle {idx} is in lane {vehicle.getLane()}")
+                distance = vehicle.getPosition()[0] - self.egoPx
+                if distance < closestDistance:
+                    closestDistance = distance
+                    leadVehicleIdx = [idx]  # Store the index of the closest vehicle
+
+        return leadVehicleIdx
+
     def slackCost(self,q):
         slack_cost = q*dot(self.traffic_slack,self.traffic_slack)
         
@@ -115,6 +119,7 @@ class simpleOvertake:
     '''
     The ego vehicle overtakes the lead vehicle
     '''
+    #! HERE SHOULD FOLLOW THE CHANGE OF THE TRAILING
     def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 6.5,v_legal = 60/3.6):
         self.name = 'simpleOvertake'
         self.N = N

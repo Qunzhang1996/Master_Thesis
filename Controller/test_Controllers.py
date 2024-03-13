@@ -3,7 +3,7 @@ path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
 sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.helpers import *
 from Controller.MPC_tighten_bound import MPC_tighten_bound
-from Controller.Controllers import makeController
+from Controller.Controllers import makeController, makeDecisionMaster
 from vehicleModel.vehicle_model import car_VehicleModel
 from Traffic.Traffic import Traffic
 from Traffic.Scenarios import trailing, simpleOvertake
@@ -37,6 +37,8 @@ velocities = {
 spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
 traffic.set_velocity(velocities)
 Nveh = traffic.getDim()
+px_init,py_init=traffic.getStates()[:2,1]
+# print("this is px,py",px_init,py_init)
 
 vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
@@ -51,20 +53,29 @@ L_ADV,Lf_ADV = vehicleADV.getCost()
 # ------------------ Problem definition ---------------------
 testWidth = 3.75
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
+scenarioTrailADV.slackCost(q_traffic_slack)
 roadMin, roadMax, laneCenters = scenarioTrailADV.getRoad()
 # -------------------- Traffic Set up -----------------------
 # * Be carful not to initilize an unfeasible scenario where a collsion can not be avoided
 # # Initilize ego vehicle
 vx_init_ego = 10                                # Initial velocity of the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
-vehicleADV.setInit([0,laneCenters[0]],vx_init_ego)
+vehicleADV.setInit([px_init,py_init],vx_init_ego)
+
 
 
 opts1 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
 
-scenarioTrailADV.slackCost(q_traffic_slack)
+
+#! this is the MPC controller
+
 MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts1,dt)
 MPC_trailing.setController()
+#! this is the decision master
+# Initilize Decision maker
+decisionMaster = makeDecisionMaster(vehicleADV,traffic,MPC_trailing,
+                                [scenarioTrailADV])
+decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of changing decision
 
 # # -----------------------------------------------------------------
 # # -----------------------------------------------------------------
@@ -80,6 +91,10 @@ tspan = np.linspace(0,tsim,Nsim)
 x_iter = DM(int(nx),1)
 x_iter[:],u_iter = vehicleADV.getInit()
 vehicleADV.update(x_iter,u_iter)
+
+# print("this is get leading vehicle",scenarioTrailADV.getLeadVehicle(traffic))
+
+
 
 refxADV = [0,laneCenters[1],ref_vx,0,0]
 refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(ref_vx)
@@ -105,9 +120,9 @@ X_pred = np.zeros((nx,N+1,Nsim))
 
 X_traffic = np.zeros((nx_traffic,Nsim,Nveh))
 X_traffic_ref = np.zeros((4,Nsim,Nveh))
-print("this is the size of teh traffic",(traffic.getStates()).shape)
+# print("this is the size of teh traffic",(traffic.getStates()).shape)
 X_traffic[:,0,:] = traffic.getStates()
-print(X_traffic)
+# print(X_traffic)
 testPred = traffic.prediction()
 
 feature_map = np.zeros((5,Nsim,Nveh+1))
@@ -115,3 +130,7 @@ feature_map = np.zeros((5,Nsim,Nveh+1))
 #! TEST THOSE SHOWN BELOW:!!!!!
 x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
 traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
+# print("this is the traffic state",traffic_state[:2,:,0])
+decisionMaster.storeInput([x_iter,refxL_out,refxR_out,refxT_out,refu_out,x_lead,traffic_state])
+u_opt, x_opt, cost=decisionMaster.chooseController()
+print("this is the cost",cost)

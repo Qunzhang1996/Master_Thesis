@@ -122,7 +122,7 @@ class makeController:
 
         elif self.scenario.name == 'trailing':
             T = self.scenario.Time_headway
-            self.scenario.setEgoLane()
+            self.scenario.setEgoLane(self.traffic)
             self.scenario.getLeadVehicle(self.traffic)
             self.IDM_constraint_list = self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:]
             self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
@@ -138,14 +138,21 @@ class makeController:
         """
         D = np.eye(self.nx)  # Noise matrix
         lbx,ubx = self.vehicle.xConstraints()
+        # ! element in lbx and ubx should be positive
+        lbx = [abs(x) for x in lbx]
+        # print("this is the lbx",lbx)
+        # print("this is the ubx",ubx)
         # print((np.array([[5000], [5000], [30], [3.14/8]]).shape))
-        self.setInEqConstraints_val(H_up=None, upb=np.array(lbx).reshape(4,1), H_low=None, lwb=np.array(ubx).reshape(4,1))  # Set default constraints
+        self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
         lbu,ubu = self.vehicle.uConstraints()
         #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
         self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
+        
         for i in range(self.N+1):
+            # print(DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
+            # print(DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
             self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1))) 
         # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
@@ -161,9 +168,7 @@ class makeController:
         costSlack = getSlackCost(Ls,self.traffic_slack)
         self.total_cost = costMain + costSlack
         self.opti.minimize(self.total_cost)    
-        
-        
-         
+ 
     def setController(self):
         """
         Sets all constraints and cost
@@ -176,14 +181,26 @@ class makeController:
         # Cost
         self.setCost()
         
-    def solve(self):
+    def solve(self, x_iter, refxT_out, refu_out, x_traffic):
         """
         Solve the optimization problem
         """
         # Solve the optimization problem
         if self.opts["version"] == "trailing":
+            self.opti.set_value(self.x0, x_iter)
+            self.opti.set_value(self.refx, refxT_out)
+            self.opti.set_value(self.refu, refu_out) 
+            self.opti.set_value(self.lead, x_traffic)
+        try:
             sol = self.opti.solve()
-        
+            u_opt = sol.value(self.u)
+            x_opt = sol.value(self.x)
+            cost = sol.value(self.total_cost)
+            return u_opt, x_opt, cost
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            self.opti.debug.value(self.x)
+            return None, None
 class makeDecisionMaster:
     """
     #! This is the Decision Master used for decision making
@@ -194,4 +211,28 @@ class makeDecisionMaster:
         self.controllers = controllers
         self.scenarios = scenarios
         
+    def storeInput(self,input):
+        """
+        Stores the current states sent from main file
+        """
+        self.x_iter, self.refxL_out, self.refxR_out, self.refxT_out, self.refu_out, \
+                                                    self.x_lead,self.traffic_state = input
+    def setDecisionCost(self,q):
+        """
+        Sets costs of changing a decisions
+        """
+        self.decisionQ = q
         
+    def chooseController(self):
+        """
+        Main function, finds optimal choice of controller for the current step
+        """
+        self.egoLane = self.scenarios[0].getEgoLane()
+        idx = self.scenarios[0].getLeadVehicle(self.traffic)  
+        if len(idx) == 0:         #No leading vehicle,  Move barrier very far forward
+                x_traffic = DM(1,self.N+1)
+                x_traffic[0,:] = self.x_iter[0] + 200
+        else:
+            x_traffic = self.x_lead[idx[0],:]
+        u_opt, x_opt, cost=self.controllers.solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+        return u_opt, x_opt, cost

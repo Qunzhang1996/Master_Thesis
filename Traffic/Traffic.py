@@ -87,7 +87,7 @@ class Traffic:
         vehicles = [
             ('vehicle.tesla.model3', 80),
             ('vehicle.carlamotors.firetruck', 20), # ! this is ego vehicle
-            ('vehicle.ford.mustang', 20, -2*self.laneWidth),
+            ('vehicle.ford.mustang', 60, -self.laneWidth),
             ('vehicle.carlamotors.carlacola', 20, -self.laneWidth),
             ('vehicle.lincoln.mkz_2017', 80, -self.laneWidth),
             ('vehicle.ford.ambulance', 200),
@@ -103,7 +103,7 @@ class Traffic:
             spawn_point = carla.Transform(location)
             vehicle = self.spawn_vehicle(world, bp, spawn_point)
             self.vehicle_list.append(vehicle)
-        print(f"spawned {len(self.vehicle_list)} vehicles")
+        print(f"INFO:  Spawned {len(self.vehicle_list)} vehicles in CARLA Environment.")
         return self.vehicle_list, center_line
     
     # ! set the velocity of the vehicles
@@ -131,8 +131,8 @@ class Traffic:
         '''
         self.Total_vehicle_list = []
         for i in range(len(self.vehicle_list)):
-            if i==1:
-                continue  # avoid putting the ego vehicle in the list
+            # if i==1:
+            #     continue  # avoid putting the ego vehicle in the list
             vehicle_name = self.vehicle_list[i]
             vehicle_state = get_state(vehicle_name)
             surroundVehicle_=surroundVehicle(vehicle_name, i, vehicle_state[0], \
@@ -200,3 +200,6 @@ class Traffic:
     
     def getNveh(self):
         return len(self.vehicle_list)
+
+    def getEgo(self):
+        return self.vehicle_list[1]
