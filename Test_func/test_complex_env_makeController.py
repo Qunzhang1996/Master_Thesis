@@ -1,6 +1,7 @@
 '''
 #!This file is to test the makeController function in the Controllers.py without considering the kalman filter
 '''
+import time
 import sys
 sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
 from Autonomous_Truck_Sim.helpers import *
@@ -26,6 +27,7 @@ from agents.navigation.controller import VehiclePIDController
 
 ## ! --------------------------------------System initialization--------------------------------------------
 dt = 0.2                    # Simulation time step (Impacts traffic model accuracy)
+desired_interval = dt
 dt_PID = 0.2/10                # Time step for the PID controller
 f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
 N =  12                    # MPC Horizon length
@@ -34,9 +36,9 @@ ref_vx = 54/3.6             # Higway speed limit in (m/s)
 q_traffic_slack = 1e4
 traffic = Traffic()
 velocities = {
-        'normal': carla.Vector3D(0.9 * ref_vx, 0, 0),
-        'passive': carla.Vector3D(0.7 * ref_vx, 0, 0),
-        'aggressive': carla.Vector3D(ref_vx, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
+        'normal': carla.Vector3D(0.8 * ref_vx, 0, 0),
+        'passive': carla.Vector3D(0.65 * ref_vx, 0, 0),
+        'aggressive': carla.Vector3D(1.1*ref_vx, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
         'reference': carla.Vector3D(ref_vx, 0, 0)  # Specifically for the truck
     }
 spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
@@ -107,7 +109,7 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
 # ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
-tsim = 10                         # Total simulation time in seconds
+tsim = 100                         # Total simulation time in seconds
 Nsim = int(tsim/dt)
 # # Initialize simulation
 x_iter = DM(int(nx),1)
@@ -140,6 +142,7 @@ X_traffic_ref = np.zeros((4,Nsim,Nveh))
 X_traffic[:,0,:] = traffic.getStates()   
 
 for i in range(Nsim):
+    iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
     if i%5==0:
@@ -152,6 +155,26 @@ for i in range(Nsim):
         u_opt, x_opt, cost = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
         # print("this is the reference trajectory",Traj_ref)
-        x_iter=Traj_ref[:,count] #last element
+        X_ref=Traj_ref[:,count] #last element
+        print("INFO:  The Cost is: ", cost)
+    else: #! when mpc is asleep, the PID will track the Traj_ref step by step
+        count = count + 1
+        X_ref=Traj_ref[:,count]
+        
+    for j in range(10):
+        control_truck = local_controller.run_step(X_ref[2]*3.6, X_ref[1], False)
+        truck.apply_control(control_truck)
+        
+    #TODO: Update traffic and store data
+    # X[:,i] = x_iter
+    # U[:,i] = u_iter
+    x_iter = get_state(truck)
+    print("this is the state of the truck",x_iter.T)
+
+    iteration_duration = time.time() - iteration_start
+    sleep_duration = max(0.001, desired_interval - iteration_duration)
+    time.sleep(sleep_duration)
+    
+    if i == 220: break
         
                                                        

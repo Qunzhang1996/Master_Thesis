@@ -195,12 +195,15 @@ class makeController:
             sol = self.opti.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
+            # print(f"this is the x_opt {x_opt}")
             cost = sol.value(self.total_cost)
             return u_opt, x_opt, cost
         except Exception as e:
             print(f"An error occurred: {e}")
             self.opti.debug.value(self.x)
             return None, None
+        
+        
 class makeDecisionMaster:
     """
     #! This is the Decision Master used for decision making

@@ -112,17 +112,17 @@ class Traffic:
         Set the velocity of the vehicle
         """
         car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes=self.vehicle_list
-        mustang.set_target_velocity(velocities['normal'])
+        mustang.enable_constant_velocity(velocities['normal'])
         #vehicle on the second lane
-        carlacola.set_target_velocity(velocities['normal'])
-        lincoln.set_target_velocity(velocities['aggressive'])
+        carlacola.enable_constant_velocity(velocities['normal'])
+        lincoln.enable_constant_velocity(velocities['aggressive'])
         #vehicle on the third lane
-        car.set_target_velocity(velocities['passive'])
+        car.enable_constant_velocity(velocities['normal'])
         truck.set_target_velocity(velocities['reference']) # ! This is ego vehicle
-        ford_ambulance.set_target_velocity(velocities['aggressive'])
+        ford_ambulance.enable_constant_velocity(velocities['aggressive'])
         #vehicle on the fourth lane
-        patrol.set_target_velocity(velocities['aggressive'])
-        mercerdes.set_target_velocity(velocities['aggressive'])
+        patrol.enable_constant_velocity(velocities['aggressive'])
+        mercerdes.enable_constant_velocity(velocities['aggressive'])
         
     # ! here, return the state of the vehicle in the vehicle list      
     def getVehicles(self):
