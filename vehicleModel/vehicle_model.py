@@ -241,7 +241,8 @@ class car_VehicleModel(vehBicycleKinematic):
         self.laneCenters = laneCenters
         return self.roadMin, self.roadMax, self.laneCenters
     
-    
+    def getInitBound(self):
+        return 143.318146-self.laneWidth/2
         
     def setInit(self,px,vx):
         self.x_init[0] = px[0]

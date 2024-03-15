@@ -21,7 +21,7 @@ class trailing:
         self.vmax = v_legal+5/3.6
 
         self.Time_headway = 0.5
-        self.init_bound = 143.318146-laneWidth/2
+        self.init_bound = self.vehicle.getInitBound()
 
         self.min_distx = min_distx
         self.p = MX.sym('p',1,N+1)
@@ -103,7 +103,7 @@ class trailing:
                 if distance < closestDistance:
                     closestDistance = distance
                     leadVehicleIdx = [idx]  # Store the index of the closest vehicle
-
+        print("INFO: lead vehicle index is: ", leadVehicleIdx)
         return leadVehicleIdx
 
     def slackCost(self,q):
@@ -123,7 +123,8 @@ class simpleOvertake:
         self.name = 'simpleOvertake'
         self.N = N
         self.vehicle = vehicle
-        self.nx,self.nu,_,_ = vehicle.getSystemDim()
+        self.nx,self.nu,_,_ = self.vehicle.getSystemDim()
+        self.init_bound = self.vehicle.getInitBound()
 
         # Road definitions
         self.lanes = lanes
@@ -137,6 +138,7 @@ class simpleOvertake:
         # Ego vehicle dimensions
         self.egoWidth, self.egoLength,self.L_tract, self.L_trail = vehicle.getSize()
         # self.egoTheta_max = vehicle.xConstraints()[1][4]
+        self.egoTheta_max= 0  #! In this situation, we do not have egoTheta_max. no trailor
         # Safety constraint definitions
         self.min_distx = min_distx
         self.pxL = MX.sym('pxL',1,N+1)
@@ -178,10 +180,16 @@ class simpleOvertake:
     def constraint(self,traffic,opts):
         constraints = []
         d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
+        #! In this situation, we do not have egoTheta_max. no trailor
+        d_lat_spread = 0
         for i in range(traffic.getDim()):
+            
+            # #! avoid the ego vehicle itself
+            # if i == 1 : continue
             # Get Vehicle Properties
-            v0_i = traffic.vehicles[i].v0
-            l_front,l_rear = traffic.vehicles[i].getLength()
+            v0_i = traffic.getVehicles()[i].v0
+            # traffic.getVehicles
+            l_front,l_rear = traffic.getVehicles()[i].getLength()
             leadWidth, _ = traffic.getVehicles()[i].getSize()
 
             # Define vehicle specific constants
@@ -194,11 +202,16 @@ class simpleOvertake:
             func1 = alpha_0 / 2 * tanh(self.px - self.traffic_x + alpha_1)+alpha_3/2
             func2 = alpha_0 / 2 * tanh(self.traffic_x - self.px + alpha_2)+alpha_3/2
             S = func1+func2 + d_w_e
-
+            # !SHIFT ACCORDING TO THE INIT_BOUND
+            S = S + self.init_bound
             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
                                     self.traffic_sign,self.traffic_shift,],
                                     [S],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
         return constraints
+    
+    def getVmax(self):
+        return self.vmax
+    
     
     def slackCost(self,q):
         slack_cost = q*dot(self.traffic_slack,self.traffic_slack)

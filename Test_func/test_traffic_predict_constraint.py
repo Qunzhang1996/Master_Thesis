@@ -42,13 +42,13 @@ velocities = {
     }
 Traffic.set_velocity(velocities)
 time.sleep(1)
-pred_traj = Traffic.predict_trajectory()
+pred_traj = Traffic.prediction()
 print(Traffic.get_velocity())
 
 
 leadLength = 6
 v0_i = 15
-leadWidth = 1.7
+leadWidth = 2.4
 laneWidth = 3.5
 
 
@@ -96,12 +96,16 @@ traffic_y_all = []
     
     
 # here, test using vector of traffic_x and traffic_y to calculate the constraint
-my_test = test(DM(pred_traj[0,:,3]), -laneWidth/2, -laneWidth, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-my_test_2 = test(DM(pred_traj[0,:,0]), laneWidth/2, laneWidth, -1)   #!('vehicle.tesla.model3', 80),   center line
+"""
+Traffic_y should be scaled to -laneWidth/2, laneWidth/2, laneWidth*3/2,
+"""
+my_test = test(DM(pred_traj[0,:,3]), DM(pred_traj[1,:,2])-(143.318146-3.5/2), -laneWidth, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+my_test_2 = test(DM(pred_traj[0,:,0]), DM(pred_traj[1,:,0])-(143.318146-3.5/2), laneWidth, -1)   #!('vehicle.tesla.model3', 80),   center line
 px_traj = pred_traj[0,:,1]
 px_traj_all = px_traj
 constraint_values_all = my_test.constraint(px_traj).full().flatten()
 constraint_values_2_all = my_test_2.constraint(px_traj).full().flatten()
+print( DM(pred_traj[1,:,3])-(143.318146-3.5/2))
 # print(constraint_values_all.shape)
 # print(px_traj_all.shape)
 # exit()

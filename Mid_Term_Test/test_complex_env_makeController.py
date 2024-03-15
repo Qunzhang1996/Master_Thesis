@@ -46,13 +46,14 @@ velocities = {
 spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
 traffic.set_velocity(velocities)
 Nveh = traffic.getDim()
+time.sleep(1)
 px_init,py_init,vx_init=traffic.getStates()[:3,1] # get the initial position of the truck
 truck = traffic.getEgo()  # get the ego vehicle
 
 
 ## ! -----------------------------------initialize the local controller-----------------------------------------
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 1.5, 'K_I': 0.05, 'K_D': 0.2, 'dt': dt_PID}, 
+                                        args_lateral = {'K_P': 1.2, 'K_I': 0.2, 'K_D': 0.2, 'dt': dt_PID}, 
                                         args_longitudinal = {'K_P': 1.95, 'K_I': 0.5, 'K_D': 0.2, 'dt': dt_PID})
 
 '''The following code is to test the controller with the carla environment'''
@@ -79,7 +80,9 @@ scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=l
 scenarioTrailADV.slackCost(q_traffic_slack)
 #TODO: ADD scenarioADV LATTER
 scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
-scenarioTrailADV.slackCost(q_traffic_slack)
+scenarioADV.slackCost(q_traffic_slack)
+
+#! get road INFOS
 roadMin, roadMax, laneCenters = scenarioTrailADV.getRoad()
 #! initilize the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
@@ -93,24 +96,28 @@ vehicleADV.setInit([px_init,py_init],ref_vx )
 #! -----------------------------------------------------------------
 
 
-opts1 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
-MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts1,dt)
+
+
+
+opts1 = {"version" : "leftChange", "solver": "ipopt", "integrator":"LTI"}
+MPC_LC= makeController(vehicleADV,traffic,scenarioADV,N,opts1,dt)
+MPC_LC.setController()
+#TODO: MPC_LC.setController()
+
+opts2 = {"version" : "rightChange", "solver": "ipopt", "integrator":"LTI"}
+MPC_RC= makeController(vehicleADV,traffic,scenarioADV,N,opts2,dt)
+MPC_RC.setController()
+
+opts3 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
+MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt)
 MPC_trailing.setController()
 
-#TODO: MPC_LC.setController()
-opts2 = {"version" : "rightChange", "solver": "ipopt", "integrator":"LTI"}
-MPC_RC= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts2,dt)
-# MPC_RC.setController()
-
-opts3 = {"version" : "leftChange", "solver": "ipopt", "integrator":"LTI"}
-MPC_LC= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt)
-# MPC_LC.setController()
 
 print("INFO:  Initilization succesful.")               
 
                                                                                           
 #! -----------------------------------------Initilize Decision Master-----------------------------------------
-decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC_trailing,MPC_RC,MPC_LC],
+decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC_LC, MPC_RC, MPC_trailing],
                                 [scenarioTrailADV,scenarioADV])
 decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of changing decision
 
@@ -131,14 +138,14 @@ refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(ref_vx)
 refu_in = [0,0,0]
 
 refxT_out,refu_out = scenarioTrailADV.getReference(refxT_in,refu_in)
-refxL_out,refu_out = scenarioTrailADV.getReference(refxL_in,refu_in)
-refxR_out,refu_out = scenarioTrailADV.getReference(refxR_in,refu_in)
+refxL_out,refu_out = scenarioADV.getReference(refxL_in,refu_in)
+refxR_out,refu_out = scenarioADV.getReference(refxR_in,refu_in)
 refxADV_out,refuADV_out = scenarioTrailADV.getReference(refxADV,refu_in)
 
 # Traffic
-nx_traffic = traffic.nx
+nx_traffic = traffic.nx 
 x_lead = DM(Nveh,N+1)
-traffic_state = np.zeros((nx_traffic,N+1,Nveh))
+traffic_state = np.zeros((nx_traffic+1,N+1,Nveh))#! x, y, sign, shift, flip
 
 #TODO: Store variables
 X = np.zeros((nx,Nsim,1))
@@ -178,11 +185,10 @@ for i in range(Nsim):
         decisionMaster.storeInput([x_iter,refxL_out,refxR_out,refxT_out,refu_out,x_lead,traffic_state])
         #TODO: Update reference based on current lane
         # refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
-        u_opt, x_opt, cost = decisionMaster.chooseController()
+        u_opt, x_opt = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
         u_iter = u_opt[:,0].reshape(-1,1)
         X_ref=Traj_ref[:,count] #last element
-        print("INFO:  The Cost is: ", cost)
     else: #! when mpc is asleep, the PID will track the Traj_ref step by step
         count = count + 1
         X_ref=Traj_ref[:,count]
@@ -200,7 +206,7 @@ for i in range(Nsim):
     
     
     #! ------------------------------------------------------------------------------------------------
-    car_state = traffic.getStates()[:,0]
+    car_state = traffic.getStates()[:,2]
     truck_state = traffic.getStates()[:,1]
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
     truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
@@ -242,10 +248,13 @@ for i in range(Nsim):
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
     
-    if i == 220: break
+    if i == 150: break
         
                                                 
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+gif_name = 'Make_Controller_TEST.gif'
+animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 figure_name = 'Make_Controller_TEST.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 

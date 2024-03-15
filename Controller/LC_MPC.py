@@ -153,8 +153,8 @@ class LC_MPC:
             # pleading here include the initial x, y of the leading vehicle
             # ! calculate the self.traffic_x and self.traffic_y according to the leading velocity
             self.traffic_x_all[0,i] = self.p_leading[0] + self.leading_velocity * self.dt * i
-            # ! notice! traffic_y should be scaled according to the map, the center of the map is 143.318146
-            self.traffic_y_all[0,i] = self.p_leading[1]-143.318146
+            # ! notice! traffic_y should be scaled according to the map, the center of the map is func2 + 143.318146 -self.laneWidth/2
+            self.traffic_y_all[0,i] = self.p_leading[1]-(143.318146 -self.laneWidth/2)
             
         # ! here is the lane change constraint
         for i in range(self.N+1):
@@ -168,8 +168,8 @@ class LC_MPC:
         # ! here is the lane change constraint, the y direction
         for i in range(self.N+1):
             self.opti.subject_to(self.x[1,i] >= self.lane_change_constraint_all[i])
-            
-        # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
+        self.opti.subject_to(self.opti.bounded(143.318146 -self.laneWidth*3/2+2.7/2, self.x[1,:], 143.318146 + self.laneWidth/2-2.7/2))
+        # set the constraints for the input  [-3.14/8,-0.7*9.81],[3 .14/8,0.05*9.81]
         self.opti.subject_to(self.u[0, :] >= -3.14 / 8)
         self.opti.subject_to(self.u[0, :] <= 3.14 / 8)
         self.opti.subject_to(self.u[1, :] >= -0.5 * 9.81)

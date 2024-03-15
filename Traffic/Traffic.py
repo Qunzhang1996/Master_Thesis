@@ -21,12 +21,17 @@ class surroundVehicle:
         self.dt = dt
         self.laneWidth = laneWidth
         self.init_bound = center_line-self.laneWidth/2
-        
+        self.leadWidth = 2.4
+        self.leadLength = 6*1.1
+        # define the l_front and l_rear
+        self.l_front = self.leadLength/2
+        self.l_rear = self.leadLength/2
+          
+    def getLength(self):
+        return self.l_front, self.l_rear 
         
     def getSize(self):
-        leadWidth = 1.9
-        leadLength = 4.694   
-        return leadWidth, leadLength
+        return self.leadWidth, self.leadLength
     
     def getPosition(self):
         return np.array([self.x, self.y])
@@ -86,13 +91,13 @@ class Traffic:
 
         vehicles = [
             ('vehicle.tesla.model3', 80),
-            ('vehicle.carlamotors.firetruck', 20), # ! this is ego vehicle
-            ('vehicle.ford.mustang', 60, -self.laneWidth),
-            ('vehicle.carlamotors.carlacola', 20, -self.laneWidth),
-            ('vehicle.lincoln.mkz_2017', 80, -self.laneWidth),
+            ('vehicle.carlamotors.firetruck', 50 ), # ! this is ego vehicle
+            ('vehicle.ford.mustang', 50, -self.laneWidth),
+            ('vehicle.carlamotors.carlacola', 10, -self.laneWidth),
+            ('vehicle.lincoln.mkz_2017', 120, -self.laneWidth),
             ('vehicle.ford.ambulance', 200),
-            ('vehicle.nissan.patrol_2021', 20, self.laneWidth),
-            ('vehicle.mercedes.sprinter', 60, self.laneWidth)
+            ('vehicle.nissan.patrol_2021', 120, self.laneWidth),
+            ('vehicle.mercedes.sprinter', 50, self.laneWidth)
         ]
         center_line = 143.318146
         self.vehicle_list = []
@@ -114,7 +119,7 @@ class Traffic:
         car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes=self.vehicle_list
         mustang.enable_constant_velocity(velocities['normal'])
         #vehicle on the second lane
-        carlacola.enable_constant_velocity(velocities['normal'])
+        carlacola.enable_constant_velocity(velocities['passive'])
         lincoln.enable_constant_velocity(velocities['aggressive'])
         #vehicle on the third lane
         car.enable_constant_velocity(velocities['normal'])
@@ -122,7 +127,7 @@ class Traffic:
         ford_ambulance.enable_constant_velocity(velocities['aggressive'])
         #vehicle on the fourth lane
         patrol.enable_constant_velocity(velocities['aggressive'])
-        mercerdes.enable_constant_velocity(velocities['aggressive'])
+        mercerdes.enable_constant_velocity(velocities['normal'])
         
     # ! here, return the state of the vehicle in the vehicle list      
     def getVehicles(self):
@@ -175,9 +180,7 @@ class Traffic:
         pass
     
     
-    def getDim(self):
-        self.Nveh = len(self.vehicle_list)
-        return self.Nveh
+    
     
     # get velocity of the vehicles use get state function
     def get_velocity(self):
@@ -200,6 +203,13 @@ class Traffic:
     
     def getNveh(self):
         return len(self.vehicle_list)
+    
+    def getDim(self):
+        self.Nveh = len(self.vehicle_list)
+        return self.Nveh 
 
     def getEgo(self):
         return self.vehicle_list[1]
+    
+    def getInitBound(self):
+        return 143.318146-self.laneWidth/2

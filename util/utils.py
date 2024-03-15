@@ -299,7 +299,7 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
     # Set figure size to 24x6 inches
     fig, ax = plt.subplots(figsize=(24, 2))  # Adjusted to more standard aspect ratio
     fig.tight_layout()
-    ax.set_xlim(min(min(bounds) for bounds in all_tightened_bounds), max(max(bounds) for bounds in all_tightened_bounds))
+    # ax.set_xlim(min(min(bounds) for bounds in all_tightened_bounds), max(max(bounds) for bounds in all_tightened_bounds))
     ax.set_ylim(y_center - width - 15, y_center + width + 15)
 
     def init():
@@ -308,7 +308,7 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
     def update(frame):
         ax.clear()
         # Central line
-        ax.plot([0, max(max(bounds) for bounds in all_tightened_bounds)], [y_center, y_center], 'k--')
+        # ax.plot([0, max(max(bounds) for bounds in all_tightened_bounds)], [y_center, y_center], 'k--')
         
         # Reset the y-axis limits after clearing
         ax.set_ylim(y_center - width - 5, y_center + width + 5)
@@ -344,7 +344,7 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
         # return [rect, vehicle_rect, vehicle_rect_car]
         return [vehicle_rect, vehicle_rect_car]
 
-    ani = FuncAnimation(fig, update, frames=range(len(all_tightened_bounds)), init_func=init, blit=False, repeat=False)
+    ani = FuncAnimation(fig, update, frames=range(len(truck_positions)), init_func=init, blit=False, repeat=False)
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
     figure_path = os.path.join(figure_dir, gif_name)

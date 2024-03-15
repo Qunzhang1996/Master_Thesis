@@ -29,11 +29,14 @@ class makeController:
         self.opts = opts 
         
         # Get constraints and road information
-        self.Nveh = self.traffic.getNveh() # here, get the number of vehicles of the traffic scenario
         self.N = N
-        self.vehocleWidth,_,_,_ = self.vehicle.getSize()
-        self.roadMin, self.roadMax, self.laneCenters = self.scenario.getRoad()
+        self.Nveh = self.traffic.getNveh() # here, get the number of vehicles of the traffic scenario
+        self.laneWidth = self.traffic.get_laneWidth()
+        self.vehWidth,self.egoLength,self.L_tract, self.L_trail = self.vehicle.getSize()
         self.nx,self.nu,self.nrefx,self.nrefu = self.vehicle.getSystemDim()
+        self.init_bound = self.vehicle.getInitBound()
+        self.roadMin, self.roadMax, self.laneCenters = self.scenario.getRoad()
+        self.egoTheta_max  = 0  #! In this situation, we do not have egoTheta_max. no trailor
         self.opts = opts
         # ! get ref velocity 
         self.Vmax = scenario.getVmax()
@@ -79,9 +82,9 @@ class makeController:
             
         #! NEED TO CHANGE THIS
         # # solver
-        if opts["version"] == "trailing":
-            opts_trailing = {"ipopt": {"print_level": 0, "tol": 1e-8}, "print_time": 0}
-            self.opti.solver("ipopt", opts_trailing)
+        p_opts = dict(print_time=False, verbose=False)
+        s_opts = dict(print_level=0)
+        self.opti.solver(self.opts["solver"], p_opts,s_opts)
         
         
     def setStateEqconstraints(self):
@@ -108,18 +111,23 @@ class makeController:
         self.S = self.scenario.constraint(self.traffic,self.opts)
 
         if self.scenario.name == 'simpleOvertake':
+            #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
             for i in range(self.Nveh):
+                if i ==1: continue #! avoid putting the ego vehicle in the list
                 self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
                                     >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
                                         self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
+            #TODO: BE CAREFUL ABOUT THE SHIFT "143.318146 -self.laneWidth/2" -- self.init_bound, IT IS DEFINED IN THE SCENERIO
+            # ! ASK ERIK, TOO STRICT CONSTRAINTS
             #TODO: DO The Tighten Finally
             # Set default road boundries, given that there is a "phantom vehicle" in the lane we can not enter
             d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
             if self.opts["version"] == "leftChange":
-                self.y_lanes = [self.vehWidth/2+d_lat_spread,2*self.laneWidth-self.vehWidth/2-d_lat_spread]
+                self.y_lanes = [self.init_bound + self.vehWidth/2+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/2-d_lat_spread]
+                print("this is the y_lanes",self.y_lanes)
             elif self.opts["version"] == "rightChange":
-                self.y_lanes = [-self.laneWidth + self.vehWidth/2+d_lat_spread,self.laneWidth-self.vehWidth/2-d_lat_spread]
-            self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
+                self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/2+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/2-d_lat_spread]
+            # self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
 
         elif self.scenario.name == 'trailing':
             T = self.scenario.Time_headway
@@ -141,9 +149,6 @@ class makeController:
         lbx,ubx = self.vehicle.xConstraints()
         # ! element in lbx and ubx should be positive
         lbx = [abs(x) for x in lbx]
-        # print("this is the lbx",lbx)
-        # print("this is the ubx",ubx)
-        # print((np.array([[5000], [5000], [30], [3.14/8]]).shape))
         self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
         lbu,ubu = self.vehicle.uConstraints()
         #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
@@ -165,9 +170,9 @@ class makeController:
     def setCost(self):
         L,Lf = self.vehicle.getCost()
         Ls = self.scenario.getSlackCost()
-        costMain = getTotalCost(L,Lf,self.x,self.u,self.refx,self.refu,self.N)
-        costSlack = getSlackCost(Ls,self.traffic_slack)
-        self.total_cost = costMain + costSlack
+        self.costMain = getTotalCost(L,Lf,self.x,self.u,self.refx,self.refu,self.N)
+        self.costSlack = getSlackCost(Ls,self.traffic_slack)
+        self.total_cost = self.costMain + self.costSlack
         self.opti.minimize(self.total_cost)    
  
     def setController(self):
@@ -196,9 +201,9 @@ class makeController:
             '''
             used for the overtake issue
             '''
-            x_iter, refxT_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
+            x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
             self.opti.set_value(self.x0, x_iter)
-            self.opti.set_value(self.refx, refxT_out)
+            self.opti.set_value(self.refx, refx_out)
             self.opti.set_value(self.refu, refu_out)
             self.opti.set_value(self.traffic_x, traffic_x)
             self.opti.set_value(self.traffic_y, traffic_y)
@@ -212,8 +217,9 @@ class makeController:
             sol = self.opti.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
-            cost = sol.value(self.total_cost)
-            return u_opt, x_opt, cost
+            costMain = sol.value(self.costMain)
+            costSlack = sol.value(self.costSlack)
+            return u_opt, x_opt, costMain, costSlack
         except Exception as e:
             print(f"An error occurred: {e}")
             self.opti.debug()
@@ -235,6 +241,7 @@ class makeDecisionMaster:
         
         self.egoLane = self.scenarios[0].getEgoLane()
         self.egoPx = self.traffic.getStates()[0,1]
+        self.init_bound = self.traffic.getInitBound()
         
         self.nx,self.nu,self.nrefx,self.nrefu = vehicle.getSystemDim()
         self.N = vehicle.N
@@ -261,11 +268,118 @@ class makeDecisionMaster:
         """
         self.x_iter, self.refxL_out, self.refxR_out, self.refxT_out, self.refu_out, \
                                                     self.x_lead,self.traffic_state = input
+        
     def setDecisionCost(self,q):
         """
         Sets costs of changing a decisions
         """
         self.decisionQ = q
+        
+    def updateReference(self):
+        """
+        Updates the y position reference for each controller based on the current lane
+        """
+
+        py_ego = self.vehicle.getPosition()[1]
+        self.egoPx = self.vehicle.getPosition()[0]
+        refu_in = [0,0,0]                                     # To work with function reference (update?)
+
+        refxT_in,refxL_in,refxR_in = self.vehicle.getReferences()
+
+        tol = 0.2
+        if py_ego >= self.laneCenters[1]:
+            # Set left reference to mid lane
+            # Set trailing reference to left lane
+            refxT_in[1] = self.laneCenters[1]
+            refxL_in[1] = self.laneCenters[0]
+            refxR_in[1] = self.laneCenters[2]
+
+        elif py_ego < self.laneCenters[2]:
+            # Set right reference to right lane
+            # Set trailing reference to right lane
+            refxT_in[1] = self.laneCenters[2]
+            refxL_in[1] = self.laneCenters[1]
+            refxR_in[1] = self.laneCenters[0]
+
+        elif abs(py_ego - self.laneCenters[0]) < tol:
+            # Set left reference to left lane
+            # Set right reference to right lane
+            # Set trailing reference to middle lane
+            # refxT_in[1] = self.laneCenters[0]
+            refxL_in[1] = self.laneCenters[1]
+            refxR_in[1] = self.laneCenters[2]
+
+        # Trailing reference should always be the current Lane!
+        refxT_in[1] = self.laneCenters[self.egoLane]
+        
+        self.refxT,_ = self.scenarios[1].getReference(refxT_in,refu_in)
+        self.refxL,_ = self.scenarios[1].getReference(refxL_in,refu_in)
+        self.refxR,_ = self.scenarios[1].getReference(refxR_in,refu_in)
+        
+        return self.refxL,self.refxR,self.refxT  
+        
+    
+        
+    def removeDeviation(self):
+        """
+        Centers the x-position around 0 (to fix nummerical issues)
+        """
+        # Store current values of changes
+        self.egoPx = self.x_iter[0]
+        # Alter initialization of MPC
+        # # X-position
+        self.x_iter[0] = 0
+        for i in range(self.Nveh):
+            self.x_lead[i,:] = self.x_lead[i,:] - self.egoPx
+        
+        self.traffic_state[0,:,:] = self.traffic_state[0,:,:] - self.egoPx
+        self.traffic_state[0,:,:] = np.clip(self.traffic_state[0,:,:],-600,600)  
+        
+    def removeDeviation_y(self):
+        self.traffic_state[1,:,:] = self.traffic_state[1,:,:] - self.init_bound
+    
+    
+    def setControllerParameters(self,version):
+        """
+        Sets traffic parameters, to be used in the MPC controllers
+        """
+
+        sign = np.zeros((self.Nveh,self.N+1))
+        shift = np.zeros((self.Nveh,self.N+1))
+        flip = np.ones((self.Nveh,self.N+1))
+
+        if version == "leftChange":
+            for ii in range(self.Nveh):
+                for jj in range(self.N+1):
+                    if self.traffic_state[1,jj,ii] > self.laneWidth:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = 2 * self.laneWidth
+                        flip[ii,jj] = -1
+                    elif self.traffic_state[1,jj,ii] < 0:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = -self.laneWidth
+                    else:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = 0
+
+        elif version == "rightChange":
+            for ii in range(self.Nveh):
+                for jj in range(self.N+1):
+                    if self.traffic_state[1,jj,ii] > self.laneWidth:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = 2 * self.laneWidth
+                        flip[ii,jj] = -1
+                    elif self.traffic_state[1,jj,ii] < 0:
+                        sign[ii,jj] = 1
+                        shift[ii,jj] = -self.laneWidth
+                    else:
+                        sign[ii,jj] = -1
+                        shift[ii,jj] = self.laneWidth
+                        flip[ii,jj] = -1
+
+        self.traffic_state[2,:,:] = sign.T
+        self.traffic_state[3,:,:] = shift.T
+        self.traffic_state[4,:,:] = flip.T
         
     def chooseController(self):
         """
@@ -284,11 +398,38 @@ class makeDecisionMaster:
         elif self.egoLane == -1:
             self.doLeft = 0
             self.doRight = 1
-        idx = self.scenarios[0].getLeadVehicle(self.traffic)  
-        if len(idx) == 0:         #No leading vehicle,  Move barrier very far forward
-                x_traffic = DM(1,self.N+1)
-                x_traffic[0,:] = self.x_iter[0] + 200
-        else:
-            x_traffic = self.x_lead[idx[0],:]
-        u_opt, x_opt, cost=self.MPCs[0].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
-        return u_opt, x_opt, cost
+        self.doTrailing = 0
+        self.doLeft = 0
+        self.doRight = 1
+        # Initialize costs as very large number
+        costT,costT_slack = DM([1e10]),DM([1e10])
+        costL,costL_slack = DM([1e10]),DM([1e10])
+        costR,costR_slack = DM([1e10]),DM([1e10])
+   
+        # self.removeDeviation()\
+        self.removeDeviation_y()
+        if self.doTrailing:
+            idx = self.scenarios[0].getLeadVehicle(self.traffic)  
+            if len(idx) == 0:         #No leading vehicle,  Move barrier very far forward
+                    x_traffic = DM(1,self.N+1)
+                    x_traffic[0,:] = self.x_iter[0] + 200
+            else:
+                x_traffic = self.x_lead[idx[0],:]
+                
+            # print(self.Nveh)
+            u_opt, x_opt, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+            
+        if self.doLeft:
+            self.setControllerParameters(self.controllers[0].opts["version"])
+            # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxL_out
+            u_opt, x_opt, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
+                                            self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
+                                            self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+            
+        if self.doRight:
+            self.setControllerParameters(self.controllers[1].opts["version"])
+            # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxR_out
+            u_opt, x_opt, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
+                                            self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
+                                            self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+        return u_opt, x_opt
