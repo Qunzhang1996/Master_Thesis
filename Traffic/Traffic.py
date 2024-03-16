@@ -8,7 +8,7 @@ from util.utils import *
 class surroundVehicle:
     """this is the struct used to store the information of the surrounding vehicles
     """
-    def __init__(self, name, vehicle_id, x, y, v, psi, N=12,dt = 0.2, center_line = 143.318146, laneWidth = 3.5):
+    def __init__(self, name, vehicle_id, x, y, v, psi, N, dt , center_line = 143.318146, laneWidth = 3.5):
         self.name = name
         self.vehicle_id = vehicle_id
         self.x = x
@@ -21,8 +21,8 @@ class surroundVehicle:
         self.dt = dt
         self.laneWidth = laneWidth
         self.init_bound = center_line-self.laneWidth/2
-        self.leadWidth = 2.4
-        self.leadLength = 6*1.1
+        self.leadWidth = 2
+        self.leadLength = 5.5
         # define the l_front and l_rear
         self.l_front = self.leadLength/2
         self.l_rear = self.leadLength/2
@@ -57,7 +57,7 @@ class surroundVehicle:
             return 0
         
 class Traffic:
-    def __init__(self, N=12, dt=0.2, laneWidth=3.5):
+    def __init__(self, N, dt, laneWidth=3.5):
         self.trajectory = []
         self.N = N
         self.dt = dt
@@ -90,14 +90,14 @@ class Traffic:
             actor.destroy()
 
         vehicles = [
-            ('vehicle.tesla.model3', 80),
-            ('vehicle.carlamotors.firetruck', 50 ), # ! this is ego vehicle
-            ('vehicle.ford.mustang', 50, -self.laneWidth),
-            ('vehicle.carlamotors.carlacola', 10, -self.laneWidth),
-            ('vehicle.lincoln.mkz_2017', 120, -self.laneWidth),
-            ('vehicle.ford.ambulance', 200),
-            ('vehicle.nissan.patrol_2021', 120, self.laneWidth),
-            ('vehicle.mercedes.sprinter', 50, self.laneWidth)
+            ('vehicle.tesla.model3', 30,-self.laneWidth),
+            ('vehicle.tesla.model3', 20 ), # ! this is ego vehicle    'vehicle.carlamotors.firetruck'
+            ('vehicle.tesla.model3', 40, self.laneWidth),
+            ('vehicle.tesla.model3', 110, -self.laneWidth),
+            ('vehicle.tesla.model3', 160, ),
+            ('vehicle.tesla.model3', 70),
+            ('vehicle.tesla.model3', 30, self.laneWidth),
+            ('vehicle.tesla.model3', 110, self.laneWidth)
         ]
         center_line = 143.318146
         self.vehicle_list = []
@@ -119,14 +119,14 @@ class Traffic:
         car, truck, mustang, carlacola, lincoln, ford_ambulance, patrol, mercerdes=self.vehicle_list
         mustang.enable_constant_velocity(velocities['normal'])
         #vehicle on the second lane
-        carlacola.enable_constant_velocity(velocities['passive'])
-        lincoln.enable_constant_velocity(velocities['aggressive'])
+        carlacola.enable_constant_velocity(velocities['normal'])
+        lincoln.enable_constant_velocity(velocities['normal'])
         #vehicle on the third lane
         car.enable_constant_velocity(velocities['normal'])
         truck.set_target_velocity(velocities['reference']) # ! This is ego vehicle
-        ford_ambulance.enable_constant_velocity(velocities['aggressive'])
+        ford_ambulance.enable_constant_velocity(velocities['normal'])
         #vehicle on the fourth lane
-        patrol.enable_constant_velocity(velocities['aggressive'])
+        patrol.enable_constant_velocity(velocities['normal'])
         mercerdes.enable_constant_velocity(velocities['normal'])
         
     # ! here, return the state of the vehicle in the vehicle list      
@@ -141,7 +141,7 @@ class Traffic:
             vehicle_name = self.vehicle_list[i]
             vehicle_state = get_state(vehicle_name)
             surroundVehicle_=surroundVehicle(vehicle_name, i, vehicle_state[0], \
-                                                                vehicle_state[1], vehicle_state[2], vehicle_state[3])
+                                                                vehicle_state[1], vehicle_state[2], vehicle_state[3],self.N, self.dt)
             self.Total_vehicle_list.append(surroundVehicle_)
         return self.Total_vehicle_list     
     

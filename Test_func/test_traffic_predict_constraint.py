@@ -28,7 +28,7 @@ from util.utils import *
 # exit()
 # #! --------------------------Run the command--------------------------
 N=200
-Traffic = Traffic(N)
+Traffic = Traffic(N, 0.2)
 # spawn the vehicle
 spawned_vehicles, center_line = Traffic.setup_complex_carla_environment()
 vehicle_list = spawned_vehicles
@@ -48,7 +48,7 @@ print(Traffic.get_velocity())
 
 leadLength = 6
 v0_i = 15
-leadWidth = 2.4
+leadWidth = 1.9
 laneWidth = 3.5
 
 
@@ -99,8 +99,8 @@ traffic_y_all = []
 """
 Traffic_y should be scaled to -laneWidth/2, laneWidth/2, laneWidth*3/2,
 """
-my_test = test(DM(pred_traj[0,:,3]), DM(pred_traj[1,:,2])-(143.318146-3.5/2), -laneWidth, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-my_test_2 = test(DM(pred_traj[0,:,0]), DM(pred_traj[1,:,0])-(143.318146-3.5/2), laneWidth, -1)   #!('vehicle.tesla.model3', 80),   center line
+my_test = test(DM(pred_traj[0,:,3]), DM(pred_traj[1,:,2])-(143.318146), -laneWidth, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+my_test_2 = test(DM(pred_traj[0,:,0]), DM(pred_traj[1,:,0])-(143.318146), laneWidth, -1)   #!('vehicle.tesla.model3', 80),   center line
 px_traj = pred_traj[0,:,1]
 px_traj_all = px_traj
 constraint_values_all = my_test.constraint(px_traj).full().flatten()

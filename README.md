@@ -10,6 +10,9 @@ For the EKF_MPC, we use the workflow shown below (we did not use the sensor in c
 <p float="left">
   <img src="Figure/MPC_PID_LC (2).gif" width="85%" /> 
 </p>   
+<p float="left">
+  <img src="Figure/decision_master.gif" width="85%" /> 
+</p>   
 
 ## 2024/01/24 QunZhang
 Create the repo and add some related folder   
@@ -67,15 +70,10 @@ This is the result of the MPC_PID_ACC with kalman filter (PID works every 0.2s, 
 <p float="left">
   <img src="Figure/CARLA_simulation_compare_ref_diffF.png" width="85%" /> 
 </p>   
+<p float="left">
+  <img src="Figure/CARLA_simulation_compare_ref_diffF.png" width="85%" /> 
+</p>   
 
-## 2024/03/05 QunZhang
-TODO List: 
-```
-1. build heavy traffic scenerio, DONE (only straight line scenario)
-2. lane changing, TBD, expected date: 2024/03/08
-3. adding the two-point visual control model for the lateral control
-3. decision master
-```
 ## 2024/03/07 QunZhang
 Here is the right lane changing constraint:   
 <p float="left">
@@ -93,3 +91,9 @@ Here is the right lane change result:
 ## 2024/03/07 QunZhang
 remember to change the cost func and the slack of the controlller!!!!
 
+## 2024/03/15 QunZhang
+TODO List: 
+```
+1. tunning the controller
+3. decision master
+```

@@ -55,7 +55,7 @@ class trailing:
             v0_idx = traffic.getVehicles()[idx[0]].v0
             dist_t = v0_idx * self.Time_headway
 
-        safeDist = self.min_distx + leadLength/2 + self.L_tract
+        safeDist = self.min_distx + leadLength + self.L_tract
         return Function('S',[self.p],[self.p-safeDist],['p'],['D_min'])
 
 
@@ -103,7 +103,8 @@ class trailing:
                 if distance < closestDistance:
                     closestDistance = distance
                     leadVehicleIdx = [idx]  # Store the index of the closest vehicle
-        print("INFO: lead vehicle index is: ", leadVehicleIdx)
+        print("INFO: Current Lane is:", [self.egoLane])
+        print("INFO: Lead vehicle index is: ", leadVehicleIdx)
         return leadVehicleIdx
 
     def slackCost(self,q):
@@ -119,7 +120,7 @@ class simpleOvertake:
     '''
     The ego vehicle overtakes the lead vehicle
     '''
-    def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 6.5,v_legal = 60/3.6):
+    def __init__(self,vehicle,N, min_distx = 5, lanes = 3, laneWidth = 3.5,v_legal = 60/3.6):
         self.name = 'simpleOvertake'
         self.N = N
         self.vehicle = vehicle
@@ -203,7 +204,7 @@ class simpleOvertake:
             func2 = alpha_0 / 2 * tanh(self.traffic_x - self.px + alpha_2)+alpha_3/2
             S = func1+func2 + d_w_e
             # !SHIFT ACCORDING TO THE INIT_BOUND
-            S = S + self.init_bound
+            S = S + self.init_bound 
             constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
                                     self.traffic_sign,self.traffic_shift,],
                                     [S],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))

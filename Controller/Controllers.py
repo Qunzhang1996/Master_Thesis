@@ -124,7 +124,6 @@ class makeController:
             d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
             if self.opts["version"] == "leftChange":
                 self.y_lanes = [self.init_bound + self.vehWidth/2+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/2-d_lat_spread]
-                print("this is the y_lanes",self.y_lanes)
             elif self.opts["version"] == "rightChange":
                 self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/2+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/2-d_lat_spread]
             # self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
@@ -253,6 +252,9 @@ class makeDecisionMaster:
         self.x_pred = np.zeros((self.nx,self.N))
         self.u_pred = np.zeros((self.nu,self.N))
         self.tol = 0.1
+        self.consecutiveErrors = 0
+        self.changeHorizon = changeHorizon
+        self.forgettingFact = forgettingFact
         
         self.MPCs = []
         for i in range(len(self.controllers)):
@@ -261,6 +263,25 @@ class makeDecisionMaster:
         self.errors = 0
 
         self.decisionLog = []
+        #! TEST, ADD COST AND DECISION IN THE LOG
+
+    # def checkSolution(self,x_pred_new,u_pred_new):
+    #     """
+    #     Checks if the MPC returned a strange solution
+    #      - If that is the case, fall back to the previous solution
+    #      - The number of times this occurs is presented as "Error count"
+    #     """
+    #     cond1 = (x_pred_new[0,0]) < (self.x_pred[0,0] - self.tol)
+    #     cond2 = ((x_pred_new[1,0] - x_pred_new[1,1]) > 1)
+    #     if  (cond1 or cond2) and (self.consecutiveErrors < self.N-1):
+    #         self.consecutiveErrors += 1
+    #         self.errors += 1
+    #         return self.x_pred[:,:], self.u_pred[:,self.consecutiveErrors], self.x_pred
+    #     else:
+    #         self.consecutiveErrors = 0
+    #         self.x_pred = x_pred_new
+    #         self.u_pred = u_pred_new
+    #         return x_pred_new[:,:], u_pred_new[:,0], self.x_pred
         
     def storeInput(self,input):
         """
@@ -268,12 +289,73 @@ class makeDecisionMaster:
         """
         self.x_iter, self.refxL_out, self.refxR_out, self.refxT_out, self.refu_out, \
                                                     self.x_lead,self.traffic_state = input
-        
+    
+    
+    def costRouteGoal(self,i):
+        # i == 0 -> left change, i == 1 -> right change, i == 2 -> trail
+        if self.doRouteGoalScenario and (self.goalP_x - self.egoPx < self.goalD_xmax):
+            # Check if goal is reached
+            if self.goalP_x - self.egoPx < 0:
+                self.goalD_xmax = -1e5             # Deactivates the goal cost
+                if self.egoLane == self.goalLane:
+                    self.goalAccomplished = 1
+
+            currentLane = self.egoLane
+            # Find the best action in terms of reaching the goal
+            if self.goalLane == currentLane:
+                # If the goal lane is the current lane, dont change lane
+                bestChoice = 2          
+            elif currentLane == 1:
+                # We are left and the goal is not left, change
+                bestChoice = 0
+            elif currentLane == -1:
+                # We are right and the goal is not right, change
+                bestChoice = 1
+            else:
+                # We are center and the gol is not center, change
+                if self.goalLane == 1:
+                    # If goal is left change left
+                    bestChoice = 0
+                elif self.goalLane == -1:
+                    # If the goal is right change right
+                    bestChoice = 1
+            cost = (1 - ((self.goalP_x-self.egoPx) / self.goalD_xmax )** 0.4 ) * np.minimum(np.abs(i-bestChoice),1)
+            return self.goalCost * cost
+        else:
+            # We dont consider any goal
+            return 0
+    
+    
+    
+      
     def setDecisionCost(self,q):
         """
         Sets costs of changing a decisions
         """
         self.decisionQ = q
+        
+        
+    def costDecision(self,decision):
+        """
+        Returns cost of the current decision based on the past (i == changeHorizon) decisions
+        """
+        cost = 0
+        for i in range(self.changeHorizon):
+            cost += self.decisionQ * (self.forgettingFact ** i) * (decision - self.decisionLog[i]) ** 2
+        return cost
+
+    def getDecision(self,costs):
+        """
+        Find optimal choice out of the three controllers
+        """
+        costMPC = np.array(costs)
+        self.costTotal = np.zeros((3,))
+
+        for i in range(3):
+            self.costTotal[i] = self.costDecision(i) + costMPC[i] + self.costRouteGoal(i)
+        return np.argmin(self.costTotal)   
+        
+        
         
     def updateReference(self):
         """
@@ -281,6 +363,7 @@ class makeDecisionMaster:
         """
 
         py_ego = self.vehicle.getPosition()[1]
+        # print(f"this is the ego position centerline index:", self.egoLane)
         self.egoPx = self.vehicle.getPosition()[0]
         refu_in = [0,0,0]                                     # To work with function reference (update?)
 
@@ -294,7 +377,7 @@ class makeDecisionMaster:
             refxL_in[1] = self.laneCenters[0]
             refxR_in[1] = self.laneCenters[2]
 
-        elif py_ego < self.laneCenters[2]:
+        elif py_ego <= self.laneCenters[2]:
             # Set right reference to right lane
             # Set trailing reference to right lane
             refxT_in[1] = self.laneCenters[2]
@@ -312,9 +395,10 @@ class makeDecisionMaster:
         # Trailing reference should always be the current Lane!
         refxT_in[1] = self.laneCenters[self.egoLane]
         
-        self.refxT,_ = self.scenarios[1].getReference(refxT_in,refu_in)
-        self.refxL,_ = self.scenarios[1].getReference(refxL_in,refu_in)
-        self.refxR,_ = self.scenarios[1].getReference(refxR_in,refu_in)
+        self.refxT,_ = self.scenarios[0].getReference(refxT_in,refu_in)
+        self.refxL,_ = self.scenarios[0].getReference(refxL_in,refu_in)
+        self.refxR,_ = self.scenarios[0].getReference(refxR_in,refu_in)
+
         
         return self.refxL,self.refxR,self.refxT  
         
@@ -337,6 +421,16 @@ class makeDecisionMaster:
         
     def removeDeviation_y(self):
         self.traffic_state[1,:,:] = self.traffic_state[1,:,:] - self.init_bound
+    
+    def returnDeviation(self,X,U):
+        """
+        # Adds back the deviations that where removed in the above function
+        """
+        self.x_iter[0] = self.egoPx
+        print(X[0,:])
+        X[0,:] = X[0,:] + float(self.egoPx)
+        return X, U
+    
     
     
     def setControllerParameters(self,version):
@@ -398,16 +492,15 @@ class makeDecisionMaster:
         elif self.egoLane == -1:
             self.doLeft = 0
             self.doRight = 1
-        self.doTrailing = 0
-        self.doLeft = 0
-        self.doRight = 1
+
         # Initialize costs as very large number
-        costT,costT_slack = DM([1e10]),DM([1e10])
-        costL,costL_slack = DM([1e10]),DM([1e10])
-        costR,costR_slack = DM([1e10]),DM([1e10])
+        costT,costT_slack = 1e10,1e10
+        costL,costL_slack = 1e10,1e10
+        costR,costR_slack = 1e10,1e10
    
-        # self.removeDeviation()\
+        # self.removeDeviation()
         self.removeDeviation_y()
+        
         if self.doTrailing:
             idx = self.scenarios[0].getLeadVehicle(self.traffic)  
             if len(idx) == 0:         #No leading vehicle,  Move barrier very far forward
@@ -417,19 +510,61 @@ class makeDecisionMaster:
                 x_traffic = self.x_lead[idx[0],:]
                 
             # print(self.Nveh)
-            u_opt, x_opt, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+            u_testT, x_testT, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+            # print("INFO: Cost of Trailing Controller:",costT+costT_slack)
             
         if self.doLeft:
             self.setControllerParameters(self.controllers[0].opts["version"])
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxL_out
-            u_opt, x_opt, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
+            u_testL, x_testL, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                                             self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+            # print("INFO: Cost of Left Controller:",costL+costL_slack)
             
         if self.doRight:
             self.setControllerParameters(self.controllers[1].opts["version"])
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxR_out
-            u_opt, x_opt, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
+            u_testR, x_testR, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                                             self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
-        return u_opt, x_opt
+            # print("INFO: Cost of Left Controller:",costR+costR_slack)
+            
+        #TODO: SIMPLE CHOICE OF THE CONTROLLER BASED ON THE COST
+        
+        
+        # compare with the cost before and cose the best decision
+        decision_i = np.argmin(np.array([costL+costL_slack,costR+costR_slack,costT+costT_slack]))
+        # #! JUST FOR TEST:
+        
+        if len(self.decisionLog) >= self.changeHorizon:
+            decision_i = self.getDecision([costL+costL_slack,costR+costR_slack,costT+costT_slack])
+            self.decisionLog.insert(0,decision_i)
+            self.decisionLog.pop()
+        else:
+            decision_i = np.argmin(np.array([costL+costL_slack,costR+costR_slack,costT+costT_slack]))
+            self.decisionLog.insert(0,decision_i)
+        
+        print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
+        print("INFO:  Controller cost",costL+ costL_slack,costR+costR_slack,costT+costT_slack,
+              "Slack:",costL_slack,costR_slack,costT_slack,")")
+        
+
+        
+        if decision_i == 0:
+            X = x_testL
+            U = u_testL
+            print("INFO:  Optimal cost:",costL+ costL_slack)
+        elif decision_i == 1:
+            X = x_testR
+            U = u_testR
+            print("INFO:  Optimal cost:",costR+costR_slack)
+        else:
+            X = x_testT
+            U = u_testT
+            print("INFO:  Optimal cost:", [costT+costT_slack])
+        print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
+        # X, U = self.returnDeviation(X,U)
+
+        # x_ok, u_ok, X = self.checkSolution(X,U)
+            
+        return U, X
