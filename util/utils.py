@@ -209,7 +209,7 @@ def getTotalCost(L,Lf,x,u,refx,refu,N):
     cost += Lf(x[:,N],refx[:,N])
     # add penalty to the change of the change of the u
     for i in range(N-1):
-        cost += 1e2*(u[:,i+1]-u[:,i]).T@(u[:,i+1]-u[:,i])
+        cost += 5e2*(u[:,i+1]-u[:,i]).T@(u[:,i+1]-u[:,i])
     return cost
 
 def getSlackCost(Ls,slack):
@@ -466,9 +466,13 @@ def plot_mpc_y_vel(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
     axs[0].plot(time_array, y_true, 'g--', label='True Y Position')
     # center line
     axs[0].plot(time_array, [143.318146]*len(time_array), 'k--')
+    axs[0].plot(time_array, [143.318146+3.5]*len(time_array), 'k--')
+    axs[0].plot(time_array, [143.318146-3.5]*len(time_array), 'k--')
     # road boundary
-    axs[0].plot(time_array, [143.318146 - 1.75]*len(time_array), 'k--')
-    axs[0].plot(time_array, [143.318146 + 1.75]*len(time_array), 'k--')
+    axs[0].plot(time_array, [143.318146 - 1.75]*len(time_array), 'k')
+    axs[0].plot(time_array, [143.318146 + 1.75]*len(time_array), 'k')
+    axs[0].plot(time_array, [143.318146 - 1.75-3.5]*len(time_array), 'k')
+    axs[0].plot(time_array, [143.318146 + 1.75+3.5]*len(time_array), 'k')
     axs[0].set_title('Y Position')
     axs[0].set_xlabel('Time (s)')
     axs[0].set_ylabel('Y Position')

@@ -53,7 +53,7 @@ truck = traffic.getEgo()  # get the ego vehicle
 
 ## ! -----------------------------------initialize the local controller-----------------------------------------
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 1.2, 'K_I': 0, 'K_D': 0.5, 'dt': dt_PID}, 
+                                        args_lateral = {'K_P': 1.2, 'K_I': 0.2, 'K_D': 0.5, 'dt': dt_PID}, 
                                         args_longitudinal = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.5, 'dt': dt_PID})
 
 '''The following code is to test the controller with the carla environment'''
