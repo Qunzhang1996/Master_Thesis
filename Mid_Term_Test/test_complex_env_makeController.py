@@ -26,21 +26,21 @@ from agents.navigation.controller import VehiclePIDController
 # # Run the command
 
 ## ! --------------------------------------System initialization--------------------------------------------
-dt = 0.2                   # Simulation time step (Impacts traffic model accuracy)
+dt = 0.3                   # Simulation time step (Impacts traffic model accuracy)
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
 f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
-N =  5         # MPC Horizon length
+N =  12         # MPC Horizon length
 laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
 ref_velocity=ref_vx
-q_traffic_slack = 5e5
+q_traffic_slack = 1e4
 traffic = Traffic(N,dt)
 velocities = {
         'normal': carla.Vector3D(0.75 * ref_vx, 0, 0),
         'passive': carla.Vector3D(0.65 * ref_vx, 0, 0),
-        'aggressive': carla.Vector3D(1.1*ref_vx, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
+        'aggressive': carla.Vector3D(0.9*ref_vx, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
         'reference': carla.Vector3D(ref_vx, 0, 0)  # Specifically for the truck
     }
 spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
@@ -53,7 +53,7 @@ truck = traffic.getEgo()  # get the ego vehicle
 
 ## ! -----------------------------------initialize the local controller-----------------------------------------
 local_controller = VehiclePIDController(truck, 
-                                        args_lateral = {'K_P': 1.1, 'K_I': 0, 'K_D': 0.5, 'dt': dt_PID}, 
+                                        args_lateral = {'K_P': 1.2, 'K_I': 0, 'K_D': 0.5, 'dt': dt_PID}, 
                                         args_longitudinal = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.5, 'dt': dt_PID})
 
 '''The following code is to test the controller with the carla environment'''
@@ -68,8 +68,8 @@ vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
-R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
-q_ADV_decision = 50
+R_ADV = [1,5]                                   # Input cost, Entries in diagonal matrix
+q_ADV_decision = 100
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -165,6 +165,9 @@ Trajectory_pred = []  # To store the predicted trajectory
 timestamps = []  # To store timestamps for calculating acceleration and jerk
 all_tightened_bounds = []  # To store all tightened bounds for visualization
 previous_acceleration = 0  # To help in jerk calculation
+truck_y_mpc = []  
+truck_y_control = []
+
 #! TEST
 
 
@@ -178,10 +181,11 @@ for i in range(Nsim):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
-    if i%5 ==0:
+    if i%10 ==0:
         count = 1
         print("----------")
         print('Step: ', i)
+        
         decisionMaster.storeInput([x_iter,refxL_out,refxR_out,refxT_out,refu_out,x_lead,traffic_state])
         #TODO: Update reference based on current lane
         refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
@@ -191,7 +195,7 @@ for i in range(Nsim):
         X_ref=Traj_ref[:,count] #last element
         #! get the computed time of the MPC of real time
         print("INFO: The computation time of the MPC is: ", [time.time()-iteration_start])
-        # print("INFO: The reference of the truck is: ", Traj_ref[1,:])
+        print("INFO: The reference of the truck is: ", Traj_ref[1,:])
     else: #! when mpc is asleep, the PID will track the Traj_ref step by step
         count = count + 1
         X_ref=Traj_ref[:,count]
@@ -205,7 +209,8 @@ for i in range(Nsim):
     # U[:,i] = u_iter
     x_iter = get_state(truck)
     vehicleADV.update(x_iter,u_iter)
-    truck_vel_mpc.append(x_iter[2])
+    truck_vel_mpc.append(X_ref[2])
+    truck_y_mpc.append(X_ref[1])
     # print("this is the state of the truck",x_iter.T)
     
     
@@ -217,6 +222,7 @@ for i in range(Nsim):
     truck_state_ctr = get_state(truck)
     # print(f"current state of the truck is: {truck_state_ctr}")
     truck_vel_ctr=truck_state_ctr[C_k.V_km].item()
+    truck_y_control.append(truck_state_ctr[C_k.Y_km].item())
     truck_vel_control.append(truck_vel_ctr)
     # Data collection inside the loop
     Trajectory_pred.append(x_opt[:2,:]) # store the predicted trajectory
@@ -252,14 +258,22 @@ for i in range(Nsim):
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
     
-    if i == 200: break
+    if i == 135: break
         
                                                 
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_name = 'Make_Controller_TEST.gif'
+gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
 # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-figure_name = 'Make_Controller_TEST.png'
-# plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-#                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-#                               figure_dir,figure_name)
+figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+                              car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+                              figure_dir,figure_name)
+
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
+
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
+plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)

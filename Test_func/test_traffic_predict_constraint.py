@@ -27,18 +27,19 @@ from util.utils import *
 # subprocess.run(command, shell=True)
 # exit()
 # #! --------------------------Run the command--------------------------
-N=200
+N=400
 Traffic = Traffic(N, 0.2)
 # spawn the vehicle
 spawned_vehicles, center_line = Traffic.setup_complex_carla_environment()
 vehicle_list = spawned_vehicles
 ## !----------------- Set the velocity of the vehicles ------------------------
 ref_velocity = 54/3.6  # TODO: here is the reference velocity for the truck
+ref_vx = 54/3.6  
 velocities = {
-        'normal': carla.Vector3D(0.9 * ref_velocity, 0, 0),
-        'passive': carla.Vector3D(0.7 * ref_velocity, 0, 0),
-        'aggressive': carla.Vector3D(ref_velocity-5, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
-        'reference': carla.Vector3D(ref_velocity, 0, 0)  # Specifically for the truck
+        'normal': carla.Vector3D(0.65 * ref_vx, 0, 0),
+        'passive': carla.Vector3D(0.65 * ref_vx, 0, 0),
+        'aggressive': carla.Vector3D(1.1*ref_vx, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
+        'reference': carla.Vector3D(ref_vx, 0, 0)  # Specifically for the truck
     }
 Traffic.set_velocity(velocities)
 time.sleep(1)
@@ -47,7 +48,6 @@ print(Traffic.get_velocity())
 
 
 leadLength = 6
-v0_i = 15
 leadWidth = 1.9
 laneWidth = 3.5
 
@@ -55,22 +55,46 @@ laneWidth = 3.5
 class test:
     def __init__(self, traffic_x, traffic_y, traffic_shift,traffic_sign, min_distx=5) -> None:
         self.traffic_sign = traffic_sign
+
+        
         self.traffic_x = traffic_x
         self.traffic_y = traffic_y
         self.traffic_shift = traffic_shift
+        
+        
+        
         self.Time_headway = 0.5
         self.min_distx = min_distx
         self.L_tract=6
         self.L_trail=0
         self.egoWidth = 2.54
+        self.init_bound  = 143.318146-laneWidth/2
 
     def constraint(self, px):
-        func1 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
-                    tanh(px - self.traffic_x + leadLength/2 + self.L_tract + v0_i * self.Time_headway + self.min_distx )  + self.traffic_shift/2 
-        func2 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)/2 + self.egoWidth + leadWidth) / 2 * \
-                    tanh( - (px - self.traffic_x)  + leadLength/2 + self.L_trail + v0_i * self.Time_headway+ self.min_distx )  + self.traffic_shift/2
+        
+        #! In this situation, we do not have egoTheta_max. no trailor
 
-        return func1 + func2 + 143.318146 -laneWidth/2
+            
+        # #! avoid the ego vehicle itself
+        # if i == 1 : continue
+        # Get Vehicle Properties
+        v0_i =0.75 * ref_vx
+        # traffic.getVehicles
+        l_front,l_rear = 5.5/2, 5.5/2
+        leadWidth= 2.54
+
+        # Define vehicle specific constants
+        alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)+leadWidth/2)
+        alpha_1 = l_rear + self.L_tract + v0_i * self.Time_headway + self.min_distx 
+        alpha_2 = l_front + self.L_trail + v0_i * self.Time_headway+ self.min_distx 
+        alpha_3 = self.traffic_shift
+        d_w_e = (self.egoWidth/2)*self.traffic_sign
+        # Construct function
+        func1 = alpha_0 / 2 * tanh(px - self.traffic_x + alpha_1)+alpha_3/2
+        func2 = alpha_0 / 2 * tanh(self.traffic_x - px + alpha_2)+alpha_3/2
+        # !SHIFT ACCORDING TO THE INIT_BOUND
+        S = func1 + func2 + self.init_bound + d_w_e
+        return S
 
 
 px_traj_all = []
@@ -79,33 +103,19 @@ constraint_values_2_all = []
 traffic_x_all = []
 traffic_y_all = []
 
-# for i in range(N+1):  # Loop through i = 0 to 12
-#     traffic_x = pred_traj[0,i,3]
-#     traffic_x_2 = pred_traj[0,i,0]
-    
-#     # Create instances of the test class for each scenario
-#     my_test = test(traffic_x, traffic_y=-laneWidth/2, traffic_shift=-laneWidth, traffic_sign=1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-#     my_test_2 = test(traffic_x_2, traffic_y=laneWidth/2, traffic_shift=laneWidth, traffic_sign=-1)   #!('vehicle.tesla.model3', 80),   center line
-    
-#     px_traj = pred_traj[0,i,1]
-    
-#     # Collecting the data for plotting
-#     px_traj_all.append(px_traj)
-#     constraint_values_all.append(my_test.constraint(px_traj))
-#     constraint_values_2_all.append(my_test_2.constraint(px_traj))
     
     
 # here, test using vector of traffic_x and traffic_y to calculate the constraint
 """
 Traffic_y should be scaled to -laneWidth/2, laneWidth/2, laneWidth*3/2,
 """
-my_test = test(DM(pred_traj[0,:,3]), DM(pred_traj[1,:,2])-(143.318146), -laneWidth, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
-my_test_2 = test(DM(pred_traj[0,:,0]), DM(pred_traj[1,:,0])-(143.318146), laneWidth, -1)   #!('vehicle.tesla.model3', 80),   center line
+my_test = test(DM(pred_traj[0,:,2]), DM(pred_traj[1,:,2])-(143.318146-laneWidth/2), laneWidth/2, 1)    #! ('vehicle.carlamotors.carlacola', 20, -3.5),  right lane
+my_test_2 = test(DM(pred_traj[0,:,0]), DM(pred_traj[1,:,0])-(143.318146-laneWidth/2), 0.5*laneWidth, -1)   #!('vehicle.tesla.model3', 40, self.laneWidth),   left lane
 px_traj = pred_traj[0,:,1]
 px_traj_all = px_traj
 constraint_values_all = my_test.constraint(px_traj).full().flatten()
 constraint_values_2_all = my_test_2.constraint(px_traj).full().flatten()
-print( DM(pred_traj[1,:,3])-(143.318146-3.5/2))
+print(DM(pred_traj[1,:,0])-(143.318146-3.5/2))
 # print(constraint_values_all.shape)
 # print(px_traj_all.shape)
 # exit()
@@ -117,11 +127,11 @@ print( DM(pred_traj[1,:,3])-(143.318146-3.5/2))
 plt.figure(figsize=(12,4))
 
 # Plotting constraints for all i
-plt.scatter(px_traj_all, constraint_values_all,label='Constraint 1')
-plt.scatter(px_traj_all, constraint_values_2_all, label='Constraint 2')
+plt.scatter(px_traj_all, constraint_values_all,label='Constraint left')
+plt.scatter(px_traj_all, constraint_values_2_all, label='Constraint right')
 # Plotting positions of the vehicles
-plt.scatter(pred_traj[0,:,3],pred_traj[1,:,3],label='car_4')
-plt.scatter(pred_traj[0,:,0],pred_traj[1,:,0],label='car_leading')
+plt.scatter(pred_traj[0,:,2],pred_traj[1,:,2],label='car_left')
+plt.scatter(pred_traj[0,:,0],pred_traj[1,:,0],label='car_right')
 plt.scatter( pred_traj[0,:,1], pred_traj[1,:,1],label='ego_vehicle',alpha=0.5)
 # Marking lanes
 plt.plot([-30, 700], [center_line, center_line], 'k--')

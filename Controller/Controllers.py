@@ -361,9 +361,8 @@ class makeDecisionMaster:
         """
         Updates the y position reference for each controller based on the current lane
         """
-
+        self.scenarios[0].setEgoLane(self.traffic)
         py_ego = self.vehicle.getPosition()[1]
-        # print(f"this is the ego position centerline index:", self.egoLane)
         self.egoPx = self.vehicle.getPosition()[0]
         refu_in = [0,0,0]                                     # To work with function reference (update?)
 
@@ -445,11 +444,11 @@ class makeDecisionMaster:
         if version == "leftChange":
             for ii in range(self.Nveh):
                 for jj in range(self.N+1):
-                    if self.traffic_state[1,jj,ii] > self.laneWidth:
+                    if self.traffic_state[1,jj,ii] > self.laneWidth :
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * self.laneWidth
                         flip[ii,jj] = -1
-                    elif self.traffic_state[1,jj,ii] < 0:
+                    elif self.traffic_state[1,jj,ii] < 0 :
                         sign[ii,jj] = 1
                         shift[ii,jj] = -self.laneWidth
                     else:
@@ -459,11 +458,11 @@ class makeDecisionMaster:
         elif version == "rightChange":
             for ii in range(self.Nveh):
                 for jj in range(self.N+1):
-                    if self.traffic_state[1,jj,ii] > self.laneWidth:
+                    if self.traffic_state[1,jj,ii] > self.laneWidth :
                         sign[ii,jj] = -1
                         shift[ii,jj] = 2 * self.laneWidth
                         flip[ii,jj] = -1
-                    elif self.traffic_state[1,jj,ii] < 0:
+                    elif self.traffic_state[1,jj,ii] < 0 :
                         sign[ii,jj] = 1
                         shift[ii,jj] = -self.laneWidth
                     else:
@@ -543,13 +542,10 @@ class makeDecisionMaster:
         else:
             decision_i = np.argmin(np.array([costL+costL_slack,costR+costR_slack,costT+costT_slack]))
             self.decisionLog.insert(0,decision_i)
-        
-        print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
+            
         print("INFO:  Controller cost",costL+ costL_slack,costR+costR_slack,costT+costT_slack,
               "Slack:",costL_slack,costR_slack,costT_slack,")")
-        
 
-        
         if decision_i == 0:
             X = x_testL
             U = u_testL
@@ -564,7 +560,7 @@ class makeDecisionMaster:
             print("INFO:  Optimal cost:", [costT+costT_slack])
         print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
         # X, U = self.returnDeviation(X,U)
-
+        print(self.refxT_out)
         # x_ok, u_ok, X = self.checkSolution(X,U)
             
         return U, X

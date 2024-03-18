@@ -26,7 +26,7 @@ class car_VehicleModel(vehBicycleKinematic):
     x = [p_x p_y v_x theta]
     u = [steer_ang, acc_v]
     """
-    def __init__(self,dt,N, width = 2, length = 5.5, scaling = [0.1,1,1,1,1]):
+    def __init__(self,dt,N, width = 2.54, length = 10, scaling = [0.1,1,1,1,1]):
         self.name = "Truck_bicycle"
         self.laneCenters = 143.318146
         self.laneWidth = 3.5
@@ -65,9 +65,9 @@ class car_VehicleModel(vehBicycleKinematic):
         self.width = width
         self.ego_width = width
         self.length = length
-        self.L_tract = length                     # ! in the simulation, only have the tractor
+        self.L_tract = 8.54                # ! in the simulation, only have the tractor
         self.L_trail = self.length-self.L_tract
-        self.WB = 3 
+        self.WB = 6                   # [m] Wheel base
         
         # Energy efficiency parameters
         self.Cd = 0.31                  # []
@@ -109,7 +109,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.F_x = Function('F_x',[self.x,self.u],[x_next],['x','u'],['x_next'])
         
     def uConstraints(self):
-        return [-3.14/8,-0.7*9.81],[3.14/8,0.5*9.81]
+        return [-3.14/8,-0.5*9.81],[3.14/8,0.5*9.81]
     
     #! rewrite the xconstraint from vehBicycleKinematic to car_VehicleModel
     def xConstraints(self):

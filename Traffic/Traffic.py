@@ -21,8 +21,8 @@ class surroundVehicle:
         self.dt = dt
         self.laneWidth = laneWidth
         self.init_bound = center_line-self.laneWidth/2
-        self.leadWidth = 2
-        self.leadLength = 5.5
+        self.leadWidth = 2.1
+        self.leadLength = 5
         # define the l_front and l_rear
         self.l_front = self.leadLength/2
         self.l_rear = self.leadLength/2
@@ -91,10 +91,10 @@ class Traffic:
 
         vehicles = [
             ('vehicle.tesla.model3', 30,-self.laneWidth),
-            ('vehicle.tesla.model3', 20 ), # ! this is ego vehicle    'vehicle.carlamotors.firetruck'
+            ('vehicle.carlamotors.firetruck', 20 ), # ! this is ego vehicle    'vehicle.carlamotors.firetruck'
             ('vehicle.tesla.model3', 40, self.laneWidth),
             ('vehicle.tesla.model3', 110, -self.laneWidth),
-            ('vehicle.tesla.model3', 160, ),
+            ('vehicle.tesla.model3', 150, ),
             ('vehicle.tesla.model3', 70),
             ('vehicle.tesla.model3', 30, self.laneWidth),
             ('vehicle.tesla.model3', 110, self.laneWidth)

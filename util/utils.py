@@ -209,7 +209,7 @@ def getTotalCost(L,Lf,x,u,refx,refu,N):
     cost += Lf(x[:,N],refx[:,N])
     # add penalty to the change of the change of the u
     for i in range(N-1):
-        cost += 3e2*(u[:,i+1]-u[:,i]).T@(u[:,i+1]-u[:,i])
+        cost += 1e2*(u[:,i+1]-u[:,i]).T@(u[:,i+1]-u[:,i])
     return cost
 
 def getSlackCost(Ls,slack):
@@ -357,17 +357,23 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
 def plot_kf_trajectory(truck_positions, estimated_position, figure_dir, figure_name):
     plt.figure(figsize=(12, 4))
     plt.plot([pos[0] for pos in truck_positions], [pos[1] for pos in truck_positions], label='True Trajectory', color='blue')
-    plt.plot([pos[0] for pos in estimated_position], [pos[1] for pos in estimated_position], label='Estimated Trajectory', color='red')
+    if estimated_position  is not None:
+        plt.plot([pos[0] for pos in estimated_position], [pos[1] for pos in estimated_position], label='Estimated Trajectory', color='red')
+        plt.scatter(estimated_position[-1][0], estimated_position[-1][1], color='red', s=50)
     plt.scatter(truck_positions[-1][0], truck_positions[-1][1], color='blue', s=50)
-    plt.scatter(estimated_position[-1][0], estimated_position[-1][1], color='red', s=50)
+    
     #! plt truck boundary 
     plt.plot([pos[0] for pos in truck_positions], [pos[1]+2.54/2 for pos in truck_positions], label='truck upper boundary', color='green')
     plt.plot([pos[0] for pos in truck_positions], [pos[1]-2.54/2 for pos in truck_positions], label='truck lower boundary', color='green')
     #! plt road boundary
-    plt.plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k--')
-    plt.plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k--')
+    plt.plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k')
+    plt.plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k')
+    plt.plot([0, 700], [143.318146 - 1.75-3.5, 143.318146 - 1.75-3.5], 'k')
+    plt.plot([0, 700], [143.318146 + 1.75+3.5, 143.318146 + 1.75+3.5], 'k')
     # ! plot center line
     plt.plot([0, 700], [143.318146, 143.318146], 'k--')
+    plt.plot([0, 700], [143.318146 - 3.5, 143.318146 - 3.5], 'k--')
+    plt.plot([0, 700], [143.318146 + 3.5, 143.318146 + 3.5], 'k--')
     plt.ylim(143.318146 - 7, 143.318146 + 7)
     plt.title('True and Estimated Trajectories')
     plt.xlabel('X Position')
@@ -457,7 +463,7 @@ def plot_mpc_y_vel(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
     
     # Y position plot
     axs[0].plot(time_array, y_mpc, label='MPC Y Target Position', color='r')
-    axs[0].plot(time_array, y_true, label='True Y Position', color='b')
+    axs[0].plot(time_array, y_true, 'g--', label='True Y Position')
     # center line
     axs[0].plot(time_array, [143.318146]*len(time_array), 'k--')
     # road boundary
@@ -470,7 +476,7 @@ def plot_mpc_y_vel(y_mpc, vel_mpc, y_true, vel_true, figure_dir, figure_name):
     
     # Velocity plot
     axs[1].plot(time_array, vel_mpc, label='MPC Target Velocity', color='r')
-    axs[1].plot(time_array, vel_true, label='True Velocity', color='b')
+    axs[1].plot(time_array, vel_true,'g--', label='True Velocity')
     # plot the reference velocity
     axs[1].plot(time_array, [15]*len(time_array), 'k--')
     axs[1].set_title('Velocity')

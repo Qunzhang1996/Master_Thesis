@@ -84,6 +84,7 @@ class trailing:
             self.egoLane = 1
         else:
             self.egoLane = 0
+        print("INFO: Current Lane is:", [self.egoLane])
             
 
     def getLeadVehicle(self, traffic):
@@ -103,7 +104,7 @@ class trailing:
                 if distance < closestDistance:
                     closestDistance = distance
                     leadVehicleIdx = [idx]  # Store the index of the closest vehicle
-        print("INFO: Current Lane is:", [self.egoLane])
+        
         print("INFO: Lead vehicle index is: ", leadVehicleIdx)
         return leadVehicleIdx
 
@@ -180,9 +181,9 @@ class simpleOvertake:
 
     def constraint(self,traffic,opts):
         constraints = []
-        d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
+        
         #! In this situation, we do not have egoTheta_max. no trailor
-        d_lat_spread = 0
+        d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
         for i in range(traffic.getDim()):
             
             # #! avoid the ego vehicle itself
