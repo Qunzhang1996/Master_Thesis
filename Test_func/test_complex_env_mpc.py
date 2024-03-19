@@ -3,11 +3,13 @@
 '''
 import time
 import sys
-from casadi import *
-from Controllers import makeController, makeDecisionMaster
-from vehicle_model import car_VehicleModel
-from Traffic import Traffic
-from Scenarios import trailing, simpleOvertake
+sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
+from Autonomous_Truck_Sim.helpers import *
+from Controller.MPC_tighten_bound import MPC_tighten_bound
+from Controller.Controllers import makeController, makeDecisionMaster
+from vehicleModel.vehicle_model import car_VehicleModel
+from Traffic.Traffic import Traffic
+from Traffic.Scenarios import trailing, simpleOvertake
 from util.utils import *
 
 sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
@@ -189,19 +191,19 @@ for i in range(Nsim):
         refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
         u_opt, x_opt = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
-        print("INFO: The reference of the truck is: ", Traj_ref[1,:])
         u_iter = u_opt[:,0].reshape(-1,1)
         X_ref=Traj_ref[:,count] #last element
         #! get the computed time of the MPC of real time
         print("INFO: The computation time of the MPC is: ", [time.time()-iteration_start])
-        # print("INFO: The reference of the truck is: ", Traj_ref[1,:])
+        print("INFO: The reference of the truck is: ", Traj_ref[1,:])
     else: #! when mpc is asleep, the PID will track the Traj_ref step by step
         count = count + 1
         X_ref=Traj_ref[:,count]
+        
     for j in range(5):
-        control_truck = local_controller.run_step(X_ref[2]*3.6, [X_ref[1],X_ref[0]] , False)
+        control_truck = local_controller.run_step(X_ref[2]*3.6, [X_ref[1],X_ref[0]], False)
         truck.apply_control(control_truck)
-            
+        
     #TODO: Update traffic and store data
     # X[:,i] = x_iter
     # U[:,i] = u_iter
