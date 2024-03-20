@@ -96,9 +96,12 @@ Here is the decision master result:
 <p float="left">
   <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" width="85%" /> 
 </p>   
-## 2024/03/19 QunZhang
+## 2024/03/20 QunZhang
 TODO List: 
 ```
 1. tunning the controller
-3. decision master
+2. decision master
+3. add uncertainty plot,  plot constraints every time
+4. add noise into measurement and tighten the lane change change constraint
+5. plot constraint, and broadcast of the uncertainty
 ```

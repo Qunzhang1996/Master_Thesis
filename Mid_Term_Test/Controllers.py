@@ -46,6 +46,9 @@ class makeController:
             self.vehicle.integrator(opts["integrator"],dt)
             self.F_x  = self.vehicle.getIntegrator()
         else:
+            
+            # self.vehicle.integrator("rk",dt)
+            # self.F_x  = self.vehicle.getIntegrator()
             # ! set the LTI model from the vehicle model
             self.A, self.B, self.C = self.vehicle.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
         # ! get the cost param from the vehicle model
@@ -94,6 +97,7 @@ class makeController:
         for i in range(self.N):
             A_d, B_d, G_d = self.A, self.B, self.C
             self.opti.subject_to(self.x[:, i+1] == A_d @ self.x[:, i] + B_d @ self.u[:, i] + G_d)
+            # self.opti.subject_to(self.x[:, i+1] == self.F_x(self.x[:,i],self.u[:,i]))
         self.opti.subject_to(self.x[:, 0] == self.x0)
 
     def setInEqConstraints_val(self, H_up=None, upb=None, H_low=None, lwb=None):
