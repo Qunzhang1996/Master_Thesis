@@ -67,7 +67,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.ego_width = width
         self.length = length
         self.L_tract = 8.46                # ! in the simulation, only have the tractor
-        self.L_trail = self.length-self.L_tract
+        self.L_trail = self.L_tract
         self.WB = 8                   # [m] Wheel base
         self.lr = self.WB/2
         self.lf = self.WB/2

@@ -93,10 +93,10 @@ class Traffic:
             ('vehicle.tesla.model3', 30,-self.laneWidth),
             ('vehicle.carlamotors.firetruck', 20 ), # ! this is ego vehicle    'vehicle.carlamotors.firetruck'
             ('vehicle.tesla.model3', 40, 2*self.laneWidth),
-            ('vehicle.tesla.model3', 110, -2*self.laneWidth),
-            ('vehicle.tesla.model3', 150, ),
-            ('vehicle.tesla.model3', 70),
-            ('vehicle.tesla.model3', 30, 2*self.laneWidth),
+            ('vehicle.tesla.model3', 90, -self.laneWidth),
+            ('vehicle.tesla.model3', 170, ),
+            ('vehicle.tesla.model3', 60),
+            ('vehicle.tesla.model3', 140, -self.laneWidth),
             ('vehicle.tesla.model3', 110, self.laneWidth)
         ]
         center_line = 143.318146

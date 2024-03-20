@@ -21,10 +21,10 @@ from agents.navigation.controller import VehiclePIDController
 #     r'python config.py --map Town06')
 # subprocess.run(command, shell=True)
 # exit()
-# Run the command
+# #  Run the command
 
 ## ! --------------------------------------System initialization--------------------------------------------
-dt = 0.3                   # Simulation time step (Impacts traffic model accuracy)
+dt = 0.3                  # Simulation time step (Impacts traffic model accuracy)
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
 f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
@@ -65,7 +65,7 @@ vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
-Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,100,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [1,5]                                   # Input cost, Entries in diagonal matrix
 q_ADV_decision = 100
 vehicleADV.cost(Q_ADV,R_ADV)

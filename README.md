@@ -84,9 +84,6 @@ Here is the right lane change result:
 <p float="left">
   <img src="Figure/MPC_PID_LC.gif" width="85%" /> 
 </p>   
-<!-- <p float="left">
-  <img src="Figure/MPC_PID_LC.png" width="85%" /> 
-</p>    -->
 
 ## 2024/03/19 QunZhang
 Here is the decision master result:
@@ -96,8 +93,10 @@ Here is the decision master result:
 <p float="left">
   <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" width="85%" /> 
 </p>   
+
 ## 2024/03/20 QunZhang
 TODO List: 
+
 ```
 1. tunning the controller
 2. decision master
@@ -105,3 +104,7 @@ TODO List:
 4. add noise into measurement and tighten the lane change change constraint
 5. plot constraint, and broadcast of the uncertainty
 ```
+
+<p float="left">
+  <img src="Figure/propagation of trajectory.png" width="85%" /> 
+</p>   

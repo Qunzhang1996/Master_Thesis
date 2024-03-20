@@ -139,7 +139,7 @@ class simpleOvertake:
 
         # Ego vehicle dimensions
         self.egoWidth, self.egoLength,self.L_tract, self.L_trail = vehicle.getSize()
-        # self.egoTheta_max = vehicle.xConstraints()[1][4]
+        self.egoTheta_max = vehicle.xConstraints()[1][3]  #[1][3] is the index of the heading angle
         self.egoTheta_max= 0  #! In this situation, we do not have egoTheta_max. no trailor
         # Safety constraint definitions
         self.min_distx = min_distx
