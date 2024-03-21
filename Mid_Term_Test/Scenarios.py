@@ -64,7 +64,8 @@ class trailing:
         roadMin = -(self.lanes-2)*self.laneWidth  +self.init_bound
         laneCenters = [self.init_bound+self.laneWidth/2,self.init_bound+self.laneWidth*3/2,self.init_bound-self.laneWidth*1/2]
 
-        return roadMin, roadMax, laneCenters
+        laneWidth = self.laneWidth
+        return roadMin, roadMax, laneCenters, laneWidth
 
     def getVmax(self):
         return self.vmax
@@ -176,8 +177,9 @@ class simpleOvertake:
         roadMax = 2*self.laneWidth + self.init_bound
         roadMin = -(self.lanes-2)*self.laneWidth  +self.init_bound
         laneCenters = [self.init_bound+self.laneWidth/2,self.init_bound+self.laneWidth*3/2,self.init_bound-self.laneWidth*1/2]
-        print(roadMin, roadMax, laneCenters)
-        return roadMin, roadMax, laneCenters
+        # print(roadMin, roadMax, laneCenters)
+        laneWidth = self.laneWidth
+        return roadMin, roadMax, laneCenters, laneWidth
 
     def constraint(self,traffic,opts):
         constraints = []

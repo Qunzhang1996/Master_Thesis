@@ -23,11 +23,16 @@ from agents.navigation.controller import VehiclePIDController
 # exit()
 # #  Run the command
 
+
+
+makeMovie = True
+directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3.gif"
+
 ## ! --------------------------------------System initialization--------------------------------------------
 dt = 0.3                  # Simulation time step (Impacts traffic model accuracy)
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
-f_controller = 1            # Controller update frequency, i.e updates at each t = dt*f_controller
+f_controller = 10            # Controller update frequency, i.e updates at each t = dt*f_controller
 N =  12        # MPC Horizon length
 laneWidth = 3.5
 
@@ -44,6 +49,7 @@ velocities = {
 spawned_vehicles, center_line = traffic.setup_complex_carla_environment()
 traffic.set_velocity(velocities)
 Nveh = traffic.getDim()
+vehList = traffic.getVehicles()
 time.sleep(1)
 px_init,py_init,vx_init=traffic.getStates()[:3,1] # get the initial position of the truck
 truck = traffic.getEgo()  # get the ego vehicle
@@ -65,9 +71,9 @@ vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
-Q_ADV = [0,100,3e2,5]                            # State cost, Entries in diagonal matrix
-R_ADV = [1,5]                                   # Input cost, Entries in diagonal matrix
-q_ADV_decision = 100
+Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
+R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
+q_ADV_decision = 50
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -81,7 +87,7 @@ scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=l
 scenarioADV.slackCost(q_traffic_slack)
 
 #! get road INFOS
-roadMin, roadMax, laneCenters = scenarioTrailADV.getRoad()
+roadMin, roadMax, laneCenters, _ = scenarioTrailADV.getRoad()
 #! initilize the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
 vehicleADV.setInit([px_init,py_init],ref_vx )
@@ -124,7 +130,7 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
 # ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
-tsim = 100                         # Total simulation time in seconds
+tsim = 40                        # Total simulation time in seconds
 Nsim = int(tsim/dt)
 # # Initialize simulation
 x_iter = DM(int(nx),1)
@@ -182,11 +188,11 @@ feature_map = np.zeros((8,Nsim,Nveh+1))
 
 
 
-for i in range(Nsim):
+for i in range(0,Nsim):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
-    if i%10 ==0:
+    if i % f_controller == 0:
         count = 0
         print("----------")
         print('Step: ', i)
@@ -196,7 +202,7 @@ for i in range(Nsim):
         refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
         u_opt, x_opt, X_out, decision_i  = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
-        print("INFO: The reference of the truck is: ", Traj_ref[1,:])
+        # print("INFO: The reference of the truck is: ", Traj_ref[1,:])
         u_iter = u_opt[:,0].reshape(-1,1)
         X_ref=Traj_ref[:,count] #last element
         #! get the computed time of the MPC of real time
@@ -269,23 +275,27 @@ for i in range(Nsim):
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
     time.sleep(sleep_duration)
-    
-    if i == 135: break
-        
+
+print("Simulation finished")
+i_crit = i     
                                                 
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
-# animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
-plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-                              car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-                              figure_dir,figure_name)
+# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+# gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+# gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
+# # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+# figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+# plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+#                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+#                               figure_dir,figure_name)
 
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
-plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
+# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+# figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+# plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
 
-figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
-plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+# figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
+# plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+
+
+if makeMovie:
+    borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

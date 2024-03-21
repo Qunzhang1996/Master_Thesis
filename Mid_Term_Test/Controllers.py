@@ -35,8 +35,8 @@ class makeController:
         self.vehWidth,self.egoLength,self.L_tract, self.L_trail = self.vehicle.getSize()
         self.nx,self.nu,self.nrefx,self.nrefu = self.vehicle.getSystemDim()
         self.init_bound = self.vehicle.getInitBound()
-        self.roadMin, self.roadMax, self.laneCenters = self.scenario.getRoad()
-        self.egoTheta_max  = 0  #! In this situation, we do not have egoTheta_max. no trailor
+        self.roadMin, self.roadMax, self.laneCenters, _ = self.scenario.getRoad()
+        self.egoTheta_max  = vehicle.xConstraints()[1][3]  #! In this situation, we do not have egoTheta_max. no trailor
         self.opts = opts
         # ! get ref velocity 
         self.Vmax = scenario.getVmax()
@@ -233,7 +233,7 @@ class makeDecisionMaster:
     """
     #! This is the Decision Master used for decision making
     """
-    def __init__(self,vehicle,traffic,controllers,scenarios,changeHorizon = 10,forgettingFact = 0.90): 
+    def __init__(self,vehicle,traffic,controllers,scenarios,changeHorizon = 5,forgettingFact = 0.90): 
         self.vehicle = vehicle
         self.traffic = traffic
         self.controllers = controllers
@@ -406,12 +406,12 @@ class makeDecisionMaster:
             refxL_in[1] = self.laneCenters[0]
             refxR_in[1] = self.laneCenters[2]
 
-        elif py_ego <= self.laneCenters[2]:
+        elif py_ego <  self.laneCenters[2]:
             # Set right reference to right lane
             # Set trailing reference to right lane
             refxT_in[1] = self.laneCenters[2]
-            refxL_in[1] = self.laneCenters[1]
-            refxR_in[1] = self.laneCenters[0]
+            refxL_in[1] = self.laneCenters[0]
+            refxR_in[1] = self.laneCenters[1]
 
         elif abs(py_ego - self.laneCenters[0]) < tol:
             # Set left reference to left lane
@@ -542,7 +542,6 @@ class makeDecisionMaster:
             # print(self.Nveh)
             self.paramLog[0,:,idx,2] = x_traffic.full()
             u_testT, x_testT, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
-            # print("INFO: Cost of Trailing Controller:",costT+costT_slack)
             
         if self.doLeft:
             self.setControllerParameters(self.controllers[0].opts["version"])
@@ -551,7 +550,6 @@ class makeDecisionMaster:
             u_testL, x_testL, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                                             self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
-            # print("INFO: Cost of Left Controller:",costL+costL_slack)
             
         if self.doRight:
             self.setControllerParameters(self.controllers[1].opts["version"])
@@ -560,7 +558,6 @@ class makeDecisionMaster:
             u_testR, x_testR, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                                             self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
-            # print("INFO: Cost of Left Controller:",costR+costR_slack)
             
         #TODO: SIMPLE CHOICE OF THE CONTROLLER BASED ON THE COST
         
@@ -592,6 +589,7 @@ class makeDecisionMaster:
             X = x_testT
             U = u_testT
             print("INFO:  Optimal cost:", [costT+costT_slack])
+            
         print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
         
         x_ok, u_ok, X = self.checkSolution(X,U)

@@ -26,6 +26,7 @@ class surroundVehicle:
         # define the l_front and l_rear
         self.l_front = self.leadLength/2
         self.l_rear = self.leadLength/2
+        self.type = "normal"
           
     def getLength(self):
         return self.l_front, self.l_rear 
@@ -89,15 +90,25 @@ class Traffic:
         for actor in world.get_actors().filter('vehicle.*'):
             actor.destroy()
 
+        # vehicles = [
+        #     ('vehicle.tesla.model3', 30,-self.laneWidth),
+        #     ('vehicle.carlamotors.firetruck', 20 ), # ! this is ego vehicle    'vehicle.carlamotors.firetruck'
+        #     ('vehicle.tesla.model3', 130, ),
+        #     ('vehicle.tesla.model3', 80, -self.laneWidth),
+        #     ('vehicle.tesla.model3', 125,self.laneWidth ),
+        #     ('vehicle.tesla.model3', 60),
+        #     ('vehicle.tesla.model3', 170, -self.laneWidth),
+        #     ('vehicle.tesla.model3', 100, self.laneWidth)
+        # ]
         vehicles = [
             ('vehicle.tesla.model3', 30,-self.laneWidth),
             ('vehicle.carlamotors.firetruck', 20 ), # ! this is ego vehicle    'vehicle.carlamotors.firetruck'
-            ('vehicle.tesla.model3', 130, ),
-            ('vehicle.tesla.model3', 80, -self.laneWidth),
-            ('vehicle.tesla.model3', 125,self.laneWidth ),
+            ('vehicle.tesla.model3', 40, -self.laneWidth),
+            ('vehicle.tesla.model3', 90, -self.laneWidth),
+            ('vehicle.tesla.model3', 170, ),
             ('vehicle.tesla.model3', 60),
-            ('vehicle.tesla.model3', 170, -self.laneWidth),
-            ('vehicle.tesla.model3', 100, self.laneWidth)
+            ('vehicle.tesla.model3', 140, -self.laneWidth),
+            ('vehicle.tesla.model3', 110, self.laneWidth)
         ]
         center_line = 143.318146
         self.vehicle_list = []
@@ -142,6 +153,11 @@ class Traffic:
             vehicle_state = get_state(vehicle_name)
             surroundVehicle_=surroundVehicle(vehicle_name, i, vehicle_state[0], \
                                                                 vehicle_state[1], vehicle_state[2], vehicle_state[3],self.N, self.dt)
+            if i==1:
+                self.leadWidth = 2.0
+                self.leadLength = 5
+                surroundVehicle_.leadWidth = 2.59
+                surroundVehicle_.leadLength = 8.46
             self.Total_vehicle_list.append(surroundVehicle_)
         return self.Total_vehicle_list     
     

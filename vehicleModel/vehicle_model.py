@@ -26,7 +26,7 @@ class car_VehicleModel(vehBicycleKinematic):
     x = [p_x p_y v_x theta]
     u = [steer_ang, acc_v]
     """
-    def __init__(self,dt,N, width = 2.89, length = 10, scaling = [0.1,1,1,1,1]):
+    def __init__(self,dt,N, width = 2.89, length = 8.46 , scaling = [0.1,1,1,1,1]):
         self.name = "Truck_bicycle"
         self.laneCenters = 143.318146
         self.laneWidth = 3.5
@@ -67,7 +67,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.ego_width = width
         self.length = length
         self.L_tract = 8.46                # ! in the simulation, only have the tractor
-        self.L_trail = self.length-self.L_tract
+        self.L_trail = self.L_tract/2
         self.WB = 6                   # [m] Wheel base
         self.lr = self.WB/2
         self.lf = self.WB/2
