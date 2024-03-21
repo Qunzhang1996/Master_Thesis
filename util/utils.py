@@ -958,7 +958,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
 
             if X[1,i,0] > scenarioTrailADV.init_bound+laneWidth:
                 lane = 1
-            elif X[1,i,0] < scenarioTrailADV.init_bound:
+            elif X[1,i,0] < scenarioTrailADV.init_bound: 
                 lane = -1
             else:
                 lane = 0

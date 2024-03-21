@@ -233,7 +233,7 @@ class makeDecisionMaster:
     """
     #! This is the Decision Master used for decision making
     """
-    def __init__(self,vehicle,traffic,controllers,scenarios,changeHorizon = 5,forgettingFact = 0.90): 
+    def __init__(self,vehicle,traffic,controllers,scenarios,changeHorizon = 10, forgettingFact = 0.90): 
         self.vehicle = vehicle
         self.traffic = traffic
         self.controllers = controllers
@@ -511,6 +511,13 @@ class makeDecisionMaster:
         self.egoLane = self.scenarios[0].getEgoLane()
 
         # Revoke controller usage if initialized unfeasible
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # ? ASK ERIK ABOUT THIS
+        self.doTrailing = 1
+        self.doLeft = 1
+        self.doRight = 1
+        
+        
         self.doTrailing = 1
         if self.egoLane == 0:
             self.doLeft = 1

@@ -21,8 +21,8 @@ class surroundVehicle:
         self.dt = dt
         self.laneWidth = laneWidth
         self.init_bound = center_line-self.laneWidth/2
-        self.leadWidth = 2.0
-        self.leadLength = 5
+        self.leadWidth = 2.032
+        self.leadLength = 4.78536
         # define the l_front and l_rear
         self.l_front = self.leadLength/2
         self.l_rear = self.leadLength/2

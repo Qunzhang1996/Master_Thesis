@@ -113,3 +113,8 @@ TODO List:
 <p float="left">
   <img src="Figure/propagation of trajectory.png" width="85%" /> 
 </p>   
+
+
+<p float="left">
+  <img src="Figure/crazy_traffic_mix3.gif" width="85%" /> 
+</p>   

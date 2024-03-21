@@ -33,12 +33,12 @@ dt = 0.3                  # Simulation time step (Impacts traffic model accuracy
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
 f_controller = 10            # Controller update frequency, i.e updates at each t = dt*f_controller
-N =  12        # MPC Horizon length
+N =  10        # MPC Horizon length
 laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
 ref_velocity=ref_vx
-q_traffic_slack = 1e4
+q_traffic_slack = 1e5
 traffic = Traffic(N,dt)
 velocities = {
         'normal': carla.Vector3D(0.75 * ref_vx, 0, 0),
@@ -73,7 +73,7 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
-q_ADV_decision = 50
+q_ADV_decision = 100
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -279,22 +279,22 @@ for i in range(0,Nsim):
 print("Simulation finished")
 i_crit = i     
                                                 
-# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-# gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-# gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
-# # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-# figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
-# plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
-#                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
-#                               figure_dir,figure_name)
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
+# animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
+figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
+                              car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
+                              figure_dir,figure_name)
 
-# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-# figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
-# plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
 
-# figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-# figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
-# plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
+plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
 
 if makeMovie:
