@@ -147,7 +147,9 @@ traffic_state = np.zeros((nx_traffic+1,N+1,Nveh))#! x, y, sign, shift, flip
 
 #TODO: Store variables
 X = np.zeros((nx,Nsim,1))
-U = np.zeros((nu,Nsim,1))    
+U = np.zeros((nu,Nsim,1))  
+paramLog = np.zeros((5,Nsim,Nveh,3))
+decisionLog = np.zeros((Nsim,),dtype = int) 
 
 #! Data storage initialization
 car_positions = []  # To store (x, y) positions
@@ -174,20 +176,25 @@ X_traffic = np.zeros((nx_traffic,Nsim,Nveh))
 X_traffic_ref = np.zeros((4,Nsim,Nveh))
 # print("this is the size of teh traffic",(traffic.getStates()).shape)
 X_traffic[:,0,:] = traffic.getStates()   
+testPred = traffic.prediction()
+feature_map = np.zeros((8,Nsim,Nveh+1))
+ 
+
+
 
 for i in range(Nsim):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
     if i%10 ==0:
-        count = 1
+        count = 0
         print("----------")
         print('Step: ', i)
         
         decisionMaster.storeInput([x_iter,refxL_out,refxR_out,refxT_out,refu_out,x_lead,traffic_state])
         #TODO: Update reference based on current lane
         refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
-        u_opt, x_opt = decisionMaster.chooseController()
+        u_opt, x_opt, X_out, decision_i  = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
         print("INFO: The reference of the truck is: ", Traj_ref[1,:])
         u_iter = u_opt[:,0].reshape(-1,1)
@@ -203,22 +210,29 @@ for i in range(Nsim):
         truck.apply_control(control_truck)
             
     #TODO: Update traffic and store data
-    # X[:,i] = x_iter
-    # U[:,i] = u_iter
     x_iter = get_state(truck)
     vehicleADV.update(x_iter,u_iter)
-    truck_vel_mpc.append(X_ref[2])
-    truck_y_mpc.append(X_ref[1])
-    # print("this is the state of the truck",x_iter.T)
+    truck_state = traffic.getStates()[:,1]
+    truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), \
+                                            truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
+    X[:,i] = np.array([truck_x, truck_y, truck_v, truck_psi]).reshape(-1,1)
+    U[:,i] = u_iter
+    X_pred[:,:,i] = X_out
+    X_traffic[:,i,:] = traffic.getStates()
+    #TODO: 
+    # X_traffic_ref[:,i,:] = traffic.getReference()
+    paramLog[:,i,:] = decisionMaster.getTrafficState()
+    decisionLog[i] = decision_i.item()
     
     
     #! ------------------------------------------------------------------------------------------------
     car_state = traffic.getStates()[:,2]
-    truck_state = traffic.getStates()[:,1]
     car_x, car_y, car_v = car_state[C_k.X_km].item(), car_state[C_k.Y_km].item(), car_state[C_k.V_km].item()
-    truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
+    
     truck_state_ctr = get_state(truck)
     # print(f"current state of the truck is: {truck_state_ctr}")
+    truck_vel_mpc.append(X_ref[2])
+    truck_y_mpc.append(X_ref[1])
     truck_vel_ctr=truck_state_ctr[C_k.V_km].item()
     truck_y_control.append(truck_state_ctr[C_k.Y_km].item())
     truck_vel_control.append(truck_vel_ctr)
@@ -227,7 +241,7 @@ for i in range(Nsim):
     current_time = time.time()
     timestamps.append(current_time)
     car_positions.append((car_x, car_y))
-    truck_positions.append((truck_x, truck_y))
+    truck_positions.append((truck_x, truck_y, truck_psi))
     truck_velocities.append(truck_v)
     leading_velocities.append(car_v)
 
@@ -247,10 +261,10 @@ for i in range(Nsim):
     else:
         truck_accelerations.append(0)  # Initial acceleration is 0
         truck_jerks.append(0)  # Initial jerk is 0
+        
+        
+    
     #! ------------------------------------------------------------------------------------------------
-    
- 
-    
 
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)

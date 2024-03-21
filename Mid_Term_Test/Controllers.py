@@ -268,8 +268,51 @@ class makeDecisionMaster:
 
         self.decisionLog = []
         #! TEST, ADD COST AND DECISION IN THE LOG
-
         
+    # def checkSolution(self,x_pred_new,u_pred_new):
+    #     """
+    #     Checks if the MPC returned a strange solution
+    #      - If that is the case, fall back to the previous solution
+    #      - The number of times this occurs is presented as "Error count"
+    #     """
+    #     cond1 = (x_pred_new[0,0]) < (self.x_pred[0,0] - self.tol)
+    #     cond2 = ((x_pred_new[1,0] - x_pred_new[1,1]) > 1)
+    #     if  (cond1 or cond2) and (self.consecutiveErrors < self.N-1):
+    #         self.consecutiveErrors += 1
+    #         self.errors += 1
+    #         return self.x_pred[:,self.consecutiveErrors], self.u_pred[:,self.consecutiveErrors], self.x_pred
+    #     else:
+    #         self.consecutiveErrors = 0
+    #         self.x_pred = x_pred_new
+    #         self.u_pred = u_pred_new
+    #         return x_pred_new[:,0], u_pred_new[:,0], self.x_pred
+
+    def checkSolution(self, x_pred_new, u_pred_new):
+        """
+        Adjusted to ensure at least a 10-step prediction horizon is maintained in the outputs.
+        Checks if the MPC returned a strange solution:
+        - If that is the case, fall back to the previous solution.
+        - The number of times this occurs is presented as "Error count".
+        """
+        cond1 = (x_pred_new[0,0]) < (self.x_pred[0,0] - self.tol)
+        cond2 = ((x_pred_new[1,0] - x_pred_new[1,1]) > 1)
+        if (cond1 or cond2) and (self.consecutiveErrors < self.N-1):
+            self.consecutiveErrors += 1
+            self.errors += 1
+            # Adjusting to ensure at least 10-step horizon is included in the output.
+            # Here we assume self.x_pred and self.u_pred are already maintaining this horizon.
+            x_pred_output = self.x_pred[:, :11]  # Ensure 10-step horizon for x_pred
+            u_pred_output = self.u_pred[:, :11]  # Ensure 10-step horizon for u_pred
+        else:
+            self.consecutiveErrors = 0
+            self.x_pred = x_pred_new
+            self.u_pred = u_pred_new
+            x_pred_output = x_pred_new[:, :11]  # Ensure 10-step horizon for x_pred
+            u_pred_output = u_pred_new[:, :11]  # Ensure 10-step horizon for u_pred
+        
+        return x_pred_output, u_pred_output, self.x_pred
+
+ 
     def storeInput(self,input):
         """
         Stores the current states sent from main file
@@ -479,6 +522,7 @@ class makeDecisionMaster:
             self.doLeft = 0
             self.doRight = 1
 
+        self.paramLog = np.zeros((5,self.N+1,self.Nveh,3))
         # Initialize costs as very large number
         costT,costT_slack = 1e10,1e10
         costL,costL_slack = 1e10,1e10
@@ -496,11 +540,13 @@ class makeDecisionMaster:
                 x_traffic = self.x_lead[idx[0],:]
                 
             # print(self.Nveh)
+            self.paramLog[0,:,idx,2] = x_traffic.full()
             u_testT, x_testT, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
             # print("INFO: Cost of Trailing Controller:",costT+costT_slack)
             
         if self.doLeft:
             self.setControllerParameters(self.controllers[0].opts["version"])
+            self.paramLog[:,:,:,0] = self.traffic_state
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxL_out
             u_testL, x_testL, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
@@ -509,6 +555,7 @@ class makeDecisionMaster:
             
         if self.doRight:
             self.setControllerParameters(self.controllers[1].opts["version"])
+            self.paramLog[:,:,:,1] = self.traffic_state
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxR_out
             u_testR, x_testR, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
@@ -546,5 +593,27 @@ class makeDecisionMaster:
             U = u_testT
             print("INFO:  Optimal cost:", [costT+costT_slack])
         print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
+        
+        x_ok, u_ok, X = self.checkSolution(X,U)
             
-        return U, X
+        return u_ok, x_ok, X, decision_i
+    
+    
+    
+    def getTrafficState(self):
+        return self.paramLog[:,0,:,:]
+
+    def getErrorCount(self):
+        """
+        Returns the amount of strange solutions encountered
+        """
+        return self.errors
+
+    def getGoalStatus(self):
+        if self.doRouteGoalScenario == 1:
+            if self.goalAccomplished == 1:
+                return "Succesfully reached"
+            else:
+                return "Not reached"
+        else:
+            return "Was not considered"

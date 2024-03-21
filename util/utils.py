@@ -7,6 +7,7 @@ import numpy as np
 from enum import IntEnum
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib.patches as patches
 
 class Param:
     """
@@ -354,33 +355,67 @@ def animate_constraints(all_tightened_bounds, truck_positions, car_position, Tra
     
     
 # ! here is the function to plot the trajectory of the truck (kalman true and estimated)
+def rotate_point(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+    """
+    ox, oy = origin
+    px, py = point
+    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
+    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
+    return qx, qy
+
 def plot_kf_trajectory(truck_positions, estimated_position, figure_dir, figure_name):
-    plt.figure(figsize=(12, 4))
-    plt.plot([pos[0] for pos in truck_positions], [pos[1] for pos in truck_positions], label='True Trajectory', color='blue')
-    if estimated_position  is not None:
-        plt.plot([pos[0] for pos in estimated_position], [pos[1] for pos in estimated_position], label='Estimated Trajectory', color='red')
-        plt.scatter(estimated_position[-1][0], estimated_position[-1][1], color='red', s=50)
-    plt.scatter(truck_positions[-1][0], truck_positions[-1][1], color='blue', s=50)
-    
-    #! plt truck boundary 
-    plt.plot([pos[0] for pos in truck_positions], [pos[1]+2.54/2 for pos in truck_positions], label='truck upper boundary', color='green')
-    plt.plot([pos[0] for pos in truck_positions], [pos[1]-2.54/2 for pos in truck_positions], label='truck lower boundary', color='green')
-    #! plt road boundary
-    plt.plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k')
-    plt.plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k')
-    plt.plot([0, 700], [143.318146 - 1.75-3.5, 143.318146 - 1.75-3.5], 'k')
-    plt.plot([0, 700], [143.318146 + 1.75+3.5, 143.318146 + 1.75+3.5], 'k')
-    # ! plot center line
-    plt.plot([0, 700], [143.318146, 143.318146], 'k--')
-    plt.plot([0, 700], [143.318146 - 3.5, 143.318146 - 3.5], 'k--')
-    plt.plot([0, 700], [143.318146 + 3.5, 143.318146 + 3.5], 'k--')
-    plt.ylim(143.318146 - 7, 143.318146 + 7)
-    plt.title('True and Estimated Trajectories')
-    plt.xlabel('X Position')
-    plt.ylabel('Y Position')
-    plt.legend()
-    
-    # Save the plot
+    fig, axs = plt.subplots(2, 1, figsize=(12, 4))
+
+    x_ranges = [(0, 350), (350, 700)]
+
+    for i, ax in enumerate(axs.flat):
+        ax.set_xlim(x_ranges[i])
+        ax.set_ylim(143.318146 - 15, 143.318146 + 15)
+        # ax.set_title(f'X Position Range: {x_ranges[i]}')
+        # ax.set_xlabel('X Position')
+        # ax.set_ylabel('Y Position')
+
+        if estimated_position is not None:
+            ax.plot([pos[0] for pos in estimated_position], [pos[1] for pos in estimated_position], label='Estimated Trajectory', color='blue')
+            ax.scatter(estimated_position[-1][0], estimated_position[-1][1], color='blue', s=50)
+        ax.scatter([pos[0] for pos in truck_positions], [pos[1] for pos in truck_positions], label='True Trajectory', color='red')
+        ax.plot([pos[0] for pos in truck_positions], [pos[1] for pos in truck_positions], color='red')
+        ax.scatter(truck_positions[-1][0], truck_positions[-1][1], color='red', s=50)
+
+        truck_length = 10
+        truck_width = 2.89
+
+        for pos in truck_positions:
+            center_x, center_y, heading_angle = pos
+            angle_rad = np.radians(heading_angle)
+
+            local_corners = [(-truck_length / 2, -truck_width / 2), (-truck_length / 2, truck_width / 2),
+                             (truck_length / 2, truck_width / 2), (truck_length / 2, -truck_width / 2)]
+
+            global_corners = [rotate_point((0, 0), corner, angle_rad) for corner in local_corners]
+            global_corners = [(x + center_x, y + center_y) for x, y in global_corners]
+
+            truck_polygon = patches.Polygon(global_corners, closed=True, linewidth=1, edgecolor='None',
+                                            facecolor='Pink', alpha = 0.3,  label='Truck')
+            ax.add_patch(truck_polygon)
+
+        ax.plot([0, 700], [143.318146 - 1.75, 143.318146 - 1.75], 'k')
+        ax.plot([0, 700], [143.318146 + 1.75, 143.318146 + 1.75], 'k')
+        ax.plot([0, 700], [143.318146 - 1.75 - 3.5, 143.318146 - 1.75 - 3.5], 'k')
+        ax.plot([0, 700], [143.318146 + 1.75 + 3.5, 143.318146 + 1.75 + 3.5], 'k')
+        # ax.plot([0, 700], [143.318146 - 1.75 - 7, 143.318146 - 1.75 - 7], 'k')
+        # ax.plot([0, 700], [143.318146 + 1.75 + 7, 143.318146 + 1.75 + 7], 'k')
+
+        ax.plot([0, 700], [143.318146, 143.318146], 'k--')
+        ax.plot([0, 700], [143.318146 - 3.5, 143.318146 - 3.5], 'k--')
+        ax.plot([0, 700], [143.318146 + 3.5, 143.318146 + 3.5], 'k--')
+        # ax.plot([0, 700], [143.318146 - 7, 143.318146 - 7], 'k--')
+        # ax.plot([0, 700], [143.318146 + 7, 143.318146 + 7], 'k--')
+
+    plt.tight_layout()
+
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
     figure_path = os.path.join(figure_dir, figure_name)
@@ -558,7 +593,7 @@ def plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities,
                                   truck_jerks, car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                                   figure_dir,figure_name):
     # Prepare data for plotting
-    x_positions, y_positions = zip(*truck_positions) if truck_positions else ([], [])
+    x_positions, y_positions,_ = zip(*truck_positions) if truck_positions else ([], [],[])
     x_positions_leading, y_positions_leading = zip(*car_positions) if car_positions else ([], [])
     velocity_times = timestamps[1:] if len(timestamps) > 1 else []
     acceleration_times = timestamps[2:] if len(timestamps) > 2 else []

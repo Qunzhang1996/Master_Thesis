@@ -13,7 +13,12 @@ For the EKF_MPC, we use the workflow shown below (we did not use the sensor in c
 <p float="left">
   <img src="Figure/decision_master.gif" width="85%" /> 
 </p>   
-
+<p float="left">
+  <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" width="85%" /> 
+</p>   
+<p float="left">
+  <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" width="85%" /> 
+</p>   
 ## 2024/01/24 QunZhang
 Create the repo and add some related folder   
 
