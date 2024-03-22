@@ -14,6 +14,7 @@ The objectives of this thesis are to:
 <p align="center">
   <img src="Figure/scenerio.png" alt="Scenerio Diagram" width="50%">
 </p>
+
 ## Workflow
 
 Our workflow integrates an Extended Kalman Filter (EKF) with a Model Predictive Controller (MPC) for enhanced accuracy and robustness, depicted in the figures below. Notably, we simulate sensor inputs rather than using actual CARLA sensors to streamline our process.
@@ -29,6 +30,7 @@ The difference between the simulated vehicle in CARLA and our nominal model is t
 To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
 ![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
 
+**Constraint Definitions:**  
 For detailed constraint definitions, please refer to our supervisor's paper:  
 <p align="center">
   <img src="Figure\Constraints.png" alt="Constraints Defination" width="100%">
