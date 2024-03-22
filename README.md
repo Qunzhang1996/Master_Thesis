@@ -1,7 +1,7 @@
 # MSc Thesis: Robust MPC for Autonomous Vehicles in Uncertain Situations
 
-**Authors:** Erik Börve, Qun Zhang, Saeed Salih   
-**Emails:** [borerik@chalmers.se](mailto:borerik@chalmers.se), [qunz@chalmers.se](mailto:qunz@chalmers.se), [saeedsal@chalmers.se](mailto:saeedsal@chalmers.se)   
+**Authors:** Qun Zhang, Saeed Salih, Erik Börve   
+**Emails:** [qunz@chalmers.se](mailto:qunz@chalmers.se), [saeedsal@chalmers.se](mailto:saeedsal@chalmers.se), [borerik@chalmers.se](mailto:borerik@chalmers.se)  
 **Affiliation:** Department of Electrical Engineering, Chalmers University of Technology, Göteborg, Sweden
 
 ## Purpose
