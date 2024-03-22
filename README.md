@@ -49,9 +49,9 @@ We showcase our RMPC's performance in various driving scenarios within the CARLA
   <img src="Figure/ACC_in_heavy_traffic.gif" alt="ACC in Heavy Traffic" width="100%">
 </p>
 
-**MPC vs. PID Lane Changing:**  
+**MPC_PID Lane Changing:**  
 <p align="center">
-  <img src="Figure/MPC_PID_LC%20(2).gif" alt="MPC vs. PID Lane Changing" width="100%">
+  <img src="Figure/MPC_PID_LC%20(2).gif" alt="MPC_PID Lane Changing" width="100%">
 </p>
 
 **Decision Making Process:**  
