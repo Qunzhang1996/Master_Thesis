@@ -805,7 +805,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
 
         # axanime.add_patch(tractor)
 
-        plt.scatter(X[0,i,0],X[1,i,0])
+        # plt.scatter(X[0,i,0],X[1,i,0])
         # #! X[4,i,0] = 0
         # X_new = rotmatrix([-L_trail,-vehWidth/2],[X[0,i,0],X[1,i,0]],0)
         # trailer = Rectangle((X_new[0],X_new[1]),width = L_trail, height = vehWidth, angle = 180*(0)/np.pi,
@@ -875,32 +875,37 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             XY = np.zeros((2,2*frameSize,Nveh+2))
             for j in range(Nveh):
                 #! avoid ego vehicle 
-                if j == 1: continue
+                # if j == 1: continue
                 p_ij = paramLog[:,i,j,0]
                 x_ij = np.arange(-frameSize,frameSize,1)
                 for k in range(len(x_ij)):
                     y_cons_ij = constraint_laneChange[j](x_ij[k],p_ij[0],p_ij[1],p_ij[2],p_ij[3])[0].full().item()
+                    # print("this is y_cons_ij: ", y_cons_ij) 
                     XY[0,k,j] = X[0,i,0]+x_ij[k]
                     XY[1,k,j] = y_cons_ij
             
             XY[0,:,-2] = XY[0,:,-3]
-            XY[1,:,-2] = vehWidth/2+d_lat_spread
+            XY[1,:,-2] = vehWidth/2+d_lat_spread +scenarioTrailADV.init_bound
             XY[0,:,-1] = XY[0,:,-3]
-            XY[1,:,-1] = 2*laneWidth-vehWidth/2-d_lat_spread
+            XY[1,:,-1] = 2*laneWidth-vehWidth/2-d_lat_spread + scenarioTrailADV.init_bound
 
-            upperY = np.zeros((2*frameSize,))
+            upperY = np.zeros((2*frameSize,)) 
             lowerY = np.zeros((2*frameSize,))
             for k in range(len(x_ij)):
                 idx = np.where(paramLog[2,i,:,0] < 0)[0]
                 idx = np.append(idx,Nveh+1)
+                idx = idx[idx != 1]   #! avoid ego vehicle    
                 idx_upper = np.argmin(XY[1,k,idx]-X[1,i,0])
                 upperY[k] = XY[1,k,idx[idx_upper]]
+                
 
                 idx = np.where(paramLog[2,i,:,0] > 0)[0]
                 idx = np.append(idx,Nveh)
                 idx_lower = np.argmin(X[1,i,0]-XY[1,k,idx])
+                # print("this is idx_lower: ", idx_lower)
                 lowerY[k] = XY[1,k,idx[idx_lower]]
-            
+            # print("this is upperY: ", upperY)
+            # print("this is lowerY: ", lowerY)
             idx_join = np.where(lowerY> upperY)[0]
             idx_join_forward = np.where(idx_join > frameSize)[0]
             idx_join_backward = np.where(idx_join < frameSize)[0]
@@ -915,7 +920,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             XY = np.zeros((2,2*frameSize,Nveh+2))
             for j in range(Nveh):
                 #! avoid ego vehicle 
-                if j == 1: continue
+                # if j == 1: continue
                 p_ij = paramLog[:,i,j,1]
                 x_ij = np.arange(-frameSize,frameSize,1)
                 for k in range(len(x_ij)):
@@ -924,14 +929,15 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                     XY[1,k,j] = y_cons_ij
 
             XY[0,:,-2] = XY[0,:,-3]
-            XY[1,:,-2] = -laneWidth + vehWidth/2+d_lat_spread
+            XY[1,:,-2] = -laneWidth + vehWidth/2+d_lat_spread + scenarioTrailADV.init_bound
             XY[0,:,-1] = XY[0,:,-3]
-            XY[1,:,-1] = laneWidth-vehWidth/2-d_lat_spread
+            XY[1,:,-1] = laneWidth-vehWidth/2-d_lat_spread + scenarioTrailADV.init_bound
             upperY = np.zeros((2*frameSize,))
             lowerY = np.zeros((2*frameSize,))
             for k in range(len(x_ij)):
                 idx = np.where(paramLog[2,i,:,1] < 0)[0]
                 idx =np.append(idx,Nveh+1)
+                idx = idx[idx != 1]   #! avoid ego vehicle
                 idx_upper = np.argmin(XY[1,k,idx]-X[1,i,0])
                 upperY[k] = XY[1,k,idx[idx_upper]]
 
@@ -965,11 +971,12 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             laneBounds = laneCenters[lane] + np.array([-laneWidth/2,laneWidth/2])
 
             X_limit = X[0,i,0]+dX_lead-D_safe - X[2,i,0] * t_headway
+            # print("this is the limit",X_limit)
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'b')
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'b')
             plt.plot([X_limit,X_limit],laneBounds,'b')
 
-    anime = FuncAnimation(figanime, animate, frames=i_crit, interval=300, repeat=False)
+    anime = FuncAnimation(figanime, animate, frames=i_crit, interval=400, repeat=False)
 
     writergif = animation.PillowWriter(fps=int(1/vehicle.dt)) 
     anime.save(directory, writer=writergif)

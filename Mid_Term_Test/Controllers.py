@@ -243,7 +243,8 @@ class makeDecisionMaster:
         self.laneWidth = self.scenarios[1].laneWidth
         
         self.egoLane = self.scenarios[0].getEgoLane()
-        self.egoPx = self.traffic.getStates()[0,1]
+        self.egoPx = self.vehicle.getPosition()[0]
+        
         self.init_bound = self.traffic.getInitBound()
         
         self.nx,self.nu,self.nrefx,self.nrefu = vehicle.getSystemDim()
@@ -319,6 +320,8 @@ class makeDecisionMaster:
         """
         self.x_iter, self.refxL_out, self.refxR_out, self.refxT_out, self.refu_out, \
                                                     self.x_lead,self.traffic_state = input
+                                                    
+        print("INFO: Ego position in storeInput is:", self.x_iter[0])
     
     
     def costRouteGoal(self,i):
@@ -394,6 +397,7 @@ class makeDecisionMaster:
         self.scenarios[0].setEgoLane(self.traffic)
         py_ego = self.vehicle.getPosition()[1]
         self.egoPx = self.vehicle.getPosition()[0]
+        print("INFO: Ego position in update is:", self.egoPx)
         refu_in = [0,0,0]                                     # To work with function reference (update?)
 
         refxT_in,refxL_in,refxR_in = self.vehicle.getReferences()
@@ -438,15 +442,17 @@ class makeDecisionMaster:
         Centers the x-position around 0 (to fix nummerical issues)
         """
         # Store current values of changes
-        self.egoPx = self.x_iter[0]
+        self.egoPx = float(self.x_iter[0])
+        # print("INFO: Ego position of  self.egoPx  is:", self.egoPx)
         # Alter initialization of MPC
         # # X-position
         self.x_iter[0] = 0
         for i in range(self.Nveh):
             self.x_lead[i,:] = self.x_lead[i,:] - self.egoPx
-        
+        # print("INFO: Ego position before removing deviation is:", self.traffic_state[0,:,:])
         self.traffic_state[0,:,:] = self.traffic_state[0,:,:] - self.egoPx
-        self.traffic_state[0,:,:] = np.clip(self.traffic_state[0,:,:],-600,600)  
+        self.traffic_state[0,:,:] = np.clip(self.traffic_state[0,:,:],-800,800)  
+        # print("INFO: Ego position after removing deviation is:", self.traffic_state[0,:,:])
         
     def removeDeviation_y(self):
         self.traffic_state[1,:,:] = self.traffic_state[1,:,:] - self.init_bound
@@ -456,8 +462,8 @@ class makeDecisionMaster:
         # Adds back the deviations that where removed in the above function
         """
         self.x_iter[0] = self.egoPx
-        print(X[0,:])
-        X[0,:] = X[0,:] + float(self.egoPx)
+        X[0,:] = X[0,:] + self.egoPx
+
         return X, U
     
     
@@ -535,7 +541,7 @@ class makeDecisionMaster:
         costL,costL_slack = 1e10,1e10
         costR,costR_slack = 1e10,1e10
    
-        # self.removeDeviation()
+        self.removeDeviation()
         self.removeDeviation_y()
         
         if self.doTrailing:
@@ -567,7 +573,7 @@ class makeDecisionMaster:
                                             self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
             
         #TODO: SIMPLE CHOICE OF THE CONTROLLER BASED ON THE COST
-        
+        # print("this is x_iter in controller", self.x_iter)
         
         # compare with the cost before and cose the best decision
         decision_i = np.argmin(np.array([costL+costL_slack,costR+costR_slack,costT+costT_slack]))
@@ -598,8 +604,12 @@ class makeDecisionMaster:
             print("INFO:  Optimal cost:", [costT+costT_slack])
             
         print('INFO:  Decision: ',self.controllers[decision_i].opts["version"])
-        
+
+        X, U = self.returnDeviation(X,U)
+
+
         x_ok, u_ok, X = self.checkSolution(X,U)
+        
             
         return u_ok, x_ok, X, decision_i
     

@@ -71,7 +71,7 @@ vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
-Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,80,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
 q_ADV_decision = 100
 vehicleADV.cost(Q_ADV,R_ADV)
@@ -202,11 +202,11 @@ for i in range(0,Nsim):
         refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
         u_opt, x_opt, X_out, decision_i  = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
-        # print("INFO: The reference of the truck is: ", Traj_ref[1,:])
+        # print("INFO: The referenc e of the truck is: ", Traj_ref[1,:])
         u_iter = u_opt[:,0].reshape(-1,1)
         X_ref=Traj_ref[:,count] #last element
         #! get the computed time of the MPC of real time
-        print("INFO: The computation time of the MPC is: ", [time.time()-iteration_start])
+        print("INFO:  The computation time of the MPC is: ", [time.time()-iteration_start])
         # print("INFO: The reference of the truck is: ", Traj_ref[1,:])
     else: #! when mpc is asleep, the PID will track the Traj_ref step by step
         count = count + 1
