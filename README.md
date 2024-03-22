@@ -1,120 +1,54 @@
-# Master_Thesis
-## This the repo for master_thesis
-For the EKF_MPC, we use the workflow shown below (we did not use the sensor in carla actually):
-<p float="left">
-  <img src="Figure/Work_flow.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/ACC_in_heavy_traffic.gif" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/MPC_PID_LC (2).gif" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/decision_master.gif" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" width="85%" /> 
-</p>   
-## 2024/01/24 QunZhang
-Create the repo and add some related folder   
+# MSc Thesis: Robust MPC for Autonomous Vehicles in Uncertain Situations
 
-## 2024/01/26 QunZhang
-Add kalman filter and test it in CARLA simulation, and tighten the constraint as shown below: 
-<p float="left">
-  <img src="Figure\CARLA_KF_TEST.gif" width="40%" style="transform: scaleX(-1);" />
-  <img src="Figure/animation.gif" width="21.2%" />
-  <img src="Figure/MPC_tighten_bound.jpg" width="32%" /> 
-</p>    
+**Authors:** Erik Börve, Qun Zhang, Saeed Salih   
+**Emails:** [borerik@chalmers.se](mailto:borerik@chalmers.se), [qunz@chalmers.se](mailto:qunz@chalmers.se), [saeedsal@chalmers.se](mailto:saeedsal@chalmers.se)   
+**Affiliation:** Department of Electrical Engineering, Chalmers University of Technology, Göteborg, Sweden
 
+## Purpose
 
+The objectives of this thesis are to:
 
-## 2024/02/09 QunZhang
-This is the result of the MPC_PID_ACC:
-<p float="left">
-  <img src="Figure/MPC_PID_ACC.gif" width="85%" /> 
-</p>   
-This is the result of the MPC_PID_ACC without kalman filter (red bounding box is tighten IDM_constraint):  
-<p float="left">
-  <img src="Figure/IDM_constraint_simulation_plots.gif" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/simulation_plots.png" width="85%" /> 
-</p>   
+- Construct safety-critical scenarios for a heavy vehicle in the CARLA simulator, emphasizing realistic challenges in autonomous driving.
+- Design and implement a Robust Model Predictive Controller (RMPC) that accounts for uncertainties in the ego-vehicle's state and dynamics, ensuring safety and reliability.
+- Extend the RMPC to effectively handle uncertainties related to the surrounding vehicles, improving situational awareness and decision-making.
 
-## 2024/02/14 QunZhang   
+## Workflow
 
-This is the result of the MPC_PID_ACC with kalman filter (red bounding box is tighten IDM_constraint):  
-<p float="left">
-  <img src="Figure/CARLA_IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_plots_kf_state_compare.png_trajectory.gif" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_plots_with_filter.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_compare_ref.png" width="85%" /> 
-</p>   
-This is the result of the MPC_PID_ACC with kalman filter (PID works every 0.2s, MPC works every 1s):
-(Computional time of the MPC is:  0.067s with N=12, 0.11s with N=30)
-<p float="left">
-  <img src="Figure/CARLA_IDM_constraint_simulation_plots_with_filter.gif" width="85%" /> 
-</p>   
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_plots_kf_state_compare_diffF.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_plots_with_filter_diffF.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_compare_ref_diffF.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_compare_ref_diffF.png" width="85%" /> 
-</p>   
+Our workflow integrates an Extended Kalman Filter (EKF) with a Model Predictive Controller (MPC) for enhanced accuracy and robustness, depicted in the figures below. Notably, we simulate sensor inputs rather than using actual CARLA sensors to streamline our process.
 
-## 2024/03/07 QunZhang
-Here is the right lane changing constraint:   
-<p float="left">
-  <img src="Figure/right_lane_constraint.png" width="85%" /> 
-</p>   
+**Workflow Overview:**  
+![Work Flow Diagram](Figure/Work_flow.png)
 
-Here is the right lane change result:  
-<p float="left">
-  <img src="Figure/MPC_PID_LC.gif" width="85%" /> 
-</p>   
+**Trajectory Propagation:**  
+The difference between the simulated vehicle in CARLA and our nominal model is treated as noise. The figure illustrates how this discrepancy propagates over time.  
+![Propagation of Trajectory](Figure/propagation_of_trajectory.png)
 
-## 2024/03/19 QunZhang
-Here is the decision master result:
-<p float="left">
-  <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" width="85%" /> 
-</p>   
-<p float="left">
-  <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" width="85%" /> 
-</p>   
+**SMPC Constraint Tightening:**  
+To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
+![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
 
-## 2024/03/20 QunZhang
-TODO List: 
+For detailed constraint definitions, please refer to our supervisor's paper:  
+*E. Börve, N. Murgovski, and L. Laine, "Interaction-Aware Trajectory Prediction and Planning in Dense Highway Traffic using Distributed Model Predictive Control."*
 
-```
-1. tunning the controller
-2. decision master
-3. add uncertainty plot,  plot constraints every time
-4. add noise into measurement and tighten the lane change change constraint
-5. plot constraint, and broadcast of the uncertainty
-```
+## Simulation in the CARLA Environment
 
-<p float="left">
-  <img src="Figure/propagation of trajectory.png" width="85%" /> 
-</p>   
+We showcase our RMPC's performance in various driving scenarios within the CARLA simulator. Below are GIFs depicting different aspects of the driving scenario, including Adaptive Cruise Control (ACC) in heavy traffic, lane changing with MPC_PID control, decision-making processes.
 
+**Adaptive Cruise Control in Heavy Traffic:**  
+![ACC in Heavy Traffic](Figure/ACC_in_heavy_traffic.gif)
 
-<p float="left">
-  <img src="Figure/crazy_traffic_mix3.gif" width="85%" /> 
-</p>   
+**MPC vs. PID Lane Changing:**  
+![MPC vs. PID Lane Changing](Figure/MPC_PID_LC%20(2).gif)
+
+**Decision Making Process:**  
+![Decision Making Process](Figure/decision_master.gif)
+
+**Driving in Heavy Traffic Conditions:**  
+![Heavy Traffic Conditions](Figure/crazy_traffic_mix3.gif)
+
+**Controller Testing in CARLA:**  
+![Controller Testing](Figure/CARLA_simulationn_Make_Controller_TEST_ref.png)
+
+**Vehicle Trajectory:**  
+The trajectory followed by the vehicle during the tests, highlighting the precision and robustness of our controller.  
+![Vehicle Trajectory](Figure/CARLA_simulation_Make_Controller_TEST.png)

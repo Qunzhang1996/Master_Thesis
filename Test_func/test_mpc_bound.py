@@ -51,10 +51,10 @@ Possibilty=0.95  # the possibility of the tightened bound
 # initial upper bound of the constraints
 # Here is the upper bound of the constraints
 H_up=[np.array([[1],[0],[0],[0]]),np.array([[0],[1],[0],[0]]), np.array([[0],[0],[1],[0]]), np.array([[0],[0],[0],[1]])]
-upb=np.array([[5000],[1.75],[30],[3.14/16]])  #no limit to the x, y should be in [-1.75, 1.75], v should be in [0,30], psi should be in [-3.14/8,3.14/8]
+upb=np.array([[5000],[1.75],[30],[3.14/8]])  #no limit to the x, y should be in [-1.75, 1.75], v should be in [0,30], psi should be in [-3.14/8,3.14/8]
 # Here is the lower bound of the constraints
 H_low=[np.array([[-1],[0],[0],[0]]),np.array([[0],[-1],[0],[0]]), np.array([[0],[0],[-1],[0]]), np.array([[0],[0],[0],[-1]])]
-lwb=np.array([[0],[1.75],[0],[3.14/16]])  #no limit to the x, y should be in [-1.75, 1.75], v should be in [0,30], psi should be in [-3.14/8,3.14/8]
+lwb=np.array([[0],[1.75],[0],[3.14/8]])  #no limit to the x, y should be in [-1.75, 1.75], v should be in [0,30], psi should be in [-3.14/8,3.14/8]
 # Predict Horizon 
 N=12
 #calculate the Nth tightened bound
