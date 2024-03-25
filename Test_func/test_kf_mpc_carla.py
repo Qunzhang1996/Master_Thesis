@@ -130,7 +130,6 @@ R_0[0,0]=0.1**2
 R_0[1,1]=0.1**2 
 R_0[2,2]=0.1**2
 R_0[3,3]=(1/180*np.pi)**2
-
 # set the initial state and control input
 x_0 = x_iter
 P_kf=np.eye(nx)*0.0001  # initial state covariance
@@ -195,7 +194,6 @@ for i in range(1000):
     truck_state = get_state(truck)
    
     #according to R_0 matrix, we add the noise to the measurement
-
     r = np.random.normal(0.0, 0.1, size=(nx, 1))
     r[3]=np.random.normal(0.0, (1/180*np.pi))
     r2 = np.random.normal(0.0, sigma_process, size=(nx, 1))

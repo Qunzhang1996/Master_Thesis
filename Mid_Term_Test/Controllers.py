@@ -270,23 +270,6 @@ class makeDecisionMaster:
         self.decisionLog = []
         #! TEST, ADD COST AND DECISION IN THE LOG
         
-    # def checkSolution(self,x_pred_new,u_pred_new):
-    #     """
-    #     Checks if the MPC returned a strange solution
-    #      - If that is the case, fall back to the previous solution
-    #      - The number of times this occurs is presented as "Error count"
-    #     """
-    #     cond1 = (x_pred_new[0,0]) < (self.x_pred[0,0] - self.tol)
-    #     cond2 = ((x_pred_new[1,0] - x_pred_new[1,1]) > 1)
-    #     if  (cond1 or cond2) and (self.consecutiveErrors < self.N-1):
-    #         self.consecutiveErrors += 1
-    #         self.errors += 1
-    #         return self.x_pred[:,self.consecutiveErrors], self.u_pred[:,self.consecutiveErrors], self.x_pred
-    #     else:
-    #         self.consecutiveErrors = 0
-    #         self.x_pred = x_pred_new
-    #         self.u_pred = u_pred_new
-    #         return x_pred_new[:,0], u_pred_new[:,0], self.x_pred
 
     def checkSolution(self, x_pred_new, u_pred_new):
         """
@@ -390,13 +373,13 @@ class makeDecisionMaster:
         
         
         
-    def updateReference(self):
+    def updateReference(self, r=np.zeros((4,1))):
         """
         Updates the y position reference for each controller based on the current lane
         """
         self.scenarios[0].setEgoLane(self.traffic)
-        py_ego = self.vehicle.getPosition()[1]
-        self.egoPx = self.vehicle.getPosition()[0]
+        py_ego = self.vehicle.getPosition()[1] + r[1]
+        self.egoPx = self.vehicle.getPosition()[0]+ r[0]
         print("INFO: Ego position in update is:", self.egoPx)
         refu_in = [0,0,0]                                     # To work with function reference (update?)
 

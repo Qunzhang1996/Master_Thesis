@@ -8,6 +8,7 @@ from Controllers import makeController, makeDecisionMaster
 from vehicle_model import car_VehicleModel
 from Traffic import Traffic
 from Scenarios import trailing, simpleOvertake
+from kalman_filter import kalman_filter
 from util.utils import *
 
 sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
@@ -26,7 +27,7 @@ from agents.navigation.controller import VehiclePIDController
 
 
 makeMovie = True
-directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3.gif"
+directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3_EKF.gif"
 
 ## ! --------------------------------------System initialization--------------------------------------------
 dt = 0.3                  # Simulation time step (Impacts traffic model accuracy)
@@ -54,7 +55,6 @@ time.sleep(1)
 px_init,py_init,vx_init=traffic.getStates()[:3,1] # get the initial position of the truck
 truck = traffic.getEgo()  # get the ego vehicle
 
-
 ## ! -----------------------------------initialize the local controller-----------------------------------------
 local_controller = VehiclePIDController(truck, 
                                         args_lateral = {'K_P': 1.2, 'K_I': 0.2, 'K_D': 0.5, 'dt': dt_PID}, 
@@ -64,7 +64,6 @@ local_controller = VehiclePIDController(truck,
 # while(True):
 #     control_Truck = local_controller.run_step(ref_vx*3.6-50, 143.318146, False)
 #     truck.apply_control(control_Truck)
-
 
 ## ! -----------------------------------initialize the VehicleModel-----------------------------------------
 vehicleADV = car_VehicleModel(dt,N)
@@ -78,14 +77,12 @@ vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 
-
 ## ! --------------------------------------- Problem definition ---------------------------------------------
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
 scenarioTrailADV.slackCost(q_traffic_slack)
 #TODO: ADD scenarioADV LATTER
 scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
 scenarioADV.slackCost(q_traffic_slack)
-
 #! get road INFOS
 roadMin, roadMax, laneCenters, _ = scenarioTrailADV.getRoad()
 #! initilize the ego vehicle
@@ -98,28 +95,34 @@ vehicleADV.setInit([px_init,py_init],ref_vx )
 #!      Formulate optimal control problem using opti framework
 #! -----------------------------------------------------------------
 #! -----------------------------------------------------------------
-
-
-
-
-
 opts1 = {"version" : "leftChange", "solver": "ipopt", "integrator":"LTI"}
 MPC_LC= makeController(vehicleADV,traffic,scenarioADV,N,opts1,dt)
 MPC_LC.setController()
 #TODO: MPC_LC.setController()
-
 opts2 = {"version" : "rightChange", "solver": "ipopt", "integrator":"LTI"}
 MPC_RC= makeController(vehicleADV,traffic,scenarioADV,N,opts2,dt)
 MPC_RC.setController()
-
 opts3 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
 MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt)
 MPC_trailing.setController()
-
-
 print("INFO:  Initilization succesful.")               
-
-                                                                                          
+# !----------------- Kalman Filter Settings ------------------------   
+sigma_process=0.01
+sigma_measurement=0.01
+Q_0=np.eye(nx)*sigma_process**2
+Q_0[0,0]=1  # x bound is [0, 3]
+Q_0[1,1]=0.01**2  # y bound is [0, 0.1]
+Q_0[2,2]=1  # v bound is [0, 1.8]
+Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
+R_0=np.eye(nx)*sigma_measurement
+R_0[0,0]=0.1**2
+R_0[1,1]=0.1**2 
+R_0[2,2]=0.1**2
+R_0[3,3]=(1/180*np.pi)**2
+P_kf=np.eye(nx)*1  # initial state covariance
+# get system dynamic matrices
+A,B=MPC_trailing.A, MPC_trailing.B
+H=np.eye(nx)   #measurement matrix, y=H@x_iter                                                                                 
 #! -----------------------------------------Initilize Decision Master-----------------------------------------
 decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC_LC, MPC_RC, MPC_trailing],
                                 [scenarioTrailADV,scenarioADV])
@@ -130,12 +133,18 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
 # ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
-tsim = 40                       # Total simulation time in seconds
+tsim = 38                       # Total simulation time in seconds
 Nsim = int(tsim/dt)
 # # Initialize simulation
 x_iter = DM(int(nx),1)
 x_iter[:],u_iter = vehicleADV.getInit()
-vehicleADV.update(x_iter,u_iter)
+#! set the initial state and control input
+x_0 = x_iter
+u_iter = np.array([0,0])
+#! initial the Kalman Filter
+ekf=kalman_filter(A,B,H,x_0,P_kf,Q_0,R_0)       
+#! initial the Vehicle Model
+vehicleADV.update(x_0,u_iter)
 
 refxADV = [0,laneCenters[1],ref_vx,0,0]
 refxT_in, refxL_in, refxR_in = vehicleADV.setReferences(ref_vx)
@@ -192,6 +201,10 @@ for i in range(0,Nsim):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
+    #! according to R_0 matrix, we add the noise to the measurement
+    r = np.random.normal(0.0, 0.1, size=(nx, 1))
+    r[3]=np.random.normal(0.0, (1/180*np.pi))
+
     if i % f_controller == 0:
         count = 0
         print("----------")
@@ -199,28 +212,37 @@ for i in range(0,Nsim):
         
         decisionMaster.storeInput([x_iter,refxL_out,refxR_out,refxT_out,refu_out,x_lead,traffic_state])
         #TODO: Update reference based on current lane
-        refxL_out,refxR_out,refxT_out = decisionMaster.updateReference()
+        refxL_out,refxR_out,refxT_out = decisionMaster.updateReference(r)
         u_opt, x_opt, X_out, decision_i  = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
         # print("INFO: The referenc e of the truck is: ", Traj_ref[1,:])
-        u_iter = u_opt[:,0].reshape(-1,1)
-        X_ref=Traj_ref[:,count] #last element
+        X_ref=Traj_ref[:,count] 
+        u_iter = u_opt[:,count].reshape(-1,1)
         #! get the computed time of the MPC of real time
         print("INFO:  The computation time of the MPC is: ", [time.time()-iteration_start])
         # print("INFO: The reference of the truck is: ", Traj_ref[1,:])
     else: #! when mpc is asleep, the PID will track the Traj_ref step by step
         count = count + 1
         X_ref=Traj_ref[:,count]
+        u_iter = u_opt[:,count].reshape(-1,1)
     for j in range(5):
         control_truck = local_controller.run_step(X_ref[2]*3.6, [X_ref[1],X_ref[0]] , False)
         truck.apply_control(control_truck)
             
     #TODO: Update traffic and store data
-    x_iter = get_state(truck)
+    measurement_truck = get_state(truck) + r
+    # !-----------------  do extended kalman filter ------------------------
+    ekf.predict(u_iter, A, B)  # predict the state
+    ekf.update(measurement_truck)  # update the state
+    truck_estimate = ekf.get_estimate  # get the estimated state
+    P_estimate = ekf.get_covariance  # get the estimated covariance
+    x_iter = truck_estimate
+    # !---------------------------------------------------------------------
+    
     vehicleADV.update(x_iter,u_iter)
-    truck_state = traffic.getStates()[:,1]
-    truck_x, truck_y, truck_v, truck_psi = truck_state[C_k.X_km].item(), truck_state[C_k.Y_km].item(), \
-                                            truck_state[C_k.V_km].item(), truck_state[C_k.Psi].item()
+    truck_state = x_iter
+    truck_x, truck_y, truck_v, truck_psi = float(truck_state[C_k.X_km]), float(truck_state[C_k.Y_km]), \
+                                            float(truck_state[C_k.V_km]), float(truck_state[C_k.Psi])
     X[:,i] = np.array([truck_x, truck_y, truck_v, truck_psi]).reshape(-1,1)
     U[:,i] = u_iter
     X_pred[:,:,i] = X_out
@@ -281,19 +303,19 @@ i_crit = i
                                                 
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
+gif_name = 'CARLA_simulation_Make_Controller_TEST_all_EKF.gif'
 # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
-figure_name = 'CARLA_simulation_Make_Controller_all_TEST.png'
+figure_name = 'CARLA_simulation_Make_Controller_TEST_all_EKF.png'
 plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, truck_accelerations, truck_jerks, 
                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                               figure_dir,figure_name)
 
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
+figure_name = 'CARLA_simulation_Make_Controller_TEST_EKF.png'
 plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
 
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
-figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
+figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref_EKF.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
 
