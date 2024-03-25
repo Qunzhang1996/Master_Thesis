@@ -39,7 +39,7 @@ laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
 ref_velocity=ref_vx
-q_traffic_slack = 1e5
+q_traffic_slack = 1e4
 traffic = Traffic(N,dt)
 velocities = {
         'normal': carla.Vector3D(0.75 * ref_vx, 0, 0),
@@ -70,9 +70,9 @@ vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
-Q_ADV = [0,80,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
-q_ADV_decision = 100
+q_ADV_decision = 50
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -88,8 +88,24 @@ roadMin, roadMax, laneCenters, _ = scenarioTrailADV.getRoad()
 #! initilize the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
 vehicleADV.setInit([px_init,py_init],ref_vx )
+# !----------------- Kalman Filter Settings ------------------------   
+sigma_process=0.01
+sigma_measurement=0.01
+Q_0=np.eye(nx)*sigma_process**2
+Q_0[0,0]=0.3  # x bound is [0, 3]
+Q_0[1,1]=0.01  # y bound is [0, 0.1]
+Q_0[2,2]=0.5  # v bound is [0, 1.8]
+Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
 
+R_0=np.eye(nx)*sigma_measurement
+R_0[0,0]=0.1**2
+R_0[1,1]=0.1**2 
+R_0[2,2]=0.1**2
+R_0[3,3]=(1/180*np.pi)**2
 
+# ! get the param for the stochastic mpc
+P0, _, possibility = set_stochastic_mpc_params()
+vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 #! -----------------------------------------------------------------
 #! -----------------------------------------------------------------
 #!      Formulate optimal control problem using opti framework
@@ -106,23 +122,7 @@ opts3 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
 MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt)
 MPC_trailing.setController()
 print("INFO:  Initilization succesful.")               
-# !----------------- Kalman Filter Settings ------------------------   
-sigma_process=0.01
-sigma_measurement=0.01
-Q_0=np.eye(nx)*sigma_process**2
-Q_0[0,0]=1  # x bound is [0, 3]
-Q_0[1,1]=0.01**2  # y bound is [0, 0.1]
-Q_0[2,2]=1  # v bound is [0, 1.8]
-Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
-R_0=np.eye(nx)*sigma_measurement
-R_0[0,0]=0.1**2
-R_0[1,1]=0.1**2 
-R_0[2,2]=0.1**2
-R_0[3,3]=(1/180*np.pi)**2
-P_kf=np.eye(nx)*1  # initial state covariance
-# get system dynamic matrices
-A,B=MPC_trailing.A, MPC_trailing.B
-H=np.eye(nx)   #measurement matrix, y=H@x_iter                                                                                 
+                                                                        
 #! -----------------------------------------Initilize Decision Master-----------------------------------------
 decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC_LC, MPC_RC, MPC_trailing],
                                 [scenarioTrailADV,scenarioADV])
@@ -133,11 +133,16 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
 # ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
-tsim = 38                       # Total simulation time in seconds
+tsim = 40                     # Total simulation time in seconds
 Nsim = int(tsim/dt)
 # # Initialize simulation
 x_iter = DM(int(nx),1)
 x_iter[:],u_iter = vehicleADV.getInit()
+# ! get param for the kalman filter
+P_kf=np.eye(nx)*1  # initial state covariance
+# get system dynamic matrices
+A,B=MPC_trailing.A, MPC_trailing.B
+H=np.eye(nx)   #measurement matrix, y=H@x_iter         
 #! set the initial state and control input
 x_0 = x_iter
 u_iter = np.array([0,0])

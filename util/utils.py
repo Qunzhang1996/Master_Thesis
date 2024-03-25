@@ -138,10 +138,15 @@ def set_stochastic_mpc_params():
                 [6.625835814018292e-06, -1.0590200501496282e-05, 0.0020706909538251504, 5.4487618678242517e-08], 
                 [3.5644803460420577e-06, 2.2185062971375356e-06, 5.448761867824289e-08, 0.002071025561957967]])
     process_noise=np.eye(4)  # process noise
-    process_noise[0,0]=2  # x bound is [0, 3]
-    process_noise[1,1]=0.2  # y bound is [0, 0.1]
-    process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
-    process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
+    # process_noise[0,0]=2  # x bound is [0, 3]
+    # process_noise[1,1]=0.2  # y bound is [0, 0.1]
+    # process_noise[2,2]=1.8/6*2  # v bound is [0, 1.8]
+    # process_noise[3,3]=0.05/6  # psi bound is [0, 0.05]
+    process_noise[0,0]=0.2  # x bound is [0, 3]
+    process_noise[1,1]=0.01  # y bound is [0, 0.1]
+    process_noise[2,2]=0.5  # v bound is [0, 1.8]
+    process_noise[3,3]=0.01**2  # psi bound is [0, 0.05]
+    
 
     possibility=0.95  # possibility 
     return P0,process_noise,possibility
@@ -716,15 +721,13 @@ def rotmatrix(L,xy,ang):
     x_new = np.cos(ang)*L[0] -np.sin(ang)*L[1] + xy[0]
     y_new = np.sin(ang)*L[0] + np.cos(ang)*L[1] + xy[1]
     return x_new,y_new
-
-
-
-
-
+    
+    
 def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicle,scenarioTrailADV,scenario,traffic,i_crit,f_c,directory):
     print("Generating gif ...")
     Nveh = traffic.getDim()
     vehWidth, vehLength,_,_ = vehicle.getSize()
+    temp_x, tempt_y = vehicle.getTemptXY()
     roadMin, roadMax, laneCenters,laneWidth = scenario.getRoad()
     decision_string = ["Change Left","Change Right","Keep Lane"]
     figanime = plt.figure(2)
@@ -873,7 +876,8 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             
 
         # Plot Constraints
-        constraint_laneChange = scenario.constraint(traffic,[])
+        # constraint_laneChange = scenario.constraint(traffic,[])
+        constraint_laneChange = scenario.constrain_tightened(traffic,[],temp_x, tempt_y)
         if decisionLog[i] == 0:
             # Left Change plot
             XY = np.zeros((2,2*frameSize,Nveh+2))
@@ -964,6 +968,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             dX_lead =  np.sum(paramLog[0,i,:,2]).item() if np.sum(paramLog[0,i,:,2]) > 0 else 2*frameSize
             min_distx = scenarioTrailADV.min_distx
             D_safe = min_distx + L_tract + leadLength/2
+            # D_safe =  min_distx + L_tract + leadLength/2 + temp_x[0]
             t_headway = scenarioTrailADV.Time_headway
 
             if X[1,i,0] > scenarioTrailADV.init_bound+laneWidth:

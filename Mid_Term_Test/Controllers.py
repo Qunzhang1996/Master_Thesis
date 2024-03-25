@@ -7,7 +7,7 @@ sys.path.append(path_to_add)
 from casadi import *
 import numpy as np
 from matplotlib import pyplot as plt
-from Controller.MPC_tighten_bound import MPC_tighten_bound
+from MPC_tighten_bound import MPC_tighten_bound
 from util.utils import *
 class makeController:   
     """
@@ -35,6 +35,7 @@ class makeController:
         self.vehWidth,self.egoLength,self.L_tract, self.L_trail = self.vehicle.getSize()
         self.nx,self.nu,self.nrefx,self.nrefu = self.vehicle.getSystemDim()
         self.init_bound = self.vehicle.getInitBound()
+        self.P0, self.process_noise, self.Possibility = self.vehicle.P0, self.vehicle.process_noise, self.vehicle.Possibility
         self.roadMin, self.roadMax, self.laneCenters, _ = self.scenario.getRoad()
         self.egoTheta_max  = vehicle.xConstraints()[1][3]  #! In this situation, we do not have egoTheta_max. no trailor
         self.opts = opts
@@ -51,12 +52,15 @@ class makeController:
             # self.F_x  = self.vehicle.getIntegrator()
             # ! set the LTI model from the vehicle model
             self.A, self.B, self.C = self.vehicle.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
+        self.D = np.eye(self.nx)  # Noise matrix
         # ! get the cost param from the vehicle model
         self.Q, self.R = self.vehicle.getCostParam()
             
         #! P0, process_noise, possibility will be obtained from set_stochastic_mpc_params
         #! Used for tighten the MPC bound
-        self.P0, self.process_noise, self.Possibility = set_stochastic_mpc_params()
+        #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
+    
+        self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, self.D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         
         # ! create opti stack
          # Create Opti Stack
@@ -68,6 +72,10 @@ class makeController:
         self.refx = self.opti.parameter(self.nrefx,self.N+1)
         self.refu = self.opti.parameter(self.nrefu,self.N)
         self.x0 = self.opti.parameter(self.nx,1)
+        
+        
+        #! turn on/off the stochastic MPC
+        self.stochasticMPC=1
         
         
         # ! change this according to the LC_MPC AND TRAILING_MPC
@@ -110,11 +118,21 @@ class makeController:
         
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
+        
     
     def setTrafficConstraints(self):
-        self.S = self.scenario.constraint(self.traffic,self.opts)
+        
+        if self.stochasticMPC:
+            self.temp_x, self.tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
+            print("INFO: temp_x is:", self.temp_x)
+            print("INFO: temp_y is:", self.tempt_y)
+            self.S =self.scenario.constrain_tightened(self.traffic,self.opts,self.temp_x, self.tempt_y)
+        else:
+            self.S = self.scenario.constraint(self.traffic,self.opts)
+            
 
         if self.scenario.name == 'simpleOvertake':
+            
             #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
             for i in range(self.Nveh):
                 if i ==1: continue #! avoid putting the ego vehicle in the list
@@ -139,23 +157,20 @@ class makeController:
             self.IDM_constraint_list = self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:]
             self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
             # ! tighten the TRAILING CONSTRAINTS  
-            self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
-            for i in range(self.N+1):
-                self.opti.subject_to(self.x[0,i] <= self.tightened_bound_N_IDM_list[i].item())
+            # self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
+            # for i in range(self.N+1):
+            #     self.opti.subject_to(self.x[0,i] <= self.tightened_bound_N_IDM_list[i].item())
 
     def setInEqConstraints(self):
         """
         Set inequality constraints, only for default constraints and tihgtened  default  constraints
         
         """
-        D = np.eye(self.nx)  # Noise matrix
         lbx,ubx = self.vehicle.xConstraints()
         # ! element in lbx and ubx should be positive
         lbx = [abs(x) for x in lbx]
         self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
         lbu,ubu = self.vehicle.uConstraints()
-        #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
-        self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
         
@@ -304,7 +319,7 @@ class makeDecisionMaster:
         self.x_iter, self.refxL_out, self.refxR_out, self.refxT_out, self.refu_out, \
                                                     self.x_lead,self.traffic_state = input
                                                     
-        print("INFO: Ego position in storeInput is:", self.x_iter[0])
+        # print("INFO: Ego position in storeInput is:", self.x_iter[0])
     
     
     def costRouteGoal(self,i):
@@ -378,9 +393,13 @@ class makeDecisionMaster:
         Updates the y position reference for each controller based on the current lane
         """
         self.scenarios[0].setEgoLane(self.traffic)
-        py_ego = self.vehicle.getPosition()[1] + r[1]
-        self.egoPx = self.vehicle.getPosition()[0]+ r[0]
-        print("INFO: Ego position in update is:", self.egoPx)
+        #! Here add the noise 
+        # py_ego = self.vehicle.getPosition()[1] + r[1]
+        # self.egoPx = self.vehicle.getPosition()[0]+ r[0]
+        py_ego =self.x_iter[1]
+        self.egoPx = self.x_iter[0]
+        
+        print("INFO:  Ego position Measurement is:", self.egoPx)
         refu_in = [0,0,0]                                     # To work with function reference (update?)
 
         refxT_in,refxL_in,refxR_in = self.vehicle.getReferences()
@@ -426,7 +445,6 @@ class makeDecisionMaster:
         """
         # Store current values of changes
         self.egoPx = float(self.x_iter[0])
-        # print("INFO: Ego position of  self.egoPx  is:", self.egoPx)
         # Alter initialization of MPC
         # # X-position
         self.x_iter[0] = 0
