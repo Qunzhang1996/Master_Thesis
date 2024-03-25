@@ -867,6 +867,10 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
         plt.axis('equal')
         plt.xlim(X[0,i,0]-frameSize, X[0,i,0]+frameSize)
         plt.ylim([roadMin-2, roadMax+2])
+        
+        
+        # if i == 0:
+            
 
         # Plot Constraints
         constraint_laneChange = scenario.constraint(traffic,[])
@@ -875,7 +879,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             XY = np.zeros((2,2*frameSize,Nveh+2))
             for j in range(Nveh):
                 #! avoid ego vehicle 
-                # if j == 1: continue
+                if j == 1: continue
                 p_ij = paramLog[:,i,j,0]
                 x_ij = np.arange(-frameSize,frameSize,1)
                 for k in range(len(x_ij)):
@@ -920,7 +924,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             XY = np.zeros((2,2*frameSize,Nveh+2))
             for j in range(Nveh):
                 #! avoid ego vehicle 
-                # if j == 1: continue
+                if j == 1: continue
                 p_ij = paramLog[:,i,j,1]
                 x_ij = np.arange(-frameSize,frameSize,1)
                 for k in range(len(x_ij)):
