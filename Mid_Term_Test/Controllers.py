@@ -144,10 +144,12 @@ class makeController:
             #TODO: DO The Tighten Finally
             # Set default road boundries, given that there is a "phantom vehicle" in the lane we can not enter
             d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
+            d_lat_spread = 0
             if self.opts["version"] == "leftChange":
-                self.y_lanes = [self.init_bound + self.vehWidth/2+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/2-d_lat_spread]
+                self.y_lanes = [self.init_bound + self.vehWidth/3+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/3-d_lat_spread]
             elif self.opts["version"] == "rightChange":
-                self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/2+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/2-d_lat_spread]
+                self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/3+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/3-d_lat_spread]
+            #! self.vehWidth/2 is  too strict, to be self.vehWidth/3
             # self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
 
         elif self.scenario.name == 'trailing':

@@ -33,8 +33,8 @@ directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3_E
 dt = 0.3                  # Simulation time step (Impacts traffic model accuracy)
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
-f_controller = 10            # Controller update frequency, i.e updates at each t = dt*f_controller
-N =  10        # MPC Horizon length
+f_controller = 10           # Controller update frequency, i.e updates at each t = dt*f_controller
+N =  12        # MPC Horizon length
 laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
@@ -93,7 +93,7 @@ sigma_process=0.01
 sigma_measurement=0.01
 Q_0=np.eye(nx)*sigma_process**2
 Q_0[0,0]=0.3  # x bound is [0, 3]
-Q_0[1,1]=0.01  # y bound is [0, 0.1]
+Q_0[1,1]=0.05  # y bound is [0, 0.1]
 Q_0[2,2]=0.5  # v bound is [0, 1.8]
 Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
 
