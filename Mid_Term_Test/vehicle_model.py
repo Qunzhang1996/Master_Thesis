@@ -5,11 +5,12 @@ In this project, we will use the LTI_MPC to control the truck
 '''
 from casadi import*
 import sys
-path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
+path_to_add='/mnt/c/Users/A490243/Desktop/Master_Thesis'
 sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.vehicleModelGarage import vehBicycleKinematic
 from MPC_tighten_bound import MPC_tighten_bound
 from enum import IntEnum
+from scipy.linalg import solve_discrete_are
 
 # ████████╗██████╗ ██╗   ██╗ ██████╗██╗  ██╗        ███╗   ███╗ ██████╗ ██████╗ ███████╗██╗     
 # ╚══██╔══╝██╔══██╗██║   ██║██╔════╝██║ ██╔╝        ████╗ ████║██╔═══██╗██╔══██╗██╔════╝██║     
@@ -39,6 +40,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.dt = dt                    # Time step
         self.N = N
         # Standard choices for reference and initialization
+       
         self.x_init = [0,0,54/3.6,0]
         self.p = self.x_init[:2]
         self.v = self.x_init[2]
@@ -81,6 +83,10 @@ class car_VehicleModel(vehBicycleKinematic):
         self.mass = 31000               # [kg]
         self.C_roll = 0.005             # []
         self.r_whl = 0.056              # [m]
+        
+        
+        
+        # self.LQR_P, self.LQR_K = self.calculate_Dlqr()
 
         
     
@@ -251,6 +257,15 @@ class car_VehicleModel(vehBicycleKinematic):
         return A_d, B_d, g_d
     
     
+    def calculate_Dlqr(self):
+        A, B, g = self.vehicle_linear_discrete_model()
+        Q= np.diag(self.Q)
+        R= np.diag(self.R)
+        P= solve_discrete_are(A, B, Q, R)
+        K = -np.linalg.inv(B.T @ P @ B + R) @ (B.T @ P @ A)
+        return P, K
+    
+    
     def setReferences(self,vx,center_line=143.318146):
         self.laneCenters = [center_line,center_line+self.laneWidth,center_line-self.laneWidth]
         self.refxT[1] = self.laneCenters[0]
@@ -284,7 +299,25 @@ class car_VehicleModel(vehBicycleKinematic):
         for i in range(0,self.nx):
             lf += Q[i]*(self.x[i]-self.refx[i]) ** 2
         
-        self.Lf =  Function('Lf',[self.x,self.refx],[lf],['x','refx'],['Lossf'])    
+        self.Lf =  Function('Lf',[self.x,self.refx],[lf],['x','refx'],['Lossf'])  
+        
+    def cost_new(self,Q,R):
+        self.Q = Q
+        self.R = R
+        l = 0
+        for i in range(0,self.nx):
+                l += Q[i]*(self.x[i]-self.refx[i]) ** 2
+        
+        for i in range(0,self.nu):
+            l += R[i]*(self.u[i]-self.refu[i]) ** 2
+        self.L = Function('L',[self.x,self.u,self.refx,self.refu],[l],['x','u','refx','refu'],['Loss'])    
+    
+    def costf_new(self,Q):
+        lf = 0
+        for i in range(0,self.nx):
+            lf += Q[i][i]*(self.x[i]-self.refx[i]) ** 2
+        
+        self.Lf =  Function('Lf',[self.x,self.refx],[lf],['x','refx'],['Lossf'])   
     
     def get_vehicle_size(self):
         return self.L_tract, self.L_trail, self.ego_width
@@ -298,6 +331,10 @@ class car_VehicleModel(vehBicycleKinematic):
     
     def getSystemDim(self):
         return self.nx,self.nu,self.nrefx,self.nrefu
+    
+    
+    def getCost(self):
+        return self.L, self.Lf
     
     def getCostParam(self):
         return self.Q, self.R

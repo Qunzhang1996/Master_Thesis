@@ -8,6 +8,7 @@ import sys
 path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
 sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.vehicleModelGarage import vehBicycleKinematic
+from scipy.linalg import solve_discrete_are
 from enum import IntEnum
 
 # ████████╗██████╗ ██╗   ██╗ ██████╗██╗  ██╗        ███╗   ███╗ ██████╗ ██████╗ ███████╗██╗     
@@ -72,6 +73,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.lr = self.WB/2
         self.lf = self.WB/2
         self.integrator('rk',self.dt)
+        self.LQR_P, self.LQR_K = self.calculate_Dlqr()
         
         # Energy efficiency parameters
         self.Cd = 0.31                  # []
@@ -248,6 +250,13 @@ class car_VehicleModel(vehBicycleKinematic):
             A_d, B_d, g_d = self.calculate_AB_cog()
         
         return A_d, B_d, g_d
+    
+    
+    def calculate_Dlqr(self):
+        A, B, g = self.vehicle_linear_discrete_model()
+        P= solve_discrete_are(A, B, self.Q, self.R)
+        K = -np.linalg.inv(B.T @ P @ B + self.R) @ (B.T @ P @ A)
+        return P, K
     
     
     def setReferences(self,vx,center_line=143.318146):

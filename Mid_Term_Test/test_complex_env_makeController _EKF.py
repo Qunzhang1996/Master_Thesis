@@ -39,7 +39,7 @@ laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
 ref_velocity=ref_vx
-q_traffic_slack = 1e4
+q_traffic_slack = 1e5
 traffic = Traffic(N,dt)
 velocities = {
         'normal': carla.Vector3D(0.75 * ref_vx, 0, 0),
@@ -69,11 +69,15 @@ local_controller = VehiclePIDController(truck,
 vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
+
 # Set Cost parameters
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
 q_ADV_decision = 50
-vehicleADV.cost(Q_ADV,R_ADV)
+# vehicleADV.cost(Q_ADV,R_ADV)
+# vehicleADV.costf(Q_ADV)
+vehicleADV.cost_new(Q_ADV,R_ADV)
+LQR_P, LQR_K = vehicleADV.calculate_Dlqr()
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 

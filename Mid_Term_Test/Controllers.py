@@ -2,13 +2,13 @@
 This one the the controller that contains trailing and lane change controller.
 """
 import sys
-path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
-sys.path.append(path_to_add)
+# path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
+# sys.path.append(path_to_add)
 from casadi import *
 import numpy as np
 from matplotlib import pyplot as plt
 from MPC_tighten_bound import MPC_tighten_bound
-from util.utils import *
+from utils import *
 class makeController:   
     """
     #! Creates a MPC based on current vehicle, traffic and scenario
@@ -36,6 +36,7 @@ class makeController:
         self.nx,self.nu,self.nrefx,self.nrefu = self.vehicle.getSystemDim()
         self.init_bound = self.vehicle.getInitBound()
         self.P0, self.process_noise, self.Possibility = self.vehicle.P0, self.vehicle.process_noise, self.vehicle.Possibility
+        self.LQR_P, self.LQR_K = self.vehicle.calculate_Dlqr()
         self.roadMin, self.roadMax, self.laneCenters, _ = self.scenario.getRoad()
         self.egoTheta_max  = vehicle.xConstraints()[1][3]  #! In this situation, we do not have egoTheta_max. no trailor
         self.opts = opts
@@ -68,11 +69,16 @@ class makeController:
 
         # # Initialize opti stack
         self.x = self.opti.variable(self.nx,self.N+1)
-        self.u = self.opti.variable(self.nu,self.N)
+        # self.u = self.opti.variable(self.nu,self.N)
         self.refx = self.opti.parameter(self.nrefx,self.N+1)
         self.refu = self.opti.parameter(self.nrefu,self.N)
         self.x0 = self.opti.parameter(self.nx,1)
         
+        # ! here is a test for miu
+        self.mu = self.opti.variable(self.nu,self.N)
+        self.u = self.LQR_K @ self.x[:,:N] + self.mu
+        # print(self.u.shape)
+        # exit()
         
         #! turn on/off the stochastic MPC
         self.stochasticMPC=1
@@ -107,6 +113,11 @@ class makeController:
             self.opti.subject_to(self.x[:, i+1] == A_d @ self.x[:, i] + B_d @ self.u[:, i] + G_d)
             # self.opti.subject_to(self.x[:, i+1] == self.F_x(self.x[:,i],self.u[:,i]))
         self.opti.subject_to(self.x[:, 0] == self.x0)
+        # self.opti.subject_to(self.u == self.LQR_K @ self.x + self.mu) 
+        
+        #! check withe ERIK
+        # for i in range(self.N):
+        #     self.opti.subject_to(self.u[:,i] == self.LQR_K @ self.x[:,i] + self.mu[:,i])
 
     def setInEqConstraints_val(self, H_up=None, upb=None, H_low=None, lwb=None):
         """
@@ -235,8 +246,11 @@ class makeController:
 
         try:
             sol = self.opti.solve()
+            mu_opt = sol.value(self.mu)
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
+            #! get u_opt from the LQR_K and mu_opt
+            u_opt = self.LQR_K @ x_opt[:,:self.N] + mu_opt
             costMain = sol.value(self.costMain)
             costSlack = sol.value(self.costSlack)
             return u_opt, x_opt, costMain, costSlack

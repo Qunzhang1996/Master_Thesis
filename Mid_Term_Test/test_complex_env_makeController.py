@@ -8,18 +8,18 @@ from Controllers import makeController, makeDecisionMaster
 from vehicle_model import car_VehicleModel
 from Traffic import Traffic
 from Scenarios import trailing, simpleOvertake
-from util.utils import *
+from utils import *
 
-sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
+sys.path.append(r'/mnt/c/Users/A490243/CARLA/CARLA_Latest/WindowsNoEditor/PythonAPI/carla')
 from agents.navigation.controller import VehiclePIDController
 
 # # ------------------------change map to Town06------------------------
 # import subprocess
 # # Command to run your script
 # command = (
-#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-#     r'python config.py --map Town06')
+#     r'python3 /mnt/c/Users/A490243/CARLA/CARLA_Latest/WindowsNoEditor/PythonAPI/util/config.py --map Town06')
 # subprocess.run(command, shell=True)
+# print('gi')
 # exit()
 # #  Run the command
 
@@ -33,7 +33,7 @@ dt = 0.3                  # Simulation time step (Impacts traffic model accuracy
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
 f_controller = 10            # Controller update frequency, i.e updates at each t = dt*f_controller
-N =  10        # MPC Horizon length
+N =  12        # MPC Horizon length
 laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)
@@ -74,7 +74,11 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 Q_ADV = [0,80,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
 q_ADV_decision = 100
-vehicleADV.cost(Q_ADV,R_ADV)
+# vehicleADV.cost(Q_ADV,R_ADV)
+# vehicleADV.costf(Q_ADV)
+# L_ADV,Lf_ADV = vehicleADV.getCost()
+vehicleADV.cost_new(Q_ADV,R_ADV)
+LQR_P, LQR_K = vehicleADV.calculate_Dlqr()
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
 
@@ -92,7 +96,16 @@ roadMin, roadMax, laneCenters, _ = scenarioTrailADV.getRoad()
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
 vehicleADV.setInit([px_init,py_init],ref_vx )
 
-
+sigma_process=0.01
+sigma_measurement=0.01
+Q_0=np.eye(nx)*sigma_process**2
+Q_0[0,0]=0.3  # x bound is [0, 3]
+Q_0[1,1]=0.05  # y bound is [0, 0.1]
+Q_0[2,2]=0.5  # v bound is [0, 1.8]
+Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
+# ! get the param for the stochastic mpc
+P0, _, possibility = set_stochastic_mpc_params()
+vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 #! -----------------------------------------------------------------
 #! -----------------------------------------------------------------
 #!      Formulate optimal control problem using opti framework
@@ -203,7 +216,7 @@ for i in range(0,Nsim):
         u_opt, x_opt, X_out, decision_i  = decisionMaster.chooseController()
         Traj_ref = x_opt # Reference trajectory (states)
         # print("INFO: The referenc e of the truck is: ", Traj_ref[1,:])
-        u_iter = u_opt[:,0].reshape(-1,1)
+        u_iter = u_opt[:,0]
         X_ref=Traj_ref[:,count] #last element
         #! get the computed time of the MPC of real time
         print("INFO:  The computation time of the MPC is: ", [time.time()-iteration_start])
