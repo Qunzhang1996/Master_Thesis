@@ -105,38 +105,6 @@ class MPC_tighten_bound:
             temp_list.append(temp)
             
         return np.array(tightened_bound_N_LC_list).reshape(N+1, -1), temp_list
-    #! return the tightened temp_y for the y axis   DM(1,N+1)
-    def getXtemp(self, N):
-        '''
-        return the tightened temp_y for the y axis
-        temp_y = DM(1,N+1)
-        '''
-        _, K = self.calculate_Dlqr()
-        self.reset_P0()  # Reset P0 before the loop
-        _, sigma_list = self.calculate_P_next_N(K, N)
-        temp_x = DM(1,N+1)
-        for i in range(0,N):
-            current_sigma = sigma_list[i][0,0]
-            temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
-            temp_x[0,i+1] = temp
-        return temp_x
-    
-    #! return the tightened temp_y for the y axis   DM(1,N+1)
-    def getYtemp(self, N):
-        '''
-        return the tightened temp_y for the y axis
-        temp_y = DM(1,N+1)
-        '''
-        _, K = self.calculate_Dlqr()
-        self.reset_P0()  # Reset P0 before the loop
-        _, sigma_list = self.calculate_P_next_N(K, N)
-        temp_y = DM(1,N+1)
-        for i in range(0,N):
-            current_sigma = sigma_list[i][1,1]
-            temp = np.sqrt(current_sigma) * norm.ppf(self.Possibilty)
-            temp_y[0,i+1] = temp
-        return temp_y
-        
     
     def tighten_bound_N_y_upper(self, y_constrain, N):
         _, K = self.calculate_Dlqr()

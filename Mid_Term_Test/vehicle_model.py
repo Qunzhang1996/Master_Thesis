@@ -5,10 +5,9 @@ In this project, we will use the LTI_MPC to control the truck
 '''
 from casadi import*
 import sys
-path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
+path_to_add='C:\\Users\\A490242\\acados\\Master_Thesis-main'
 sys.path.append(path_to_add)
 from Autonomous_Truck_Sim.vehicleModelGarage import vehBicycleKinematic
-from MPC_tighten_bound import MPC_tighten_bound
 from enum import IntEnum
 
 # ████████╗██████╗ ██╗   ██╗ ██████╗██╗  ██╗        ███╗   ███╗ ██████╗ ██████╗ ███████╗██╗     
@@ -105,7 +104,7 @@ class car_VehicleModel(vehBicycleKinematic):
         # dp_xb = v* sin(beta + theta)
         # v_dot = a
         # dtheta = v*tan(delta)*cos(beta)/L
-        # tan(beta) = Lr/(Lr+Lf)*tan(delta)
+        #tan(beta) = Lr/(Lr+Lf)*tan(delta)
         beta = atan(self.lr/(self.lr+self.lf)*tan(self.u[0]))
         dp_xb = self.x[2] *cos(beta+self.x[3])
         dp_yb = self.x[2] * sin(beta+self.x[3]) 
@@ -262,10 +261,6 @@ class car_VehicleModel(vehBicycleKinematic):
         self.refxR[2] = vx
         return self.refxT, self.refxL, self.refxR
     
-    def setStochasticMPCParams(self, P0, process_noise, Possibility):
-        self.P0 = P0
-        self.process_noise = process_noise
-        self.Possibility = Possibility
 
 
     def cost(self,Q,R):
@@ -334,16 +329,6 @@ class car_VehicleModel(vehBicycleKinematic):
         self.state = x_new
         self.control = u_new
         self.p = x_new[:2]
-        
-        
-    def getTemptXY(self):
-        A, B, C = self.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
-        D = np.eye(self.nx)  # Noise matrix
-        Q, R = self.getCostParam()
-        P0, process_noise, Possibility = self.P0, self.process_noise, self.Possibility
-        self.MPC_tighten_bound = MPC_tighten_bound(A, B, D, np.diag(Q), np.diag(R), P0, process_noise, Possibility)
-        temp_x, tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
-        return temp_x, tempt_y
     
     
 

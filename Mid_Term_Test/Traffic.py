@@ -82,7 +82,8 @@ class Traffic:
         Sets up a CARLA environment by connecting to the server, destroying existing vehicles,
         and spawning a selection of vehicles with initial states.
         """
-        client = carla.Client('localhost', 2000)
+        # client = carla.Client('localhost', 2000)
+        client = carla.Client('10.221.27.174', 2000)
         world = client.get_world()
         bp_lib = world.get_blueprint_library()
 

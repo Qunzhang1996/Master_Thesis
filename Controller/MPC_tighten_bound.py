@@ -93,7 +93,7 @@ class MPC_tighten_bound:
         _, K = self.calculate_Dlqr()
         self.reset_P0()  # Reset P0 before the loop
         _, sigma_list = self.calculate_P_next_N(K, N)
-        original_constraint = LC_constraint # contains the 13X1 vector
+        original_constraint = LC_constraint.T # contains the 13X1 vector
         tightened_bound_N_LC_list = []
         tightened_bound_N_LC_list.append(original_constraint[0])
         temp_list = []

@@ -64,23 +64,13 @@ We showcase our RMPC's performance in various driving scenarios within the CARLA
   <img src="Figure/crazy_traffic_mix3.gif" alt="Heavy Traffic Conditions" width="100%">
 </p>
 
-**Driving in Heavy Traffic Conditions using EKF:**  
-<p align="center">
-  <img src="Figure/crazy_traffic_mix3_EKF.gif" alt="Controller Testing in CARLA" width="100%">
-</p>
-
-
-
-
 **Controller Testing in CARLA:**  
 <p align="center">
   <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" alt="Controller Testing in CARLA" width="100%">
 </p>
 
-
-
 **Vehicle Trajectory:**  
-The trajectory followed by the vehicle during the tests.
+The trajectory followed by the vehicle during the tests, highlighting the precision and robustness of our controller.
 <p align="center">
   <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" alt="Vehicle Trajectory" width="100%">
 </p>

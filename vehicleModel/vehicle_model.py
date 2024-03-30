@@ -261,12 +261,6 @@ class car_VehicleModel(vehBicycleKinematic):
         self.refxR[2] = vx
         return self.refxT, self.refxL, self.refxR
     
-    
-    def setStochasticMPCParams(self, P0, process_noise, Possibility):
-        self.P0 = P0
-        self.process_noise = process_noise
-        self.Possibility = Possibility
-    
 
 
     def cost(self,Q,R):
