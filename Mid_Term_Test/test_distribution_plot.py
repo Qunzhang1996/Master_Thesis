@@ -2,7 +2,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
-from matplotlib.patches import Ellipse
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from MPC_tighten_bound import MPC_tighten_bound
@@ -115,6 +114,9 @@ for N in time_steps:
     if N == 0:
         scaled_sigma_x_squared_N = sigma_x_squared
         scaled_sigma_y_squared_N = sigma_y_squared
+        #! add the vehicle as rect at the center of the ellipse, width=2.89m, length=8.46m
+        ax.add_patch(plt.Rectangle((mean_N[0]-8.46/2, mean_N[1]-2.59/2), 8.46, 2.59, color='r', alpha=0.3))
+        
     else:
         scaled_sigma_x_squared_N = P_next_N_list[-1][0, 0]
         scaled_sigma_y_squared_N = P_next_N_list[-1][1, 1]
@@ -128,6 +130,9 @@ for N in time_steps:
     confidence_ellipse_N = Ellipse(xy=mean_N, width=ellipse_width_N, height=ellipse_height_N, 
                                    angle=0, edgecolor='r', facecolor='yellow', alpha=0.3)
     ax.add_patch(confidence_ellipse_N)
+    
+    
+    
     # Update max extents
     max_width = max(max_width, x_positions[N] + ellipse_width_N)
     max_height = max(max_height, ellipse_height_N)
@@ -140,16 +145,15 @@ plt.title('propagation of trajectory for different time steps')
 plt.xlabel('X Position')
 plt.ylabel('Y Position')
 plt.legend(loc='upper right')
-plt.grid(True)
 
 # Adjusting plot limits based on the maximum extents of the ellipses
 plt.xlim(0,75)
+plt.ylim(130, 160)
 
 # plot the center line 
 plt.plot([0, 75], [143.318146, 143.318146], 'r--', lw=1)
 plt.plot([0, 75], [143.318146-3.5, 143.318146-3.5], 'r--', lw=1)
 plt.plot([0, 75], [143.318146+3.5, 143.318146+3.5], 'r--', lw=1)
-6575
 # plot the la75 line
 plt.plot([0, 75], [143.318146-1.75, 143.318146-1.75], 'k', lw=1)
 plt.plot([0, 75], [143.318146+1.75, 143.318146+1.75], 'k', lw=1)

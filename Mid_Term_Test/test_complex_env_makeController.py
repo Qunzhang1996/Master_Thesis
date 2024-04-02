@@ -33,7 +33,7 @@ dt = 0.3                  # Simulation time step (Impacts traffic model accuracy
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
 f_controller = 10            # Controller update frequency, i.e updates at each t = dt*f_controller
-N =  10        # MPC Horizon length
+N =  12        # MPC Horizon length
 laneWidth = 3.5
 
 ref_vx = 54/3.6             # Higway speed limit in (m/s)

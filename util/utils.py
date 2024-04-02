@@ -725,6 +725,8 @@ def rotmatrix(L,xy,ang):
     
 def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicle,scenarioTrailADV,scenario,traffic,i_crit,f_c,directory):
     print("Generating gif ...")
+    from matplotlib.patches import Ellipse
+    loaded_ellipse_dimensions = np.load('C:\\Users\\A490243\\Desktop\\Master_Thesis\\ellipse_dimensions.npy', allow_pickle=True)
     Nveh = traffic.getDim()
     vehWidth, vehLength,_,_ = vehicle.getSize()
     temp_x, tempt_y = vehicle.getTemptXY()
@@ -822,7 +824,21 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                 j += 1
         X_pred_x = np.append(X[0,i],X_pred[0,start+j:,i])
         X_pred_y = np.append(X[1,i],X_pred[1,start+j:,i])
-        plt.plot(X_pred_x,X_pred_y,'-',color='r')
+        #! plot the ellipse at N = 0,  3 ,6, 9, 12, mean is the point of prediction, 
+        #! width and height is loaded_ellipse_dimensions, loaded_ellipse_dimensions only contains N = 0,  3 ,6, 9, 12
+        for idx, N in enumerate([0,3,6,9,12]):
+            if N < len(X_pred_x) and N < len(X_pred_y):
+                ax = plt.gca()  
+                confidence_ellipse = Ellipse((X_pred_x[N], X_pred_y[N]), loaded_ellipse_dimensions[idx][0], loaded_ellipse_dimensions[idx][1], 
+                                            angle=0, edgecolor='yellow', facecolor='yellow', alpha=0.9, linewidth=1)
+                ax.add_patch(confidence_ellipse)
+            else:
+                ax = plt.gca()
+                confidence_ellipse = Ellipse((X_pred_x[-1], X_pred_y[-1]), loaded_ellipse_dimensions[-1][0], loaded_ellipse_dimensions[-1][1], 
+                                            angle=0, edgecolor='yellow', facecolor='yellow', alpha=0.9, linewidth=1)
+                ax.add_patch(confidence_ellipse)
+        plt.plot(X_pred_x,X_pred_y,'--',color='r',linewidth=1)
+        
 
         # Plot traffic
         colors= {"aggressive" : "r","normal": "b", "passive": "g",
