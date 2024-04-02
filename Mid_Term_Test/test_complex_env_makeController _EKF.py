@@ -72,7 +72,7 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
-q_ADV_decision = 50
+q_ADV_decision = 100
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()

@@ -91,7 +91,24 @@ roadMin, roadMax, laneCenters, _ = scenarioTrailADV.getRoad()
 #! initilize the ego vehicle
 vehicleADV.setRoad(roadMin,roadMax,laneCenters)
 vehicleADV.setInit([px_init,py_init],ref_vx )
+# !----------------- Kalman Filter Settings ------------------------   
+sigma_process=0.01
+sigma_measurement=0.01
+Q_0=np.eye(nx)*sigma_process**2
+Q_0[0,0]=0.3  # x bound is [0, 3]
+Q_0[1,1]=0.05  # y bound is [0, 0.1]
+Q_0[2,2]=0.5  # v bound is [0, 1.8]
+Q_0[3,3]=0.01**2  # psi bound is [0, 0.05]
 
+R_0=np.eye(nx)*sigma_measurement
+R_0[0,0]=0.1**2
+R_0[1,1]=0.1**2 
+R_0[2,2]=0.1**2
+R_0[3,3]=(1/180*np.pi)**2
+
+# ! get the param for the stochastic mpc
+P0, _, possibility = set_stochastic_mpc_params()
+vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
 #! -----------------------------------------------------------------
 #! -----------------------------------------------------------------

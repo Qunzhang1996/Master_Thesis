@@ -14,6 +14,9 @@ import numpy as np
 from scipy.linalg import solve_discrete_are
 
 
+ellipse_dimensions = []
+
+
 class vehicle:
     def __init__(self, WB=6, dt=0.3):
         self.WB = WB
@@ -118,8 +121,9 @@ for N in time_steps:
 
     
     # Ellipse parameters for 95% confidence
-    ellipse_width_N = 2 * np.sqrt(2 * scaled_sigma_x_squared_N)
-    ellipse_height_N = 2 * np.sqrt(2 * scaled_sigma_y_squared_N)
+    ellipse_width_N = 2 * np.sqrt(3 * scaled_sigma_x_squared_N)
+    ellipse_height_N = 2 * np.sqrt(3 * scaled_sigma_y_squared_N)
+    ellipse_dimensions.append((ellipse_width_N, ellipse_height_N))
     # Add ellipse
     confidence_ellipse_N = Ellipse(xy=mean_N, width=ellipse_width_N, height=ellipse_height_N, 
                                    angle=0, edgecolor='r', facecolor='yellow', alpha=0.3)
@@ -128,6 +132,8 @@ for N in time_steps:
     max_width = max(max_width, x_positions[N] + ellipse_width_N)
     max_height = max(max_height, ellipse_height_N)
     # Label each ellipse with its N value
+
+np.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\ellipse_dimensions.npy', ellipse_dimensions)
 
 # Decorations
 plt.title('propagation of trajectory for different time steps')

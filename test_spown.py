@@ -1,22 +1,6 @@
-import sys
-path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
-sys.path.append(path_to_add)
-from Autonomous_Truck_Sim.helpers import *
-from Controller.MPC_tighten_bound import MPC_tighten_bound
-from Controller.Controllers import makeController
-from vehicleModel.vehicle_model import car_VehicleModel
-from Traffic.Traffic import Traffic
-from Traffic.Scenarios import trailing, simpleOvertake
-from util.utils import *
+import numpy as np
 
-print(1+1)
+loaded_ellipse_dimensions = np.load('C:\\Users\\A490243\\Desktop\\Master_Thesis\\ellipse_dimensions.npy', allow_pickle=True)
 
-# ------------------------change map to Town06------------------------
-import subprocess
-# Command to run your script
-command = (
-    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-    r'python config.py -m Town06')
-subprocess.run(command, shell=True)
-exit()
-# Run the command
+
+print(loaded_ellipse_dimensions)
