@@ -825,7 +825,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
         X_pred_x = np.append(X[0,i],X_pred[0,start+j:,i])
         X_pred_y = np.append(X[1,i],X_pred[1,start+j:,i])
         
-        plt.plot(X_pred_x,X_pred_y,'--',color='r',linewidth=1)
+        plt.plot(X_pred_x,X_pred_y,'--',color='r',linewidth=2)
         
 
         # Plot traffic
