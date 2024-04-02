@@ -141,7 +141,8 @@ for N in time_steps:
 np.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\ellipse_dimensions.npy', ellipse_dimensions)
 
 # Decorations
-plt.title('propagation of trajectory for different time steps')
+plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
+plt.title('Propagation of trajectory for different time steps')
 plt.xlabel('X Position')
 plt.ylabel('Y Position')
 plt.legend(loc='upper right')

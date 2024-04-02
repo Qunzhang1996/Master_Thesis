@@ -824,19 +824,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                 j += 1
         X_pred_x = np.append(X[0,i],X_pred[0,start+j:,i])
         X_pred_y = np.append(X[1,i],X_pred[1,start+j:,i])
-        #! plot the ellipse at N = 0,  3 ,6, 9, 12, mean is the point of prediction, 
-        #! width and height is loaded_ellipse_dimensions, loaded_ellipse_dimensions only contains N = 0,  3 ,6, 9, 12
-        for idx, N in enumerate([0,3,6,9,12]):
-            if N < len(X_pred_x) and N < len(X_pred_y):
-                ax = plt.gca()  
-                confidence_ellipse = Ellipse((X_pred_x[N], X_pred_y[N]), loaded_ellipse_dimensions[idx][0], loaded_ellipse_dimensions[idx][1], 
-                                            angle=0, edgecolor='yellow', facecolor='yellow', alpha=0.9, linewidth=1)
-                ax.add_patch(confidence_ellipse)
-            else:
-                ax = plt.gca()
-                confidence_ellipse = Ellipse((X_pred_x[-1], X_pred_y[-1]), loaded_ellipse_dimensions[-1][0], loaded_ellipse_dimensions[-1][1], 
-                                            angle=0, edgecolor='yellow', facecolor='yellow', alpha=0.9, linewidth=1)
-                ax.add_patch(confidence_ellipse)
+        
         plt.plot(X_pred_x,X_pred_y,'--',color='r',linewidth=1)
         
 
@@ -936,8 +924,8 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             idx_start = idx_join[idx_join_backward[-1]]-1 if idx_join_backward.size and idx_join[idx_join_backward[-1]] > 0 else 0 
             idx_end = idx_join[idx_join_forward[0]]+1 if idx_join_forward.size and idx_join[idx_join_forward[0]] < 2*frameSize-1 else -1
 
-            plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],'b', alpha = 1)
-            plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],'b', alpha = 1)
+            plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],'g', alpha = 1)
+            plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],'g', alpha = 1)
 
         elif decisionLog[i] == 1:
             # Right Change plot
@@ -977,8 +965,8 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             idx_start = idx_join[idx_join_backward[-1]]-1 if idx_join_backward.size and idx_join[idx_join_backward[-1]] > 0 else 0 
             idx_end = idx_join[idx_join_forward[0]]+1 if idx_join_forward.size and idx_join[idx_join_forward[0]] < 2*frameSize-1 else -1
 
-            plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],'b', alpha = 1)
-            plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],'b', alpha = 1)
+            plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],'g', alpha = 1)
+            plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],'g', alpha = 1)
 
         else:
             dX_lead =  np.sum(paramLog[0,i,:,2]).item() if np.sum(paramLog[0,i,:,2]) > 0 else 2*frameSize
@@ -997,9 +985,26 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
 
             X_limit = X[0,i,0]+dX_lead-D_safe - X[2,i,0] * t_headway
             # print("this is the limit",X_limit)
-            plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'b')
-            plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'b')
+            plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'g')
+            plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'g')
             plt.plot([X_limit,X_limit],laneBounds,'b')
+        #! plot the ellipse at N = 0,  3 ,6, 9, 12, mean is the point of prediction, 
+        for idx, N in enumerate([0,3,6,9,12]):
+            if idx == 0: continue
+            if N < len(X_pred_x) and N < len(X_pred_y):
+                ax = plt.gca()  
+                confidence_ellipse = Ellipse((X_pred_x[N], X_pred_y[N]), loaded_ellipse_dimensions[idx][0], loaded_ellipse_dimensions[idx][1], 
+                                            angle=0, edgecolor='yellow', facecolor='yellow',alpha=0.5, linewidth=2, zorder=3)
+                ax.add_patch(confidence_ellipse)
+                #! plot center of the ellipse, point should be small
+                plt.scatter(X_pred_x[N], X_pred_y[N], color = 'red', s = 5, zorder=3)
+            else:
+                ax = plt.gca()
+                confidence_ellipse = Ellipse((X_pred_x[-1], X_pred_y[-1]), loaded_ellipse_dimensions[-1][0], loaded_ellipse_dimensions[-1][1], 
+                                            angle=0, edgecolor='yellow', facecolor='yellow',alpha=0.5, linewidth=2, zorder=3)
+                ax.add_patch(confidence_ellipse)
+        
+                plt.scatter(X_pred_x[-1], X_pred_y[-1], color = 'red', s = 5, zorder=3)
 
     anime = FuncAnimation(figanime, animate, frames=i_crit, interval=400, repeat=False)
 
