@@ -726,7 +726,7 @@ def rotmatrix(L,xy,ang):
 def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicle,scenarioTrailADV,scenario,traffic,i_crit,f_c,directory):
     print("Generating gif ...")
     from matplotlib.patches import Ellipse
-    loaded_ellipse_dimensions = np.load('C:\\Users\\A490243\\Desktop\\Master_Thesis\\ellipse_dimensions.npy', allow_pickle=True)
+    loaded_ellipse_dimensions = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\ellipse_dimensions.npy', allow_pickle=True)
     Nveh = traffic.getDim()
     vehWidth, vehLength,_,_ = vehicle.getSize()
     temp_x, tempt_y = vehicle.getTemptXY()
@@ -994,17 +994,17 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             if N < len(X_pred_x) and N < len(X_pred_y):
                 ax = plt.gca()  
                 confidence_ellipse = Ellipse((X_pred_x[N], X_pred_y[N]), loaded_ellipse_dimensions[idx][0], loaded_ellipse_dimensions[idx][1], 
-                                            angle=0, edgecolor='yellow', facecolor='yellow',alpha=0.5, linewidth=2, zorder=3)
+                                            angle=0, edgecolor='yellow', facecolor='yellow',alpha=0.5, linewidth=0.5, zorder=3)
                 ax.add_patch(confidence_ellipse)
                 #! plot center of the ellipse, point should be small
-                plt.scatter(X_pred_x[N], X_pred_y[N], color = 'red', s = 5, zorder=3)
+                #plt.scatter(X_pred_x[N], X_pred_y[N], color = 'red', s = 5, zorder=3)
             else:
                 ax = plt.gca()
                 confidence_ellipse = Ellipse((X_pred_x[-1], X_pred_y[-1]), loaded_ellipse_dimensions[-1][0], loaded_ellipse_dimensions[-1][1], 
-                                            angle=0, edgecolor='yellow', facecolor='yellow',alpha=0.5, linewidth=2, zorder=3)
+                                            angle=0, edgecolor='yellow', facecolor='yellow',alpha=0.5, linewidth=0.5, zorder=3)
                 ax.add_patch(confidence_ellipse)
         
-                plt.scatter(X_pred_x[-1], X_pred_y[-1], color = 'red', s = 5, zorder=3)
+                #plt.scatter(X_pred_x[-1], X_pred_y[-1], color = 'red', s = 5, zorder=3)
 
     anime = FuncAnimation(figanime, animate, frames=i_crit, interval=400, repeat=False)
 

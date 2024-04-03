@@ -70,7 +70,7 @@ vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
-Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,80,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
 q_ADV_decision = 50
 vehicleADV.cost(Q_ADV,R_ADV)
@@ -322,6 +322,12 @@ plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref_EKF.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+
+
+#! save X_traffic  paramLog   decisionLog  as npy 
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_EKF.npy', X_traffic)
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_EKF.npy', paramLog)
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_EKF.npy', decisionLog)
 
 
 if makeMovie:

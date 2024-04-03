@@ -71,7 +71,7 @@ vehicleADV = car_VehicleModel(dt,N)
 vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
 nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
-Q_ADV = [0,80,3e2,5]                            # State cost, Entries in diagonal matrix
+Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
 q_ADV_decision = 100
 vehicleADV.cost(Q_ADV,R_ADV)
@@ -314,5 +314,9 @@ figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
 
+#! save X_traffic  paramLog   decisionLog  as npy 
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
 if makeMovie:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

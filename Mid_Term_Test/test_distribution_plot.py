@@ -92,6 +92,7 @@ colormap = plt.cm.viridis  # Choose a colormap
 normalize = Normalize(vmin=min(time_steps), vmax=max(time_steps))
 scalar_map = ScalarMappable(norm=normalize, cmap=colormap)
 P0,process_noise,possibility = set_stochastic_mpc_params()
+process_noise[1,1] = sigma_y_squared
 MPC_tighten_bound = MPC_tighten_bound(A, B, g, vehicle.Q, vehicle.R, P0, process_noise, possibility)
 
 
@@ -121,7 +122,7 @@ for N in time_steps:
         scaled_sigma_x_squared_N = P_next_N_list[-1][0, 0]
         scaled_sigma_y_squared_N = P_next_N_list[-1][1, 1]
 
-    
+    print(scaled_sigma_x_squared_N, scaled_sigma_y_squared_N)
     # Ellipse parameters for 95% confidence
     ellipse_width_N = 2 * np.sqrt(3 * scaled_sigma_x_squared_N)
     ellipse_height_N = 2 * np.sqrt(3 * scaled_sigma_y_squared_N)
@@ -138,7 +139,7 @@ for N in time_steps:
     max_height = max(max_height, ellipse_height_N)
     # Label each ellipse with its N value
 
-np.save('C:\\Users\\A490243\\Desktop\\Master_Thesis\\ellipse_dimensions.npy', ellipse_dimensions)
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\ellipse_dimensions.npy', ellipse_dimensions)
 
 # Decorations
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
