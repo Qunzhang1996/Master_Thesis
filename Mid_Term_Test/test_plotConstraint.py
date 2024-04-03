@@ -65,7 +65,8 @@ vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
 
 
-i=20
+# i=30
+i = 20
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
 scenarioTrailADV.slackCost(q_traffic_slack)
 scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
@@ -114,10 +115,13 @@ plt.plot([0,300], [143.318146-1.75-3.5, 143.318146-1.75-3.5], 'k', lw=1)
 plt.plot([0,300], [143.318146+1.75+3.5, 143.318146+1.75+3.5], 'k', lw=1)
 plt.xlim(120,210)
 plt.ylim(130, 160)
+# plt.xlim(100,250)
+# plt.ylim(130, 160)
 plt.xlabel('X Position')
 plt.ylabel('Y Position')
 plt.tight_layout()
 plt.legend(loc='upper right')
 #! save the figure
+# plt.savefig(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\Tightened_IDM.png')
 plt.savefig(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\Tightened_tanh.png')
 plt.show()

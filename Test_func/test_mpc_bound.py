@@ -81,8 +81,9 @@ import numpy as np
 # Font settings for readability
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
 
-fig, axs = plt.subplots(3, 2, figsize=(12, 8))
-fig.suptitle('Tightened Bound and IDM Constraint Comparison', fontsize=14, fontweight='bold')
+# fig, axs = plt.subplots(3, 2, figsize=(12, 8))
+fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+fig.suptitle('Tightened States Constraint', fontsize=14, fontweight='bold')
 
 # Titles for the first 4 subplots
 titles = ['Constraint for x', 'Constraint for y', 'Constraint for v', 'Constraint for phi']
@@ -96,23 +97,23 @@ for i in range(4):
     axs[row, col].set_title(titles[i], fontsize=12)
     axs[row, col].set_xticks(range(N))
 
-plt.delaxes(axs[2, 0]) 
-plt.delaxes(axs[2, 1]) 
+# plt.delaxes(axs[2, 0]) 
+# plt.delaxes(axs[2, 1]) 
 
-ax_big = fig.add_subplot(3, 1, 3)
-ax_big.set_ylim(90, 130)  # Set y-axis limits to frame the data
+# ax_big = fig.add_subplot(3, 1, 3)
+# ax_big.set_ylim(90, 130)  # Set y-axis limits to frame the data
 
-# Use the 'step' function for a ladder-like appearance
-# 'where' parameter can be 'pre', 'post', or 'mid'. It determines where the step jumps.
-ax_big.step(range(len(IDM_constraint_list)), IDM_constraint_list, where='mid', label='IDM Constraint', linewidth=1.5, linestyle='--',color='r')
+# # Use the 'step' function for a ladder-like appearance
+# # 'where' parameter can be 'pre', 'post', or 'mid'. It determines where the step jumps.
+# ax_big.step(range(len(IDM_constraint_list)), IDM_constraint_list, where='mid', label='IDM Constraint', linewidth=1.5, linestyle='--',color='r')
 
-ax_big.step(range(len(tightened_bound_N_IDM_list)), tightened_bound_N_IDM_list, where='mid', label='Tightened Constraint', linewidth=1.5, linestyle='-')
+# ax_big.step(range(len(tightened_bound_N_IDM_list)), tightened_bound_N_IDM_list, where='mid', label='Tightened Constraint', linewidth=1.5, linestyle='-')
 
-ax_big.legend(loc='upper right', fontsize='small')
-ax_big.set_title('IDM Constraint vs. Tightened Constraint', fontsize=12)
-ax_big.set_xticks(range(N))
+# ax_big.legend(loc='upper right', fontsize='small')
+# ax_big.set_title('IDM Constraint vs. Tightened Constraint', fontsize=12)
+# ax_big.set_xticks(range(N))
 
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the layout
+plt.tight_layout()  # Adjust the layout
 
 plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg', dpi=300)  # High resolution
 plt.show()

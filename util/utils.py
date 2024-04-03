@@ -987,7 +987,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
             # print("this is the limit",X_limit)
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'g')
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'g')
-            plt.plot([X_limit,X_limit],laneBounds,'b')
+            plt.plot([X_limit,X_limit],laneBounds,'g')
         #! plot the ellipse at N = 0,  3 ,6, 9, 12, mean is the point of prediction, 
         for idx, N in enumerate([0,3,6,9,12]):
             if idx == 0: continue
@@ -1016,6 +1016,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
 def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,decisionLog,X,vehWidth,d_lat_spread,scenarioTrailADV,frameSize,Nveh,laneWidth,leadLength,color_plt):
     
     ax = plt.gca()
+    roadMin, roadMax, laneCenters,laneWidth = scenarioTrailADV.getRoad()
     
             
 
@@ -1125,11 +1126,19 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
         X_limit = X[0,i,0]+dX_lead-D_safe - X[2,i,0] * t_headway
         
         
-        
+        if color_plt == 'r':
         # print("this is the limit",X_limit)
-        plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'g')
-        plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'g')
-        plt.plot([X_limit,X_limit],laneBounds,'b')
+            plt.plot([X[0,i,0]-frameSize,X_limit-3],[laneBounds[0],laneBounds[0]],color_plt, alpha = 1,linewidth=2)
+            plt.plot([X[0,i,0]-frameSize,X_limit-3],[laneBounds[1],laneBounds[1]],color_plt, alpha = 1,linewidth=2)
+            plt.plot([X_limit-3,X_limit-3],laneBounds,color_plt, alpha = 1,linewidth=2, label='Tighted constraint')
+        else:
+            plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],color_plt, alpha = 1,linewidth=2, label='IDM constraint')
+            plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],color_plt, alpha = 1,linewidth=2)
+            plt.plot([X_limit,X_limit],laneBounds,color_plt, alpha = 1,linewidth=2)
+
+        # plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'g')
+        # plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'g')
+        # plt.plot([X_limit,X_limit],laneBounds,'g')
         
         
     if color_plt == 'r':
@@ -1139,7 +1148,7 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
                 width, L_tract = 2.59, 8.46
                 L_trail=0
                 ax.add_patch(Rectangle(
-                                xy = (X_traffic[0,i,j]-L_tract/2,X_traffic[1,i,j]-leadWidth/2), width=L_tract, height=width,
+                                xy = (X_traffic[0,i,j]-L_tract/2,X_traffic[1,i,j]-width/2), width=L_tract, height=width,
                                 angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
                                 facecolor="red", fill=True,alpha=0.3))
                 #! legend : Egovehicle
