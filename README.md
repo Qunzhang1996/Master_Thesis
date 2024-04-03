@@ -29,7 +29,7 @@ The difference between the simulated vehicle in CARLA and our nominal model is t
 
 **Constraint Definitions:**  
 <p align="center">
-  <img src="Figure\Constraints.gif" alt="Constraints Defination" width="100%">
+  <img src="Figure\Constraint.gif" alt="Constraints Defination" width="100%">
 </p>
 For detailed constraint definitions, please refer to our supervisor's paper:  
 
