@@ -31,9 +31,12 @@ The difference between the simulated vehicle in CARLA and our nominal model is t
 <p align="center">
   <img src="Figure\Constraint.gif" alt="Constraints Defination" width="100%">
 </p>
+
 For detailed constraint definitions, please refer to our supervisor's paper:  
 
-*E. Börve, N. Murgovski, and L. Laine, "Interaction-Aware Trajectory Prediction and Planning in Dense Highway Traffic using Distributed Model Predictive Control."*
+```
+E. Börve, N. Murgovski, and L. Laine, "Interaction-Aware Trajectory Prediction and Planning in Dense Highway Traffic using Distributed Model Predictive Control."
+```
 
 If you find the details on constraint definitions helpful or if they've sparked some ideas for your own work, we'd really appreciate it if you could cite our supervisor's paper.
 
@@ -46,32 +49,22 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 
 ## Simulation in the CARLA Environment
 
-<!-- 
 **Decision Making Process:**  
 <p align="center">
   <img src="Figure/decision_master.gif" alt="Decision Making Process" width="100%">
 </p>
-
 **Driving in Heavy Traffic Conditions:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3.gif" alt="Heavy Traffic Conditions" width="100%">
 </p>
-
 **Driving in Heavy Traffic Conditions using EKF:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3_EKF.gif" alt="Controller Testing in CARLA" width="100%">
 </p>
-
-
-
-
 **Controller Testing in CARLA:**  
 <p align="center">
   <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" alt="Controller Testing in CARLA" width="100%">
 </p>
-
-
-
 **Vehicle Trajectory:**  
 The trajectory followed by the vehicle during the tests.
 <p align="center">
