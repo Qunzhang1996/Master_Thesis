@@ -23,7 +23,7 @@ from agents.navigation.controller import VehiclePIDController
 # exit()
 # #  Run the command
 
-
+stochasticMPC = True
 
 makeMovie = True
 directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3.gif"
@@ -121,16 +121,16 @@ vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
 
 opts1 = {"version" : "leftChange", "solver": "ipopt", "integrator":"LTI"}
-MPC_LC= makeController(vehicleADV,traffic,scenarioADV,N,opts1,dt)
+MPC_LC= makeController(vehicleADV,traffic,scenarioADV,N,opts1,dt,stochasticMPC)
 MPC_LC.setController()
 #TODO: MPC_LC.setController()
 
 opts2 = {"version" : "rightChange", "solver": "ipopt", "integrator":"LTI"}
-MPC_RC= makeController(vehicleADV,traffic,scenarioADV,N,opts2,dt)
+MPC_RC= makeController(vehicleADV,traffic,scenarioADV,N,opts2,dt,stochasticMPC)
 MPC_RC.setController()
 
 opts3 = {"version" : "trailing", "solver": "ipopt", "integrator":"LTI"}
-MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt)
+MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt,stochasticMPC)
 MPC_trailing.setController()
 
 
@@ -315,8 +315,15 @@ plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, f
 
 
 #! save X_traffic  paramLog   decisionLog  as npy 
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
-if makeMovie:
+if stochasticMPC:
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', X)
+else:
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy', X_traffic)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
+if False:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

@@ -328,6 +328,7 @@ plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, f
 np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_EKF.npy', X_traffic)
 np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_EKF.npy', paramLog)
 np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_EKF.npy', decisionLog)
+np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_EKF.npy', X)
 
 
 if makeMovie:

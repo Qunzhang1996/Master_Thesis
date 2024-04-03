@@ -1012,3 +1012,147 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
     anime.save(directory, writer=writergif)
     print("Finished.")
     plt.show()
+    
+def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,decisionLog,X,vehWidth,d_lat_spread,scenarioTrailADV,frameSize,Nveh,laneWidth,leadLength,color_plt):
+    
+    ax = plt.gca()
+    
+            
+
+    
+    if decisionLog[i] == 0:
+        # Left Change plot
+        XY = np.zeros((2,2*frameSize,Nveh+2))
+        for j in range(Nveh):
+            #! avoid ego vehicle 
+            if j == 1: continue
+            p_ij = paramLog[:,i,j,0]
+            x_ij = np.arange(-frameSize,frameSize,1)
+            for k in range(len(x_ij)):
+                y_cons_ij = constraint_laneChange[j](x_ij[k],p_ij[0],p_ij[1],p_ij[2],p_ij[3])[0].full().item()
+                # print("this is y_cons_ij: ", y_cons_ij) 
+                XY[0,k,j] = X[0,i,0]+x_ij[k]
+                XY[1,k,j] = y_cons_ij
+
+        XY[0,:,-2] = XY[0,:,-3]
+        XY[1,:,-2] = vehWidth/2+d_lat_spread +scenarioTrailADV.init_bound
+        XY[0,:,-1] = XY[0,:,-3]
+        XY[1,:,-1] = 2*laneWidth-vehWidth/2-d_lat_spread + scenarioTrailADV.init_bound
+
+        upperY = np.zeros((2*frameSize,)) 
+        lowerY = np.zeros((2*frameSize,))
+        for k in range(len(x_ij)):
+            idx = np.where(paramLog[2,i,:,0] < 0)[0]
+            idx = np.append(idx,Nveh+1)
+            idx = idx[idx != 1]   #! avoid ego vehicle    
+            idx_upper = np.argmin(XY[1,k,idx]-X[1,i,0])
+            upperY[k] = XY[1,k,idx[idx_upper]]
+            idx = np.where(paramLog[2,i,:,0] > 0)[0]
+            idx = np.append(idx,Nveh)
+            idx_lower = np.argmin(X[1,i,0]-XY[1,k,idx])
+            lowerY[k] = XY[1,k,idx[idx_lower]]
+        idx_join = np.where(lowerY> upperY)[0]
+        idx_join_forward = np.where(idx_join > frameSize)[0]
+        idx_join_backward = np.where(idx_join < frameSize)[0]
+        idx_start = idx_join[idx_join_backward[-1]]-1 if idx_join_backward.size and idx_join[idx_join_backward[-1]] > 0 else 0 
+        idx_end = idx_join[idx_join_forward[0]]+1 if idx_join_forward.size and idx_join[idx_join_forward[0]] < 2*frameSize-1 else -1
+
+        
+        if color_plt == 'r':
+            plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],color_plt, alpha = 1,linewidth=2, label='Tightened constraint')
+            plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],color_plt, alpha = 1,linewidth=2)
+        else:
+            plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],color_plt, alpha = 1,linewidth=2, label='Lane change constraint')
+            plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],color_plt, alpha = 1,linewidth=2)
+
+    elif decisionLog[i] == 1:
+        # Right Change plot
+        XY = np.zeros((2,2*frameSize,Nveh+2))
+        for j in range(Nveh):
+            #! avoid ego vehicle 
+            if j == 1: continue
+            p_ij = paramLog[:,i,j,1]
+            x_ij = np.arange(-frameSize,frameSize,1)
+            for k in range(len(x_ij)):
+                y_cons_ij = constraint_laneChange[j](x_ij[k],p_ij[0],p_ij[1],p_ij[2],p_ij[3])[0].full().item()
+                XY[0,k,j] = X[0,i,0]+x_ij[k]
+                XY[1,k,j] = y_cons_ij
+
+        XY[0,:,-2] = XY[0,:,-3]
+        XY[1,:,-2] = -laneWidth + vehWidth/2+d_lat_spread + scenarioTrailADV.init_bound
+        XY[0,:,-1] = XY[0,:,-3]
+        XY[1,:,-1] = laneWidth-vehWidth/2-d_lat_spread + scenarioTrailADV.init_bound
+        upperY = np.zeros((2*frameSize,))
+        lowerY = np.zeros((2*frameSize,))
+        for k in range(len(x_ij)):
+            idx = np.where(paramLog[2,i,:,1] < 0)[0]
+            idx =np.append(idx,Nveh+1)
+            idx = idx[idx != 1]   #! avoid ego vehicle
+            idx_upper = np.argmin(XY[1,k,idx]-X[1,i,0])
+            upperY[k] = XY[1,k,idx[idx_upper]]
+
+            idx = np.where(paramLog[2,i,:,1] > 0)[0]
+            idx = np.append(idx,Nveh)
+            idx_lower = np.argmin(X[1,i,0]-XY[1,k,idx])
+            lowerY[k] = XY[1,k,idx[idx_lower]]
+
+
+        idx_join = np.where(lowerY> upperY)[0]
+        idx_join_forward = np.where(idx_join > frameSize)[0]
+        idx_join_backward = np.where(idx_join < frameSize)[0]
+        idx_start = idx_join[idx_join_backward[-1]]-1 if idx_join_backward.size and idx_join[idx_join_backward[-1]] > 0 else 0 
+        idx_end = idx_join[idx_join_forward[0]]+1 if idx_join_forward.size and idx_join[idx_join_forward[0]] < 2*frameSize-1 else -1
+
+        plt.plot(XY[0,idx_start:idx_end,0],upperY[idx_start:idx_end],color_plt, alpha = 1,linewidth=2)
+        plt.plot(XY[0,idx_start:idx_end,0],lowerY[idx_start:idx_end],color_plt, alpha = 1,linewidth=2)
+
+    else:
+        L_tract = 8.46
+        dX_lead =  np.sum(paramLog[0,i,:,2]).item() if np.sum(paramLog[0,i,:,2]) > 0 else 2*frameSize
+        min_distx = scenarioTrailADV.min_distx
+        D_safe = min_distx + L_tract + leadLength/2
+        # D_safe =  min_distx + L_tract + leadLength/2 + temp_x[0]
+        t_headway = scenarioTrailADV.Time_headway
+
+        if X[1,i,0] > scenarioTrailADV.init_bound+laneWidth:
+            lane = 1
+        elif X[1,i,0] < scenarioTrailADV.init_bound: 
+            lane = -1
+        else:
+            lane = 0
+        laneBounds = laneCenters[lane] + np.array([-laneWidth/2,laneWidth/2])
+
+        X_limit = X[0,i,0]+dX_lead-D_safe - X[2,i,0] * t_headway
+        
+        
+        
+        # print("this is the limit",X_limit)
+        plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'g')
+        plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'g')
+        plt.plot([X_limit,X_limit],laneBounds,'b')
+        
+        
+    if color_plt == 'r':
+        for j in range(Nveh):
+            # plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'k')
+            if j==1:
+                width, L_tract = 2.59, 8.46
+                L_trail=0
+                ax.add_patch(Rectangle(
+                                xy = (X_traffic[0,i,j]-L_tract/2,X_traffic[1,i,j]-leadWidth/2), width=L_tract, height=width,
+                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
+                                facecolor="red", fill=True,alpha=0.3))
+                #! legend : Egovehicle
+                plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'r',label='Ego Vehicle')
+
+            else:
+                leadWidth,leadLength = 2.032, 4.78536
+                ax.add_patch(Rectangle(
+                                xy = (X_traffic[0,i,j]-leadLength/2,X_traffic[1,i,j]-leadWidth/2), width=leadLength, height=leadWidth,
+                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
+                                facecolor="blue", fill=True,alpha=0.3))
+                #1 surrounding vehicle, only show once
+                if j == 0:
+                    plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'b',label='Surrounding Vehicle')
+                else:
+                    plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'b')

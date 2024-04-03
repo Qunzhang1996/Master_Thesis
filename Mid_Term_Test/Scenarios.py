@@ -211,8 +211,8 @@ class simpleOvertake:
             leadWidth, _ = traffic.getVehicles()[i].getSize()
             # Define vehicle specific constants
             alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)+leadWidth/2)
-            alpha_1 = l_rear + self.L_tract/2 + v0_i * self.Time_headway + self.min_distx 
-            alpha_2 = l_front + self.L_tract/2+ v0_i * self.Time_headway+ self.min_distx 
+            alpha_1 = l_front+ self.L_tract/2 + v0_i * self.Time_headway + self.min_distx 
+            alpha_2 = l_rear + self.L_tract/2+ v0_i * self.Time_headway+ self.min_distx 
             alpha_3 = self.traffic_shift
             d_w_e = (self.egoWidth/2+d_lat_spread)*self.traffic_sign
             # Construct function
@@ -241,9 +241,9 @@ class simpleOvertake:
             l_front,l_rear = traffic.getVehicles()[i].getLength()
             leadWidth, _ = traffic.getVehicles()[i].getSize()
             # Define vehicle specific constants
-            alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift+tempt_y)+leadWidth/2)
-            alpha_1 = l_front +l_rear + self.L_tract + v0_i * self.Time_headway + self.min_distx  # this is for the end
-            alpha_2 =  0 + v0_i * self.Time_headway+ self.min_distx  # this is for the front
+            alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)+leadWidth/2+tempt_y)
+            alpha_1 = l_front + self.L_tract + v0_i * self.Time_headway + self.min_distx  # this is for the end
+            alpha_2 =  l_rear + v0_i * self.Time_headway+ self.min_distx  # this is for the front
             alpha_3 = self.traffic_shift
             d_w_e = (self.egoWidth/2+d_lat_spread)*self.traffic_sign
             # Construct function

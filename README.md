@@ -26,9 +26,6 @@ Our workflow integrates an Extended Kalman Filter (EKF) with a Model Predictive 
 The difference between the simulated vehicle in CARLA and our nominal model is treated as noise. The figure illustrates how this discrepancy propagates over time.  
 ![Propagation of Trajectory](Figure/propagation_of_trajectory.png)
 
-**SMPC Constraint Tightening:**  
-To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
-![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
 
 **Constraint Definitions:**  
 For detailed constraint definitions, please refer to our supervisor's paper:  
@@ -39,6 +36,13 @@ For detailed constraint definitions, please refer to our supervisor's paper:
 *E. Börve, N. Murgovski, and L. Laine, "Interaction-Aware Trajectory Prediction and Planning in Dense Highway Traffic using Distributed Model Predictive Control."*
 
 If you find the details on constraint definitions helpful or if they've sparked some ideas for your own work, we'd really appreciate it if you could cite our supervisor's paper.
+
+**SMPC Constraint Tightening:**  
+To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
+![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
+
+![MPC Constraint Tightening_OverTaking](Figure/Tightened_tanh.png)
+
 
 ## Simulation in the CARLA Environment
 

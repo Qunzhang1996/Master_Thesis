@@ -22,11 +22,13 @@ class makeController:
      ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
     """
     
-    def __init__(self, vehicle,traffic,scenario,N,opts,dt):
+    def __init__(self, vehicle,traffic,scenario,N,opts,dt,stochasticMPC=1):
         self.vehicle = vehicle
         self.traffic = traffic
         self.scenario = scenario
         self.opts = opts 
+        #! turn on/off the stochastic MPC
+        self.stochasticMPC=stochasticMPC
         
         # Get constraints and road information
         self.N = N
@@ -74,8 +76,7 @@ class makeController:
         self.x0 = self.opti.parameter(self.nx,1)
         
         
-        #! turn on/off the stochastic MPC
-        self.stochasticMPC=1
+        
         
         
         # ! change this according to the LC_MPC AND TRAILING_MPC
