@@ -5,12 +5,10 @@ import sys
 path_to_add='/mnt/c/Users/A490242/acados/Master_Thesis-main'
 sys.path.append(path_to_add)
 from casadi import *
-from acados_template import AcadosOcp, AcadosOcpSolver
 import numpy as np
 from matplotlib import pyplot as plt
-from Controller.MPC_tighten_bound import MPC_tighten_bound
+from MPC_tighten_bound import MPC_tighten_bound
 from util.utils import *
-
 class makeController:   
     """
     #! Creates a MPC based on current vehicle, traffic and scenario
@@ -37,6 +35,7 @@ class makeController:
         self.vehWidth,self.egoLength,self.L_tract, self.L_trail = self.vehicle.getSize()
         self.nx,self.nu,self.nrefx,self.nrefu = self.vehicle.getSystemDim()
         self.init_bound = self.vehicle.getInitBound()
+        self.P0, self.process_noise, self.Possibility = self.vehicle.P0, self.vehicle.process_noise, self.vehicle.Possibility
         self.roadMin, self.roadMax, self.laneCenters, _ = self.scenario.getRoad()
         self.egoTheta_max  = vehicle.xConstraints()[1][3]  #! In this situation, we do not have egoTheta_max. no trailor
         self.opts = opts
@@ -53,12 +52,15 @@ class makeController:
             # self.F_x  = self.vehicle.getIntegrator()
             # ! set the LTI model from the vehicle model
             self.A, self.B, self.C = self.vehicle.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
+        self.D = np.eye(self.nx)  # Noise matrix
         # ! get the cost param from the vehicle model
         self.Q, self.R = self.vehicle.getCostParam()
             
         #! P0, process_noise, possibility will be obtained from set_stochastic_mpc_params
         #! Used for tighten the MPC bound
-        self.P0, self.process_noise, self.Possibility = set_stochastic_mpc_params()
+        #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
+    
+        self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, self.D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         
         # ! create opti stack
          # Create Opti Stack
@@ -70,6 +72,10 @@ class makeController:
         self.refx = self.opti.parameter(self.nrefx,self.N+1)
         self.refu = self.opti.parameter(self.nrefu,self.N)
         self.x0 = self.opti.parameter(self.nx,1)
+        
+        
+        #! turn on/off the stochastic MPC
+        self.stochasticMPC=1
         
         
         # ! change this according to the LC_MPC AND TRAILING_MPC
@@ -112,11 +118,21 @@ class makeController:
         
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
+        
     
     def setTrafficConstraints(self):
-        self.S = self.scenario.constraint(self.traffic,self.opts)
+        
+        if self.stochasticMPC:
+            self.temp_x, self.tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
+            print("INFO: temp_x is:", self.temp_x)
+            print("INFO: temp_y is:", self.tempt_y)
+            self.S =self.scenario.constrain_tightened(self.traffic,self.opts,self.temp_x, self.tempt_y)
+        else:
+            self.S = self.scenario.constraint(self.traffic,self.opts)
+            
 
         if self.scenario.name == 'simpleOvertake':
+            
             #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
             for i in range(self.Nveh):
                 if i ==1: continue #! avoid putting the ego vehicle in the list
@@ -126,19 +142,14 @@ class makeController:
             #TODO: BE CAREFUL ABOUT THE SHIFT "143.318146 -self.laneWidth/2" -- self.init_bound, IT IS DEFINED IN THE SCENERIO
             # ! ASK ERIK, TOO STRICT CONSTRAINTS
             #TODO: DO The Tighten Finally
-            # for i in range(self.Nveh):
-            #     if i ==1: continue #! avoid putting the ego vehicle in the list
-            #     self.y_lane_change_list = self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
-            #                             self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:]
-            #     self.tightened_bound_N_LC_list, _ = self.MPC_tighten_bound.tighten_bound_N_laneChange(self.y_lane_change_list, self.N)
-            #     for j in range(self.N+1):
-            #         self.opti.subject_to(self.traffic_flip[i,j] * self.x[1,j] <= self.tightened_bound_N_LC_list[j].item())
             # Set default road boundries, given that there is a "phantom vehicle" in the lane we can not enter
             d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
+            d_lat_spread = 0
             if self.opts["version"] == "leftChange":
-                self.y_lanes = [self.init_bound + self.vehWidth/2+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/2-d_lat_spread]
+                self.y_lanes = [self.init_bound + self.vehWidth/3+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/3-d_lat_spread]
             elif self.opts["version"] == "rightChange":
-                self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/2+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/2-d_lat_spread]
+                self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/3+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/3-d_lat_spread]
+            #! self.vehWidth/2 is  too strict, to be self.vehWidth/3
             # self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
 
         elif self.scenario.name == 'trailing':
@@ -148,23 +159,20 @@ class makeController:
             self.IDM_constraint_list = self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:]
             self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
             # ! tighten the TRAILING CONSTRAINTS  
-            self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
-            for i in range(self.N+1):
-                self.opti.subject_to(self.x[0,i] <= self.tightened_bound_N_IDM_list[i].item())
+            # self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
+            # for i in range(self.N+1):
+            #     self.opti.subject_to(self.x[0,i] <= self.tightened_bound_N_IDM_list[i].item())
 
     def setInEqConstraints(self):
         """
         Set inequality constraints, only for default constraints and tihgtened  default  constraints
         
         """
-        D = np.eye(self.nx)  # Noise matrix
         lbx,ubx = self.vehicle.xConstraints()
         # ! element in lbx and ubx should be positive
         lbx = [abs(x) for x in lbx]
         self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
         lbu,ubu = self.vehicle.uConstraints()
-        #! initial MPC_tighten_bound CLASS for the STATE CONSTRAINTS
-        self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
         
@@ -231,7 +239,6 @@ class makeController:
             x_opt = sol.value(self.x)
             costMain = sol.value(self.costMain)
             costSlack = sol.value(self.costSlack)
-
             return u_opt, x_opt, costMain, costSlack
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -314,7 +321,7 @@ class makeDecisionMaster:
         self.x_iter, self.refxL_out, self.refxR_out, self.refxT_out, self.refu_out, \
                                                     self.x_lead,self.traffic_state = input
                                                     
-        print("INFO: Ego position in storeInput is:", self.x_iter[0])
+        # print("INFO: Ego position in storeInput is:", self.x_iter[0])
     
     
     def costRouteGoal(self,i):
@@ -388,9 +395,13 @@ class makeDecisionMaster:
         Updates the y position reference for each controller based on the current lane
         """
         self.scenarios[0].setEgoLane(self.traffic)
-        py_ego = self.vehicle.getPosition()[1] + r[1]
-        self.egoPx = self.vehicle.getPosition()[0]+ r[0]
-        print("INFO: Ego position in update is:", self.egoPx)
+        #! Here add the noise 
+        # py_ego = self.vehicle.getPosition()[1] + r[1]
+        # self.egoPx = self.vehicle.getPosition()[0]+ r[0]
+        py_ego =self.x_iter[1]
+        self.egoPx = self.x_iter[0]
+        
+        print("INFO:  Ego position Measurement is:", self.egoPx)
         refu_in = [0,0,0]                                     # To work with function reference (update?)
 
         refxT_in,refxL_in,refxR_in = self.vehicle.getReferences()
@@ -436,7 +447,6 @@ class makeDecisionMaster:
         """
         # Store current values of changes
         self.egoPx = float(self.x_iter[0])
-        # print("INFO: Ego position of  self.egoPx  is:", self.egoPx)
         # Alter initialization of MPC
         # # X-position
         self.x_iter[0] = 0
@@ -553,7 +563,7 @@ class makeDecisionMaster:
             self.setControllerParameters(self.controllers[0].opts["version"])
             self.paramLog[:,:,:,0] = self.traffic_state
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxL_out
-            u_testL, x_testL, costL, costL_slac=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
+            u_testL, x_testL, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
                                             self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
                                             self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
             
@@ -567,8 +577,6 @@ class makeDecisionMaster:
             
         #TODO: SIMPLE CHOICE OF THE CONTROLLER BASED ON THE COST
         # print("this is x_iter in controller", self.x_iter)
-        # print("tightened_bound_N_LC_list",tightened_bound_N_LC_list)
-        # print("y_lane_change_list",y_lane_change_list)
         
         # compare with the cost before and cose the best decision
         decision_i = np.argmin(np.array([costL+costL_slack,costR+costR_slack,costT+costT_slack]))

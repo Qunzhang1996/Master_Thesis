@@ -9,18 +9,15 @@ from vehicle_model import car_VehicleModel
 from Traffic import Traffic
 from Scenarios import trailing, simpleOvertake
 from util.utils import *
-from acados_template import AcadosOcp, AcadosOcpSolver
 
-# sys.path.append(r'C:\Users\A490242\Desktop\Documents\WindowsNoEditor\PythonAPI\carla')
 sys.path.append(r'/mnt/c/Users/A490242/Desktop/Documents/WindowsNoEditor/PythonAPI/carla')
 from agents.navigation.controller2 import VehiclePIDController
 
-# ------------------------change map to Town06------------------------
-import subprocess
+# # ------------------------change map to Town06------------------------
+# import subprocess
 # # Command to run your script
 # command = (
-#     r'python /mnt/c/Users/A490242/Desktop/Documents/WindowsNoEditor/PythonAPI/util/config.py --map Town06')
-# subprocess.run(command, shell=True)
+#     r'python /mnt/c/Users/A490242/acados/Desktop/Documents/WindowsNoEditor/PythonAPI/util/config.py --map Town06'
 # subprocess.run(command, shell=True)
 # exit()
 # #  Run the command
@@ -28,7 +25,7 @@ import subprocess
 
 
 makeMovie = True
-directory = r"C:\Users\A490242\Desktop\Master_Thesis-main\Figure\crazy_traffic_mix3.gif"
+directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3.gif"
 
 ## ! --------------------------------------System initialization--------------------------------------------
 dt = 0.3                  # Simulation time step (Impacts traffic model accuracy)
@@ -281,8 +278,8 @@ for i in range(0,Nsim):
 print("Simulation finished")
 i_crit = i     
                                                 
-figure_dir = r'C:\Users\A490242\Desktop\Master_Thesis-main\Figure'
-gif_dir = r'C:\Users\A490242\Desktop\Master_Thesis-main\Figure'
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
+gif_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 gif_name = 'CARLA_simulation_Make_Controller_TEST.gif'
 # animate_constraints(all_tightened_bounds, truck_positions, car_positions, Trajectory_pred, gif_dir,gif_name)
 figure_name = 'CARLA_simulation_Make_Controller_all_TEST.png'
@@ -290,11 +287,11 @@ plot_and_save_simulation_data(truck_positions, timestamps, truck_velocities, tru
                               car_positions, leading_velocities, ref_velocity, truck_vel_mpc, truck_vel_control, 
                               figure_dir,figure_name)
 
-figure_dir = r'C:\Users\A490242\Desktop\Master_Thesis-main\Figure'
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'CARLA_simulation_Make_Controller_TEST.png'
 plot_kf_trajectory(truck_positions, None, figure_dir, figure_name)
 
-figure_dir = r'C:\Users\A490242\Desktop\Master_Thesis-main\Figure'
+figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 

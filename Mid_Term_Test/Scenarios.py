@@ -57,7 +57,18 @@ class trailing:
 
         safeDist = self.min_distx + leadLength + self.L_tract
         return Function('S',[self.p],[self.p-safeDist],['p'],['D_min'])
+    
+    def constrain_tightened(self,traffic,opts,temp_x, tempt_y):
+        leadWidth, leadLength = traffic.getVehicles()[0].getSize()
+        idx = self.getLeadVehicle(traffic)
+        if len(idx) == 0:
+            dist_t = 0
+        else:
+            v0_idx = traffic.getVehicles()[idx[0]].v0
+            dist_t = v0_idx * self.Time_headway
 
+        safeDist = self.min_distx + leadLength + self.L_tract + temp_x
+        return Function('S',[self.p],[self.p-safeDist],['p'],['D_min'])
 
     def getRoad(self):
         roadMax = 2*self.laneWidth + self.init_bound
@@ -153,6 +164,9 @@ class simpleOvertake:
         self.traffic_shift = MX.sym('shift',1,N+1)
         self.traffic_slack = MX.sym("slack",1,N+1)
         
+        #! turn off/on the stochastic mpc
+        self.stochastic_mpc = 0
+        
 
 
     def getReference(self,refx,refu):
@@ -195,16 +209,46 @@ class simpleOvertake:
             # traffic.getVehicles
             l_front,l_rear = traffic.getVehicles()[i].getLength()
             leadWidth, _ = traffic.getVehicles()[i].getSize()
-
             # Define vehicle specific constants
             alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift)+leadWidth/2)
-            alpha_1 = l_rear + self.L_tract + v0_i * self.Time_headway + self.min_distx 
-            alpha_2 = l_front + self.L_trail + v0_i * self.Time_headway+ self.min_distx 
+            alpha_1 = l_rear + self.L_tract/2 + v0_i * self.Time_headway + self.min_distx 
+            alpha_2 = l_front + self.L_tract/2+ v0_i * self.Time_headway+ self.min_distx 
             alpha_3 = self.traffic_shift
             d_w_e = (self.egoWidth/2+d_lat_spread)*self.traffic_sign
             # Construct function
             func1 = alpha_0 / 2 * tanh(self.px - self.traffic_x + alpha_1)+alpha_3/2
             func2 = alpha_0 / 2 * tanh(self.traffic_x - self.px + alpha_2)+alpha_3/2
+            S = func1+func2 + d_w_e
+            # !SHIFT ACCORDING TO THE INIT_BOUND
+            S = S + self.init_bound 
+            constraints.append(Function('S',[self.px,self.traffic_x,self.traffic_y,
+                                    self.traffic_sign,self.traffic_shift,],
+                                    [S],['px','t_x','t_y','t_sign','t_shift'],['y_cons']))
+        return constraints
+    
+    def constrain_tightened(self,traffic,opts,temp_x, tempt_y):
+        constraints = []
+        
+        #! In this situation, we do not have egoTheta_max. no trailor
+        d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
+        for i in range(traffic.getDim()):
+            
+            # #! avoid the ego vehicle itself
+            # if i == 1 : continue
+            # Get Vehicle Properties
+            v0_i = traffic.getVehicles()[i].v0
+            # traffic.getVehicles
+            l_front,l_rear = traffic.getVehicles()[i].getLength()
+            leadWidth, _ = traffic.getVehicles()[i].getSize()
+            # Define vehicle specific constants
+            alpha_0 = self.traffic_sign * (self.traffic_sign*(self.traffic_y-self.traffic_shift+tempt_y)+leadWidth/2)
+            alpha_1 = l_front +l_rear + self.L_tract + v0_i * self.Time_headway + self.min_distx  # this is for the end
+            alpha_2 =  0 + v0_i * self.Time_headway+ self.min_distx  # this is for the front
+            alpha_3 = self.traffic_shift
+            d_w_e = (self.egoWidth/2+d_lat_spread)*self.traffic_sign
+            # Construct function
+            func1 = alpha_0 / 2 * tanh(self.px - self.traffic_x + alpha_1+temp_x)+alpha_3/2
+            func2 = alpha_0 / 2 * tanh(self.traffic_x - self.px + alpha_2+temp_x)+alpha_3/2
             S = func1+func2 + d_w_e
             # !SHIFT ACCORDING TO THE INIT_BOUND
             S = S + self.init_bound 

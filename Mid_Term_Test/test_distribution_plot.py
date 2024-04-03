@@ -72,8 +72,8 @@ for k in range(N):
 # Extract x and y for plotting
 x_positions = states[0, :]
 y_positions = states[1, :]
-sigma_x_squared = 2  # Process noise variance for x
-sigma_y_squared = 0.2  # Process noise variance for y
+sigma_x_squared = 0.3  # Process noise variance for x
+sigma_y_squared = 0.05  # Process noise variance for y
 
 # Time steps to plot
 time_steps = np.arange(0, 13, 3)  # N=1, 4, 8, 12
