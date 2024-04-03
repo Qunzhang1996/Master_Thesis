@@ -28,10 +28,10 @@ The difference between the simulated vehicle in CARLA and our nominal model is t
 
 
 **Constraint Definitions:**  
-For detailed constraint definitions, please refer to our supervisor's paper:  
 <p align="center">
-  <img src="Figure\Constraints.png" alt="Constraints Defination" width="100%">
+  <img src="Figure\Constraints.gif" alt="Constraints Defination" width="100%">
 </p>
+For detailed constraint definitions, please refer to our supervisor's paper:  
 
 *E. Börve, N. Murgovski, and L. Laine, "Interaction-Aware Trajectory Prediction and Planning in Dense Highway Traffic using Distributed Model Predictive Control."*
 
@@ -46,18 +46,7 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 
 ## Simulation in the CARLA Environment
 
-We showcase our RMPC's performance in various driving scenarios within the CARLA simulator. Below are GIFs depicting different aspects of the driving scenario, including Adaptive Cruise Control (ACC) in heavy traffic, lane changing with MPC_PID control, decision-making processes.
-
-**Adaptive Cruise Control in Heavy Traffic:**  
-<p align="center">
-  <img src="Figure/ACC_in_heavy_traffic.gif" alt="ACC in Heavy Traffic" width="100%">
-</p>
-
-**MPC_PID Lane Changing:**  
-<p align="center">
-  <img src="Figure/MPC_PID_LC%20(2).gif" alt="MPC_PID Lane Changing" width="100%">
-</p>
-
+<!-- 
 **Decision Making Process:**  
 <p align="center">
   <img src="Figure/decision_master.gif" alt="Decision Making Process" width="100%">
