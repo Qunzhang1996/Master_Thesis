@@ -1169,13 +1169,13 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
         for j in range(Nveh):
             # plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'k')
             if j==1:
-                width, L_tract = 2.59, 8.46
+                width, L_tract = 2.89, 8.46
                 L_trail=0
                 #! C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png
                 #! use truck image replace the rectangle
                 img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
-                width =2.59
-                height = 7
+                width =2.89
+                height = 8.46
                 left = X_traffic[0,i,j]-height/2
                 right = X_traffic[0,i,j]+height/2
                 top = X_traffic[1,i,j]+width/2

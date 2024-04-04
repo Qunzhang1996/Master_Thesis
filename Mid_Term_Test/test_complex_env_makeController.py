@@ -325,5 +325,5 @@ else:
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
-if makeMovie:
+if False:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

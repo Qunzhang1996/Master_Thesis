@@ -66,7 +66,7 @@ trailing_plot = False
 
 
 if trailing_plot:
-    i = 30
+    i = 40
 else:
     i = 20
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
@@ -117,7 +117,7 @@ plt.plot([0,300], [143.318146+1.75, 143.318146+1.75], 'k', lw=1)
 plt.plot([0,300], [143.318146-1.75-3.5, 143.318146-1.75-3.5], 'k', lw=1)
 plt.plot([0,300], [143.318146+1.75+3.5, 143.318146+1.75+3.5], 'k', lw=1)
 if trailing_plot:
-    plt.xlim(150,250)
+    plt.xlim(185,275)
     plt.ylim(130, 160)
 else:
     plt.xlim(120,210)
