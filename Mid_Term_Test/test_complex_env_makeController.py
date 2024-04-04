@@ -13,15 +13,15 @@ from util.utils import *
 sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
 from agents.navigation.controller import VehiclePIDController
 
-# ------------------------change map to Town06------------------------
-import subprocess
-# Command to run your script
-command = (
-    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-    r'python config.py --map Town06')
-subprocess.run(command, shell=True)
-exit()
-#  Run the command
+# # ------------------------change map to Town06------------------------
+# import subprocess
+# # Command to run your script
+# command = (
+#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+#     r'python config.py --map Town06')
+# subprocess.run(command, shell=True)
+# exit()
+# #  Run the command
 
 stochasticMPC = True
 
@@ -147,7 +147,7 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
 # ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
-tsim = 40                       # Total simulation time in seconds
+tsim = 40                      # Total simulation time in seconds
 Nsim = int(tsim/dt)
 # # Initialize simulation
 x_iter = DM(int(nx),1)
@@ -325,5 +325,5 @@ else:
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
-if False:
+if makeMovie:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

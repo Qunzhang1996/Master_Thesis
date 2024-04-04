@@ -62,7 +62,7 @@ R_0[3,3]=(1/180*np.pi)**2
 P0, _, possibility = set_stochastic_mpc_params()
 vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
-trailing_plot = True
+trailing_plot = False
 
 
 if trailing_plot:
@@ -85,10 +85,10 @@ decision_string = ["Change Left","Change Right","Keep Lane"]
 print("this is the decisionLog: ", temp_x, tempt_y )
 
 constraint_laneChange = scenario.constraint(traffic,[])
-paramLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', allow_pickle=True)
-decisionLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', allow_pickle=True)
-X = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', allow_pickle=True)
-X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', allow_pickle=True)
+paramLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', allow_pickle=True)
+decisionLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', allow_pickle=True)
+X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy', allow_pickle=True)
+X = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', allow_pickle=True)
 
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
 plt.figure(figsize=(12, 6))
@@ -102,6 +102,10 @@ temp_x =5
 tempt_y =0.3
 constraint_laneChange = scenario.constrain_tightened(traffic,[],temp_x, tempt_y)
 #! plot the tightened lane change constraint
+paramLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', allow_pickle=True)
+decisionLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', allow_pickle=True)
+X = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', allow_pickle=True)
+X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', allow_pickle=True)
 plot_tanhConstraint(i,X_traffic, traffic, constraint_laneChange,paramLog,decisionLog,X,vehWidth,d_lat_spread,scenarioTrailADV,frameSize,Nveh,laneWidth,leadLength,color_plt='r')
     
 plt.plot([0,300], [143.318146, 143.318146], color='gray', linestyle='--', lw=1)

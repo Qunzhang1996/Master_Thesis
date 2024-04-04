@@ -768,7 +768,7 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
         axanime.add_patch(grass)
 
         grass = Rectangle((X_road[0]+X[0,i,0],roadMin),width = frameSize*2+40, height = 3 * laneWidth,
-                            linewidth=1,facecolor='lightgray', fill=True)
+                            linewidth=1,facecolor='white', fill=True)
 
         axanime.add_patch(grass)
 
@@ -831,7 +831,6 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
         # Plot traffic
         colors= {"aggressive" : "r","normal": "b", "passive": "g",
                  "aggressive_truck" : "r","normal_truck": "b", "passive_truck": "g"}
-        
         for j in range(Nveh):
             color = colors[vehList[j].type]
 
@@ -851,10 +850,30 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                 
             else:
                 leadWidth,leadLength = vehList[j].getSize()
-                axanime.add_patch(Rectangle(
-                                xy = (X_traffic[0,i,j]-leadLength/2,X_traffic[1,i,j]-leadWidth/2), width=leadLength, height=leadWidth,
-                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
-                                facecolor=color, fill=True))
+                #! use img car and img truck to replace the rectangle, i==1 is the ego vehicle(truck)
+                if j == 1:
+                    img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
+                    left = X_traffic[0,i,j]-leadLength/2
+                    right = X_traffic[0,i,j]+leadLength/2
+                    top = X_traffic[1,i,j]+leadWidth/2
+                    bottom = X_traffic[1,i,j]-leadWidth/2
+                    extent = [left, right, bottom, top]
+                    axanime.imshow(img, extent=extent, alpha=0.9, zorder=3)
+                else:
+                    img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\car_image.png')
+                    left = X_traffic[0,i,j]-leadLength/2
+                    right = X_traffic[0,i,j]+leadLength/2
+                    top = X_traffic[1,i,j]+leadWidth/2
+                    bottom = X_traffic[1,i,j]-leadWidth/2
+                    extent = [left, right, bottom, top]
+                    axanime.imshow(img, extent=extent, alpha=0.9, zorder=3)
+
+
+
+                # axanime.add_patch(Rectangle(
+                #                 xy = (X_traffic[0,i,j]-leadLength/2,X_traffic[1,i,j]-leadWidth/2), width=leadLength, height=leadWidth,
+                #                 angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
+                #                 facecolor=color, fill=True))
             plt.scatter(X_traffic_ref[0,i,j],X_traffic_ref[1,i,j],marker = '.',color = color)
 
         # Plot box with info
