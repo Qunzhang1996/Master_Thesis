@@ -147,7 +147,7 @@ decisionMaster.setDecisionCost(q_ADV_decision)                  # Sets cost of c
 # ███████╗██║██╔████╔██║██║   ██║██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║
 # ╚════██║██║██║╚██╔╝██║██║   ██║██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║
 # ███████║██║██║ ╚═╝ ██║╚██████╔╝███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║
-tsim = 40                      # Total simulation time in seconds
+tsim = 40                     # Total simulation time in seconds
 Nsim = int(tsim/dt)
 # # Initialize simulation
 x_iter = DM(int(nx),1)

@@ -18,6 +18,8 @@ from matplotlib.patches import Rectangle
 import numpy as np
 import pandas as pd
 from PIL import Image
+from matplotlib.transforms import Affine2D
+import cv2
 
 
 class Param:
@@ -855,17 +857,17 @@ def borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,
                 leadWidth,leadLength = vehList[j].getSize()
                 #! use img car and img truck to replace the rectangle, i==1 is the ego vehicle(truck)
                 if j == 1:
-                    # img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
-                    img = Image.open(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
+                    img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
                     left = X_traffic[0,i,j]-leadLength/2
                     right = X_traffic[0,i,j]+leadLength/2
                     top = X_traffic[1,i,j]+leadWidth/2
                     bottom = X_traffic[1,i,j]-leadWidth/2
                     extent = [left, right, bottom, top]
                     degree = 180*X_traffic[3,i,j]/np.pi
-                    # tr = transforms.Affine2D().rotate_deg(degree)
-                    img = img.rotate(degree, expand=True)
-                    axanime.imshow(img, extent=extent, alpha=0.9, zorder=3)
+
+                    # Create an affine transformation
+                    tr = Affine2D().rotate_deg_around(X_traffic[0,i,j], X_traffic[1,i,j], degree)
+                    axanime.imshow(img, extent=extent, alpha=0.9, zorder=3, transform=tr + axanime.transData)
                 else:
                     img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\car_image.png')
                     left = X_traffic[0,i,j]-leadLength/2

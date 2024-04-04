@@ -236,6 +236,7 @@ for i in range(0,Nsim):
             
     #TODO: Update traffic and store data
     measurement_truck = get_state(truck) + r
+    
     # !-----------------  do extended kalman filter ------------------------
     ekf.predict(u_iter, A, B)  # predict the state
     ekf.update(measurement_truck)  # update the state
