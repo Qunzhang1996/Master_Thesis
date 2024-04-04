@@ -1153,9 +1153,9 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
                 top = X_traffic[1,i,j]+width/2
                 bottom = X_traffic[1,i,j]-width/2
                 extent = [left, right, bottom, top]
-                ax.imshow(img, extent=extent, alpha=0.5)
+                ax.imshow(img, extent=extent, alpha=0.9)
                 #! legend : Egovehicle
-                plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'r',label='Ego Vehicle')
+                plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'k',label='Ego Vehicle')
 
             else:
                 leadWidth,leadLength = 2.032, 4.78536
@@ -1167,7 +1167,7 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
                 top = X_traffic[1,i,j]+width/2
                 bottom = X_traffic[1,i,j]-width/2
                 extent = [left, right, bottom, top]
-                ax.imshow(img, extent=extent, alpha=0.5)
+                ax.imshow(img, extent=extent, alpha=0.9)
                 if j == 0:
                     plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'b',label='Surrounding Vehicle')
                 else:

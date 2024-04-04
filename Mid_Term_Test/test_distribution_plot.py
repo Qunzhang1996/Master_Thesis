@@ -134,7 +134,7 @@ for idx, N in enumerate(time_steps):
         top = mean_N[1] + height / 2
 
         extent = [left, right, bottom, top]
-        ax.imshow(img, extent=extent, alpha=0.3)
+        ax.imshow(img, extent=extent, alpha=0.9)
 
         
     else:
@@ -148,7 +148,7 @@ for idx, N in enumerate(time_steps):
         top = mean_N[1] + height / 2
 
         extent = [left, right, bottom, top]
-        ax.imshow(img, extent=extent, alpha=0.3)
+        ax.imshow(img, extent=extent, alpha=0.9)
 
     # Ellipse parameters for 95% confidence
     ellipse_width_N = 2 * np.sqrt(3 * scaled_sigma_x_squared_N)

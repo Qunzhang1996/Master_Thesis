@@ -62,7 +62,7 @@ R_0[3,3]=(1/180*np.pi)**2
 P0, _, possibility = set_stochastic_mpc_params()
 vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
-trailing_plot = False
+trailing_plot = True
 
 
 if trailing_plot:
