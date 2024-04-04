@@ -95,10 +95,11 @@ P0,process_noise,possibility = set_stochastic_mpc_params()
 process_noise[1,1] = sigma_y_squared
 MPC_tighten_bound = MPC_tighten_bound(A, B, g, vehicle.Q, vehicle.R, P0, process_noise, possibility)
 
-
+#! color should be red, black, blue, green, cyan, magenta, yellow, black, gray
+color_list = ['r', 'k', 'b', 'g', 'c', 'm', 'y', 'k', 'gray']
 
 # Plot each ellipse with adjusted settings for clear visualization
-for N in time_steps:
+for idx, N in enumerate(time_steps):
     # Time at current N
     current_time = N * dt
 
@@ -107,7 +108,7 @@ for N in time_steps:
     print(mean_N)   
 
     # Get color from colormap
-    color = scalar_map.to_rgba(N-5)
+    color= color_list[idx]
 
     ax.plot(mean_N[0], mean_N[1], 'o', markersize=5, label=f'N={N}', color=color)
     _, P_next_N_list = MPC_tighten_bound.calculate_P_next_N(K, N)
@@ -116,20 +117,46 @@ for N in time_steps:
         scaled_sigma_x_squared_N = sigma_x_squared
         scaled_sigma_y_squared_N = sigma_y_squared
         #! add the vehicle as rect at the center of the ellipse, width=2.89m, length=8.46m
-        ax.add_patch(plt.Rectangle((mean_N[0]-8.46/2, mean_N[1]-2.59/2), 8.46, 2.59, color='r', alpha=0.3))
+        
+        import matplotlib.image as mpimg
+
+        #! C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png
+        img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
+
+        #! use cernten point to set the image, and set the size of the image
+        # ax.imshow(img, extent=[0, 150, 0, 150], alpha=0.5)
+        # ax.add_patch(plt.Rectangle((mean_N[0]-8.46/2, mean_N[1]-2.59/2), 8.46, 2.59, color='r', alpha=0.3))
+        width =5.5
+        height = 2.59
+        left = mean_N[0] - width / 2
+        right = mean_N[0] + width / 2
+        bottom = mean_N[1] - height / 2
+        top = mean_N[1] + height / 2
+
+        extent = [left, right, bottom, top]
+        ax.imshow(img, extent=extent, alpha=0.3)
+
         
     else:
         scaled_sigma_x_squared_N = P_next_N_list[-1][0, 0]
         scaled_sigma_y_squared_N = P_next_N_list[-1][1, 1]
+        width =5.5
+        height = 2.59
+        left = mean_N[0] - width / 2
+        right = mean_N[0] + width / 2
+        bottom = mean_N[1] - height / 2
+        top = mean_N[1] + height / 2
 
-    print(scaled_sigma_x_squared_N, scaled_sigma_y_squared_N)
+        extent = [left, right, bottom, top]
+        ax.imshow(img, extent=extent, alpha=0.3)
+
     # Ellipse parameters for 95% confidence
     ellipse_width_N = 2 * np.sqrt(3 * scaled_sigma_x_squared_N)
     ellipse_height_N = 2 * np.sqrt(3 * scaled_sigma_y_squared_N)
     ellipse_dimensions.append((ellipse_width_N, ellipse_height_N))
     # Add ellipse
     confidence_ellipse_N = Ellipse(xy=mean_N, width=ellipse_width_N, height=ellipse_height_N, 
-                                   angle=0, edgecolor='r', facecolor='yellow', alpha=0.3)
+                                   angle=0, edgecolor='r', facecolor='yellow', alpha=0.5)
     ax.add_patch(confidence_ellipse_N)
     
     

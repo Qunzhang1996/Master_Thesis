@@ -8,7 +8,7 @@ from enum import IntEnum
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
-
+import matplotlib.image as mpimg
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.animation import FuncAnimation
@@ -1136,10 +1136,6 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
             plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],color_plt, alpha = 1,linewidth=2)
             plt.plot([X_limit,X_limit],laneBounds,color_plt, alpha = 1,linewidth=2)
 
-        # plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[0],laneBounds[0]],'g')
-        # plt.plot([X[0,i,0]-frameSize,X_limit],[laneBounds[1],laneBounds[1]],'g')
-        # plt.plot([X_limit,X_limit],laneBounds,'g')
-        
         
     if color_plt == 'r':
         for j in range(Nveh):
@@ -1147,20 +1143,31 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
             if j==1:
                 width, L_tract = 2.59, 8.46
                 L_trail=0
-                ax.add_patch(Rectangle(
-                                xy = (X_traffic[0,i,j]-L_tract/2,X_traffic[1,i,j]-width/2), width=L_tract, height=width,
-                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
-                                facecolor="red", fill=True,alpha=0.3))
+                #! C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png
+                #! use truck image replace the rectangle
+                img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
+                width =2.59
+                height = 7
+                left = X_traffic[0,i,j]-height/2
+                right = X_traffic[0,i,j]+height/2
+                top = X_traffic[1,i,j]+width/2
+                bottom = X_traffic[1,i,j]-width/2
+                extent = [left, right, bottom, top]
+                ax.imshow(img, extent=extent, alpha=0.5)
                 #! legend : Egovehicle
                 plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'r',label='Ego Vehicle')
 
             else:
                 leadWidth,leadLength = 2.032, 4.78536
-                ax.add_patch(Rectangle(
-                                xy = (X_traffic[0,i,j]-leadLength/2,X_traffic[1,i,j]-leadWidth/2), width=leadLength, height=leadWidth,
-                                angle= 180*X_traffic[3,i,j]/np.pi, linewidth=1, edgecolor = 'k',
-                                facecolor="blue", fill=True,alpha=0.3))
-                #1 surrounding vehicle, only show once
+                img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\car_image.png')
+                width = 2.032
+                height = 4.78536
+                left = X_traffic[0,i,j]-height/2
+                right = X_traffic[0,i,j]+height/2
+                top = X_traffic[1,i,j]+width/2
+                bottom = X_traffic[1,i,j]-width/2
+                extent = [left, right, bottom, top]
+                ax.imshow(img, extent=extent, alpha=0.5)
                 if j == 0:
                     plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'b',label='Surrounding Vehicle')
                 else:

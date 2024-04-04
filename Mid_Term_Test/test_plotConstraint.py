@@ -62,12 +62,13 @@ R_0[3,3]=(1/180*np.pi)**2
 P0, _, possibility = set_stochastic_mpc_params()
 vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
+trailing_plot = False
 
 
-
-
-i = 20
-i=30
+if trailing_plot:
+    i = 30
+else:
+    i = 20
 scenarioTrailADV = trailing(vehicleADV,N,lanes = 3,v_legal = ref_vx, laneWidth=laneWidth)
 scenarioTrailADV.slackCost(q_traffic_slack)
 scenarioADV = simpleOvertake(vehicleADV,N,lanes = 3,v_legal = ref_vx,laneWidth=laneWidth)
@@ -84,9 +85,6 @@ decision_string = ["Change Left","Change Right","Keep Lane"]
 print("this is the decisionLog: ", temp_x, tempt_y )
 
 constraint_laneChange = scenario.constraint(traffic,[])
-# paramLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', allow_pickle=True)
-# decisionLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', allow_pickle=True)
-# X = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', allow_pickle=True)
 paramLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', allow_pickle=True)
 decisionLog = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', allow_pickle=True)
 X = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', allow_pickle=True)
@@ -94,7 +92,7 @@ X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffi
 
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
 plt.figure(figsize=(12, 6))
-plt.title('Tightened Lane Change Constraint when doing Overtake')
+
 plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,decisionLog,X,vehWidth,d_lat_spread,scenarioTrailADV,frameSize,Nveh,laneWidth,leadLength,color_plt='g--')
 
 
@@ -114,15 +112,23 @@ plt.plot([0,300], [143.318146-1.75, 143.318146-1.75], 'k', lw=1)
 plt.plot([0,300], [143.318146+1.75, 143.318146+1.75], 'k', lw=1)
 plt.plot([0,300], [143.318146-1.75-3.5, 143.318146-1.75-3.5], 'k', lw=1)
 plt.plot([0,300], [143.318146+1.75+3.5, 143.318146+1.75+3.5], 'k', lw=1)
-# plt.xlim(120,210)
-# plt.ylim(130, 160)
-plt.xlim(150,250)
-plt.ylim(130, 160)
+if trailing_plot:
+    plt.xlim(150,250)
+    plt.ylim(130, 160)
+else:
+    plt.xlim(120,210)
+    plt.ylim(130, 160)
+
 plt.xlabel('X Position')
 plt.ylabel('Y Position')
 plt.tight_layout()
 plt.legend(loc='upper right')
 #! save the figure
-plt.savefig(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\Tightened_IDM.png')
-# plt.savefig(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\Tightened_tanh.png')
+if trailing_plot:
+    plt.title('Tightened Lane Change Constraint when doing Trailing')
+    plt.savefig(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\Tightened_trailing.png')
+else:
+    plt.title('Tightened Lane Change Constraint when doing Overtake')
+    plt.savefig(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\Tightened_overtake.png')
+
 plt.show()

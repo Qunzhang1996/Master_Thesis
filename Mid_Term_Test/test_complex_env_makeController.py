@@ -13,15 +13,15 @@ from util.utils import *
 sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
 from agents.navigation.controller import VehiclePIDController
 
-# # ------------------------change map to Town06------------------------
-# import subprocess
-# # Command to run your script
-# command = (
-#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-#     r'python config.py --map Town06')
-# subprocess.run(command, shell=True)
-# exit()
-# #  Run the command
+# ------------------------change map to Town06------------------------
+import subprocess
+# Command to run your script
+command = (
+    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+    r'python config.py --map Town06')
+subprocess.run(command, shell=True)
+exit()
+#  Run the command
 
 stochasticMPC = True
 

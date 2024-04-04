@@ -44,7 +44,7 @@ If you find the details on constraint definitions helpful or if they've sparked 
 To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
 ![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
 ![MPC Constraint Tightening_ACC](Figure/Tightened_IDM.png)
-![MPC Constraint Tightening_OverTaking](Figure/Tightened_tanh.png)
+![MPC Constraint Tightening_OverTaking](Figure/Tightened_overtake.png)
 
 
 ## Simulation in the CARLA Environment
@@ -53,18 +53,22 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 <p align="center">
   <img src="Figure/decision_master.gif" alt="Decision Making Process" width="100%">
 </p>
+
 **Driving in Heavy Traffic Conditions:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3.gif" alt="Heavy Traffic Conditions" width="100%">
 </p>
+
 **Driving in Heavy Traffic Conditions using EKF:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3_EKF.gif" alt="Controller Testing in CARLA" width="100%">
 </p>
+
 **Controller Testing in CARLA:**  
 <p align="center">
   <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" alt="Controller Testing in CARLA" width="100%">
 </p>
+
 **Vehicle Trajectory:**  
 The trajectory followed by the vehicle during the tests.
 <p align="center">
