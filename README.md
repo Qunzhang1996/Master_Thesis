@@ -43,7 +43,7 @@ If you find the details on constraint definitions helpful or if they've sparked 
 **SMPC Constraint Tightening:**  
 To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
 ![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
-![MPC Constraint Tightening_ACC](Figure/Tightened_IDM.png)
+![MPC Constraint Tightening_ACC](Figure/Tightened_trailing.png)
 ![MPC Constraint Tightening_OverTaking](Figure/Tightened_overtake.png)
 
 
