@@ -66,7 +66,7 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 
 **Controller Testing in CARLA:**  
 <p align="center">
-  <img src="Figure/CARLA_simulationn_Make_Controller_TEST_ref.png" alt="Controller Testing in CARLA" width="100%">
+  <img src="Figure/CARLA_simulation_compare_ref.gif" alt="Controller Testing in CARLA" width="100%">
 </p>
 
 **Vehicle Trajectory:**  

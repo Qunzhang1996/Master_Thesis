@@ -204,8 +204,8 @@ feature_map = np.zeros((8,Nsim,Nveh+1))
  
 
 
-
-for i in range(0,Nsim):
+import tqdm
+for i in tqdm.tqdm(range(0,Nsim)):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
@@ -313,17 +313,19 @@ figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
+figure_name = 'CARLA_simulation_compare_ref'
+create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
 #! save X_traffic  paramLog   decisionLog  as npy 
-if stochasticMPC:
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', X)
-else:
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy', X_traffic)
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
-    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
+# if stochasticMPC:
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', X)
+# else:
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy', X_traffic)
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
+#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
 if False:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)

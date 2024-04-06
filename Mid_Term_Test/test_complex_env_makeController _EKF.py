@@ -202,7 +202,10 @@ feature_map = np.zeros((8,Nsim,Nveh+1))
 
 
 
-for i in range(0,Nsim):
+# for i in range(0,Nsim):
+# use tqdm for progress bar
+import tqdm
+for i in tqdm.tqdm(range(0,Nsim)):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
@@ -325,12 +328,15 @@ figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref_EKF.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
 
+figure_name = 'CARLA_simulation_compare_ref'
+create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+
 #! save X_traffic  paramLog   decisionLog  as npy 
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_EKF.npy', X_traffic)
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_EKF.npy', paramLog)
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_EKF.npy', decisionLog)
-np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_EKF.npy', X)
+# np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_EKF.npy', X_traffic)
+# np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_EKF.npy', paramLog)
+# np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_EKF.npy', decisionLog)
+# np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_EKF.npy', X)
 
 
-if makeMovie:
-    borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
+# if makeMovie:
+#     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
