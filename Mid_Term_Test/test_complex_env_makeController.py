@@ -313,8 +313,8 @@ figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
-figure_name = 'CARLA_simulation_compare_ref'
-create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+# figure_name = 'CARLA_simulation_compare_ref'
+# create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
 #! save X_traffic  paramLog   decisionLog  as npy 
 # if stochasticMPC:
