@@ -40,13 +40,15 @@ E. Börve, N. Murgovski, and L. Laine, "Interaction-Aware Trajectory Prediction 
 
 If you find the details on constraint definitions helpful or if they've sparked some ideas for your own work, we'd really appreciate it if you could cite our supervisor's paper.
 
+**SMPC Theory:**  
+![MPC Constraint Theory](Figure/smpc_theory.png)
 **SMPC Constraint Tightening:**  
 To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten state constraints, especially for trailing and lane changing maneuvers.  
-![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
+<!-- ![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
 ![MPC Constraint Tightening_ACC](Figure/Tightened_trailing.png)
-![MPC Constraint Tightening_OverTaking](Figure/Tightened_overtake.png)
+![MPC Constraint Tightening_OverTaking](Figure/Tightened_overtake.png) -->
 
-
+![MPC Constraint Tightening](Figure/Tightened_constraints.png)
 ## Simulation in the CARLA Environment
 
 **Decision Making Process:**  
