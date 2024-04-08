@@ -59,6 +59,9 @@ class makeController:
         self.ocp.model.x = self.vehicle.x
         self.ocp.model.xdot = SX.sym('x_dot', self.nx)
         self.ocp.model.u = self.vehicle.u
+        self.ocp.model.con_h_expr
+        
+
         self.ocp.dims.nx = self.nx
         self.ocp.dims.nu = self.nu
         if self.opts["integrator"] == "rk":

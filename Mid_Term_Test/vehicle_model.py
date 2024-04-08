@@ -48,11 +48,17 @@ class car_VehicleModel(vehBicycleKinematic):
         self.refxR = [0,0,54/3.6,0]
 
         # System model variables
-        self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
-        self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
+        # self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
+        # self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
 
-        self.refx = SX.sym('refx',self.nx)
-        self.refu = SX.sym('refu',self.nu)
+        # self.refx = SX.sym('refx',self.nx)
+        # self.refu = SX.sym('refu',self.nu)
+
+        self.x = MX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
+        self.u = MX.sym('u',self.nu)             # self.u = [a_x a_y]
+
+        self.refx = MX.sym('refx',self.nx)
+        self.refu = MX.sym('refu',self.nu)
        
         
         # This should really change based on scenario

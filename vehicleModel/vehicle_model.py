@@ -47,11 +47,17 @@ class car_VehicleModel(vehBicycleKinematic):
         self.refxR = [0,0,54/3.6,0]
 
         # System model variables
-        self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
-        self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
+        # self.x = SX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
+        # self.u = SX.sym('u',self.nu)             # self.u = [a_x a_y]
 
-        self.refx = SX.sym('refx',self.nx)
-        self.refu = SX.sym('refu',self.nu)
+        # self.refx = SX.sym('refx',self.nx)
+        # self.refu = SX.sym('refu',self.nu)
+
+        self.x = MX.sym('x',self.nx)             # self.x = [p_x p_y v_x v_y]
+        self.u = MX.sym('u',self.nu)             # self.u = [a_x a_y]
+
+        self.refx = MX.sym('refx',self.nx)
+        self.refu = MX.sym('refu',self.nu)
        
         
         # This should really change based on scenario
@@ -113,6 +119,18 @@ class car_VehicleModel(vehBicycleKinematic):
         dx = vertcat(dp_xb,dp_yb,dv_x,dtheta)
         self.dx_cog = dx
         return {'x':self.x,'p':self.u,'ode':dx}
+    
+    def model_xdot(self):
+        # System dynamics model
+        # x = [x_a y_a v_vx theta]
+        # u = [steer acc]
+        dp_xb = self.x[2] *cos(self.x[3])
+        dp_yb = self.x[2] * sin(self.x[3])
+        dv_x = self.u[1] 
+        dtheta = self.x[2] / self.length* tan(self.u[0]) 
+        dx = vertcat(dp_xb,dp_yb,dv_x,dtheta)
+        self.dx = dx
+        return self.dx
         
     
     def integrator(self,opts,dt,cog=True):

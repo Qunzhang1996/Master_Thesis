@@ -23,6 +23,11 @@ import scipy.linalg
 
 from draw import Draw_MPC_point_stabilization_v1
 
+# Append the path to LD_LIBRARY_PATH environment variable
+ld_library_path = "/mnt/c/Users/A490242/acados/lib"
+os.environ["LD_LIBRARY_PATH"] = ld_library_path + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+
+
 def safe_mkdir_recursive(directory, overwrite=False):
     if not os.path.exists(directory):
         try:
@@ -85,8 +90,15 @@ class MobileRobotOptimizer(object):
         ocp.cost.Vu[-nu:, -nu:] = np.eye(nu)
         ocp.cost.Vx_e = np.eye(nx)
 
+        # Define time-varying lower bounds for control input u (lbu_timestep)
+        # lbu_timestep = np.array([-0.6, -0.6, 0, 1, 0, 0, 0, 0, 0, 0])
+        lbu_v_min = np.full((self.N,), m_constraint.v_min)
+        lbu_omega_min = np.full((self.N,), m_constraint.omega_min)
+
+
         # set constraints
-        ocp.constraints.lbu = np.array([m_constraint.v_min, m_constraint.omega_min])
+        # ocp.constraints.lbu = np.array([m_constraint.v_min, m_constraint.omega_min])
+        ocp.constraints.lbu = np.array([lbu_v_min, lbu_omega_min])
         ocp.constraints.ubu = np.array([m_constraint.v_max, m_constraint.omega_max])
         ocp.constraints.idxbu = np.array([0, 1])
         ocp.constraints.lbx = np.array([m_constraint.x_min, m_constraint.y_min])

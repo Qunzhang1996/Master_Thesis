@@ -6,16 +6,24 @@ import sys
 import time
 import os
 import json
-sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
-sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
+sys.path.append(r'/mnt/c/Users/A490242/Desktop/Documents/WindowsNoEditor/PythonAPI/carla')
+sys.path.append(r'/mnt/c/Users/A490242/acados/Master_Thesis-main')
 # import observor
 from kalman_filter.kalman_filter import kalman_filter
 # import controller
-from Controller.LTI_MPC import MPC
+from Controller.LTI_acados import MPC
 from vehicleModel.vehicle_model import car_VehicleModel
-from agents.navigation.controller import VehiclePIDController
+from agents.navigation.controller_upd import VehiclePIDController
 # import helpers
 from util.utils import *
+import os
+# # Append the path to LD_LIBRARY_PATH environment variable
+# ld_library_path = "/mnt/c/Users/A490242/acados/lib"
+# os.environ["LD_LIBRARY_PATH"] = ld_library_path + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+
+# # Set ACADOS_SOURCE_DIR environment variable
+# acados_source_dir = "/mnt/c/Users/A490242/acados"
+# os.environ["ACADOS_SOURCE_DIR"] = acados_source_dir
 # ██████╗  █████╗ ███████╗███████╗
 # ██╔══██╗██╔══██╗██╔════╝██╔════╝
 # ██████╔╝███████║███████╗███████╗
@@ -107,7 +115,7 @@ ref_trajectory[3,:] = 0
 ref_control = np.zeros((nu, N))  # Reference control inputs
 
 # ! Set the controller (this step initializes the optimization problem with cost and constraints)
-mpc_controller.setController()
+# mpc_controller.setController()
 
 
 #  ██████╗ ██████╗ ███████╗███████╗██████╗ ██╗   ██╗ ██████╗ ██████╗ 

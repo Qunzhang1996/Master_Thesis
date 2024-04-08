@@ -4,7 +4,7 @@
 import time
 import sys
 from casadi import *
-from controllers_acados_v2 import makeController, makeDecisionMaster
+from Controllers_rockit import makeController, makeDecisionMaster
 from vehicle_model import car_VehicleModel
 from Traffic import Traffic
 from Scenarios import trailing, simpleOvertake
@@ -18,7 +18,8 @@ from agents.navigation.controller2 import VehiclePIDController
 # import subprocess
 # # Command to run your script
 # command = (
-#     r'python /mnt/c/Users/A490242/acados/Desktop/Documents/WindowsNoEditor/PythonAPI/util/config.py --map Town06'
+#     r'python /mnt/c/Users/A490242/Desktop/Documents/WindowsNoEditor/PythonAPI/util/config.py --map Town06'
+# )
 # subprocess.run(command, shell=True)
 # exit()
 # #  Run the command

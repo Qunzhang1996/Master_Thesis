@@ -8,8 +8,8 @@ from casadi import *
 import numpy as np
 from matplotlib import pyplot as plt
 from MPC_tighten_bound import MPC_tighten_bound
+from rockit import *
 from util.utils import *
-from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver, AcadosModel
 class makeController:   
     """
     #! Creates a MPC based on current vehicle, traffic and scenario
@@ -63,68 +63,62 @@ class makeController:
     
         self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, self.D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
         
-       # ! create ocp model and set dynamics
-        self.ocp = AcadosOcp()
-        self.ocp.model = AcadosModel()
-        self.ocp.model.name = 'vehicle_running_acados'
-        
-        self.ocp.model.t = dt
+        # ! Start an optimal control environment with a time horizon of N seconds starting from t0=0s
+        self.ocp = Ocp(t0=0, T=self.N)
 
-        self.x = SX.sym('x',self.nx,self.N+1)
-        self.u = SX.sym('u',self.nu,self.N)
-        self.x0 = SX.sym('x0',self.nx,1)
-        self.refx = SX.sym('refx',self.nrefx,self.N+1)
-        self.refu = SX.sym('refu',self.nrefu,self.N)
-        self.ocp.model.x = self.vehicle.x
-        self.ocp.model.u = self.vehicle.u
-        self.ocp.dims.nx = self.nx
-        self.ocp.dims.nu = self.nu
+        # [x,y,v,phi] = [ocp.state() for i in range(4)]
+        # [a,delta] = [ocp.control() for i in range(2)]
+        self.x = self.ocp.state(self.nx,self.N+1)
+        self.u = self.ocp.control(self.nu,self.N)
+        self.refx = self.ocp.parameter(self.nrefx,self.N+1)
+        self.refu = self.ocp.parameter(self.nrefu,self.N)
+        self.x0 = self.ocp.parameter(self.nx,1)
 
-        # ! change this according to the LC_MPC AND TRAILING_MPC
-        if opts["version"] == "trailing":
-            self.lead = SX.sym('lead',1,self.N+1)
-            self.traffic_slack = SX.sym('traffic_slack',1,self.N+1)
-        else:
-            self.traffic_slack = SX.sym('traffic_slack', self.Nveh,self.N+1)
-            self.lead = SX.sym('lead',self.Nveh,self.N+1)
-            self.traffic_x = SX.sym('traffic_x',self.Nveh,self.N+1)
-            self.traffic_y = SX.sym('traffic_y',self.Nveh,self.N+1)
-            self.traffic_sign = SX.sym('traffic_sign',self.Nveh,self.N+1)
-            self.traffic_shift = SX.sym('traffic_shift',self.Nveh,self.N+1)
-            self.traffic_flip = SX.sym('traffic_flip',self.Nveh,self.N+1)
-        
-            
-        #! Create OCP solver
-        
-        # solver options
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-        self.ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
-        # explicit Runge-Kutta integrator
-        self.ocp.solver_options.integrator_type = 'ERK'
-        self.ocp.solver_options.print_level = 0
-        self.ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+        # Specify ODE
+        self.ocp.set_der(self.x, self.vehicle.model_xdot())
 
-        # self.ocp.solver_options.tf = self.N
-        # self.ocp_solver = AcadosOcpSolver(self.ocp, json_file = 'acados_ocp.json')
-    
+        # ! set the initial for the state
+        self.ocp.set_initial(self.x, self.vehicle.x_init)
+        self.ocp.set_initial(self.u, self.vehicle.u_init)
+
+               
         #! turn on/off the stochastic MPC
         self.stochasticMPC=1
+        
+        
+        # ! change this according to the LC_MPC AND TRAILING_MPC
+        if opts["version"] == "trailing":
+            self.lead = self.ocp.parameter(1,self.N+1)
+            self.traffic_slack = self.ocp.variable(1,self.N+1)
+        else:
+            self.traffic_slack = self.ocp.variable(self.Nveh,self.N+1)
+            # self.lead = self.ocp.parameter(self.Nveh,self.N+1)
+            self.traffic_x = self.ocp.parameter(self.Nveh,self.N+1)
+            self.traffic_y = self.ocp.parameter(self.Nveh,self.N+1)
+            self.traffic_sign =self. ocp.parameter(self.Nveh,self.N+1)
+            self.traffic_shift = self.ocp.parameter(self.Nveh,self.N+1)
+            self.traffic_flip = self.ocp.parameter(self.Nveh,self.N+1)
+            
+        #! NEED TO CHANGE THIS
+        # # solver options
+        # Pick an NLP solver backend
+        #  (CasADi `nlpsol` plugin):
+        self.ocp.solver('ipopt')
+
+        # Pick a solution method
+        method = external_method('acados', N=self.N,qp_solver='PARTIAL_CONDENSING_HPIPM',nlp_solver_max_iter=200,hessian_approx='EXACT',regularize_method = 'CONVEXIFY',integrator_type='ERK',nlp_solver_type='SQP',qp_solver_cond_N=10)
+        self.ocp.method(method)
         
         
     def setStateEqconstraints(self):
         """
         Set state equation constraints, using the LTI model,  ref_v=15, ref_phi=0, ref_delta=0
         """
-        constraint_state = []
         for i in range(self.N):
             A_d, B_d, G_d = self.A, self.B, self.C
-            constraint_state.append(self.x[:, i+1] == A_d @ self.x[:, i] + B_d @ self.u[:, i] + G_d)
-            # constraint_state = self.x[:, i+1] == A_d @ self.x[:, i] + B_d @ self.u[:, i] + G_d
-            # self.opti.subject_to(self.x[:, i+1] == A_d @ self.x[:, i] + B_d @ self.u[:, i] + G_d)
-        # self.opti.subject_to(self.x[:, 0] == self.x0)
-        self.ocp.constraints.set('state_constraints', constraint_state)  
-        self.ocp.constraints.set('initial_state_constraints', self.x[:, 0] == self.x0)
-        # self.ocp_model.set('constraint_x0', initial_state_constraints)
+            self.ocp.subject_to(self.x[:, i+1] == A_d @ self.x[:, i] + B_d @ self.u[:, i] + G_d)
+            # self.opti.subject_to(self.x[:, i+1] == self.F_x(self.x[:,i],self.u[:,i]))
+        self.ocp.subject_to(self.x[:, 0] == self.x0)
 
     def setInEqConstraints_val(self, H_up=None, upb=None, H_low=None, lwb=None):
         """
@@ -150,15 +144,13 @@ class makeController:
             
 
         if self.scenario.name == 'simpleOvertake':
-            traffic_constraint = []
             
             #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
             for i in range(self.Nveh):
                 if i ==1: continue #! avoid putting the ego vehicle in the list
-                traffic_constraint.append(self.traffic_flip[i,:] * self.x[1,:] 
+                self.ocp.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
                                     >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
                                         self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
-            self.ocp.constraints.set('traffic_constraints', traffic_constraint)
             #TODO: BE CAREFUL ABOUT THE SHIFT "143.318146 -self.laneWidth/2" -- self.init_bound, IT IS DEFINED IN THE SCENERIO
             # ! ASK ERIK, TOO STRICT CONSTRAINTS
             #TODO: DO The Tighten Finally
@@ -177,8 +169,7 @@ class makeController:
             self.scenario.setEgoLane(self.traffic)
             self.scenario.getLeadVehicle(self.traffic)
             self.IDM_constraint_list = self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:]
-            # self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
-            self.ocp.constraints.set('IDM_constraints', self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
+            self.ocp.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
             # ! tighten the TRAILING CONSTRAINTS  
             # self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
             # for i in range(self.N+1):
@@ -197,26 +188,16 @@ class makeController:
         self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
         self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
         
-        state_constraints_lw = []
-        state_constraints_up = []
         for i in range(self.N+1):
             # print(DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
             # print(DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
-            state_constraints_lw.append(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
-            state_constraints_up.append(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
-        self.ocp.constraints.set('state_constraints_lw', state_constraints_lw)
-        self.ocp.constraints.set('state_constraints_up', state_constraints_up)
+            self.ocp.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
+            self.ocp.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1))) 
         # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
         #! set the constraints for the INPUT
-        # self.opti.subject_to(casadi.bounded(repmat(lbu,self.N), self.u, repmat(ubu,self.N)))
-        lbu_dm = DM(repmat(lbu, 1, self.N))
-        ubu_dm = DM(repmat(ubu, 1, self.N))
-        self.ocp.constraints.set('input_constraints_lw',lbu_dm <= self.u)
-        self.ocp.constraints.set('input_constraints_up',self.u <= ubu_dm)
+        self.ocp.subject_to(lbu <=  (self.u <=  ubu) )
         #! extra constraints for the V_MAX
-        self.ocp.constraints.set('V_MAX_lw', 0 <= self.x[2,:])
-        self.ocp.constraints.set('V_MAX_up', self.x[2,:] <= self.scenario.vmax)
-        # self.opti.subject_to(self.opti.bounded(0,self.x[2,:],self.scenario.vmax))
+        self.ocp.subject_to(0 <= (self.x[2,:] <= self.scenario.vmax) )
         
     def setCost(self):
         L,Lf = self.vehicle.getCost()
@@ -224,8 +205,8 @@ class makeController:
         self.costMain = getTotalCost(L,Lf,self.x,self.u,self.refx,self.refu,self.N)
         self.costSlack = getSlackCost(Ls,self.traffic_slack)
         self.total_cost = self.costMain + self.costSlack
-        # self.opti.minimize(self.total_cost)   
-        self.ocp.cost.set('total_cost', self.total_cost) 
+        # self.opti.minimize(self.total_cost)    
+        self.ocp.add_objective(self.ocp.at_tf(self.total_cost))
  
     def setController(self):
         """
@@ -245,29 +226,28 @@ class makeController:
         """
         if self.opts["version"] == "trailing":
             x_iter, refxT_out, refu_out, x_traffic = args[:4]
-            # self.opti.set_value(self.x0, x_iter)
-            # self.opti.set_value(self.refx, refxT_out)
-            # self.opti.set_value(self.refu, refu_out) 
-            # self.opti.set_value(self.lead, x_traffic)
-            self.ocp.constraints.state_constraints_lw = 1
+            self.ocp.set_value(self.x0, x_iter)
+            self.ocp.set_value(self.refx, refxT_out)
+            self.ocp.set_value(self.refu, refu_out) 
+            self.ocp.set_value(self.lead, x_traffic)
         else:
             '''
             used for the overtake issue
             '''
             x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
-            self.opti.set_value(self.x0, x_iter)
-            self.opti.set_value(self.refx, refx_out)
-            self.opti.set_value(self.refu, refu_out)
-            self.opti.set_value(self.traffic_x, traffic_x)
-            self.opti.set_value(self.traffic_y, traffic_y)
-            self.opti.set_value(self.traffic_sign, traffic_sign) 
-            self.opti.set_value(self.traffic_shift, traffic_shift)
-            self.opti.set_value(self.traffic_flip, traffic_flip)
+            self.ocp.set_value(self.x0, x_iter)
+            self.ocp.set_value(self.refx, refx_out)
+            self.ocp.set_value(self.refu, refu_out)
+            self.ocp.set_value(self.traffic_x, traffic_x)
+            self.ocp.set_value(self.traffic_y, traffic_y)
+            self.ocp.set_value(self.traffic_sign, traffic_sign) 
+            self.ocp.set_value(self.traffic_shift, traffic_shift)
+            self.ocp.set_value(self.traffic_flip, traffic_flip)
             #! check if this is useful
             #! self.lead = self.opti.parameter(self.Nveh,self.N+1)
 
         try:
-            sol = self.opti.solve()
+            sol = self.ocp.solve()
             u_opt = sol.value(self.u)
             x_opt = sol.value(self.x)
             costMain = sol.value(self.costMain)
@@ -275,7 +255,7 @@ class makeController:
             return u_opt, x_opt, costMain, costSlack
         except Exception as e:
             print(f"An error occurred: {e}")
-            self.opti.debug()
+            # self.ocp.debug()
             return None, None, None
         
         

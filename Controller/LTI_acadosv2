@@ -1,0 +1,86 @@
+from casadi import *
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+sys.path.append(r'/mnt/c/Users/A490242/acados/Master_Thesis-main')
+from Autonomous_Truck_Sim.helpers import *
+from Controller.MPC_tighten_bound import MPC_tighten_bound
+from vehicleModel.vehicle_model import car_VehicleModel
+from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver, AcadosModel
+from util.utils import *
+
+
+class MPC:
+    def __init__(self, vehicle, Q, R, P0, process_noise, Possibility=0.95, N=12) -> None:
+        # The number of MPC states, here include x, y, psi and v
+        NUM_OF_STATES = 4
+        self.nx = NUM_OF_STATES
+        # The number of MPC actions, including acc and steer_angle
+        NUM_OF_ACTS = 2
+        self.nu = NUM_OF_ACTS
+        self.vehicle = vehicle
+        self.nx, self.nu, self.nrefx, self.nrefu = self.vehicle.getSystemDim()
+        self.Q = Q
+        self.R = R
+        self.P0 = P0
+        self.process_noise = process_noise
+        self.Possibility = Possibility
+        self.N = N
+        self.Param = Param()
+        # ref val for the vehicle matrix
+        self.v_ref = 15
+        self.phi_ref = 0
+        self.delta_ref = 0
+        
+        # ! create ocp model
+        self.ocp = AcadosOcp()
+        self.ocp.model = AcadosModel()
+        self.ocp.model.name = 'vehicle_running_acados'
+        self.ocp.model.x = self.vehicle.x
+        self.ocp.model.u = self.vehicle.u
+
+        self.ocp.dims.N = self.N # shooting node
+        self.ocp.solver_options.tf = self.N # prediction horizon
+
+        self.ocp.dims.nx = self.nx
+        self.ocp.dims.nu = self.nu
+        
+        # ! set the LTI model from the vehicle model
+        self.A, self.B, self.C = self.vehicle.vehicle_linear_discrete_model(v=15, phi=0, delta=0)
+        self.x_next = self.A@self.vehicle.x +  self.B@self.vehicle.u
+        self.ocp.model.disc_dyn_expr = self.x_next
+        self.ocp.solver_options.integrator_type = 'DISCRETE'
+            # self.MPC_tighten_bound = MPC_tighten_bound(self.A, self.B, self.D, np.diag(self.Q), np.diag(self.R), self.P0, self.process_noise, self.Possibility)
+            
+        #! Create OCP solver 
+        # solver options
+        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+        self.ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'   
+        self.ocp.solver_options.print_level = 0
+        self.ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+
+        self.constraint = types.SimpleNamespace()
+
+        # set initial values
+
+    def IDM_constraint(self, p_leading_x, v_eg, d_s=1, L1=8.4, T_s=1, lambda_s=0):
+        """
+        IDM constraint for tracking the vehicle in front.
+        """
+        return p_leading_x - L1 - d_s - T_s * v_eg - lambda_s
+    
+    def setInEqConstraints_val(self, H_up=None, upb=None, H_low=None, lwb=None):
+        """
+        Set inequality constraints values.
+        """
+        # Default or custom constraints
+        self.H_up = H_up if H_up is not None else [np.array([[1], [0], [0], [0]]), np.array([[0], [1], [0], [0]]), np.array([[0], [0], [1], [0]]), np.array([[0], [0], [0], [1]])]
+        self.upb = upb if upb is not None else np.array([[5000], [5000], [30], [3.14/8]])
+        
+        self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
+        self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
+    
+    def solve(self, x0, ref_trajectory, ref_control, p_leading, leading_velocity=10, vel_diff=6):
+        """
+        Solve the MPC problem.
+        """
