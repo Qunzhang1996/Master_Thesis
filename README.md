@@ -48,7 +48,16 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 ![MPC Constraint Tightening_ACC](Figure/Tightened_trailing.png)
 ![MPC Constraint Tightening_OverTaking](Figure/Tightened_overtake.png) -->
 
+![MPC Constraint Comparison](Figure/comparsion.png)
+
+**Figure(a),(b),(c) are the initial constraints**   
+**Figure(d),(e),(f) are the constraints after the SMPC**
+
+
 ![MPC Constraint Tightening](Figure/Tightened_constraints.png)
+
+
+
 ## Simulation in the CARLA Environment
 
 **Decision Making Process:**  
