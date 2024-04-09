@@ -62,7 +62,7 @@ R_0[3,3]=(1/180*np.pi)**2
 P0, _, possibility = set_stochastic_mpc_params()
 vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 
-trailing_plot = False
+trailing_plot = True
 
 
 if trailing_plot:
@@ -93,7 +93,7 @@ X = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
 plt.figure(figsize=(12, 6))
 
-plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,decisionLog,X,vehWidth,d_lat_spread,scenarioTrailADV,frameSize,Nveh,laneWidth,leadLength,color_plt='g--')
+plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,decisionLog,X,vehWidth,d_lat_spread,scenarioTrailADV,frameSize,Nveh,laneWidth,leadLength,color_plt='r--')
 
 
 

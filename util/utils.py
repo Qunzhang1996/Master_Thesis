@@ -1179,13 +1179,13 @@ def plot_tanhConstraint(i, X_traffic, traffic,constraint_laneChange,paramLog,dec
                 #! use truck image replace the rectangle
                 img = mpimg.imread(r'C:\Users\A490243\Desktop\Master_Thesis\Figure\truck_image.png')  
                 width =2.89
-                height = 8.46
+                height = 7.46
                 left = X_traffic[0,i,j]-height/2
                 right = X_traffic[0,i,j]+height/2
                 top = X_traffic[1,i,j]+width/2
                 bottom = X_traffic[1,i,j]-width/2
                 extent = [left, right, bottom, top]
-                ax.imshow(img, extent=extent, alpha=0.9)
+                ax.imshow(img, extent=extent, alpha=0.8)
                 #! legend : Egovehicle
                 plt.scatter(X_traffic[0,i,j],X_traffic[1,i,j],color = 'k',label='Ego Vehicle')
 
