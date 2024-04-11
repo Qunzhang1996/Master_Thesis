@@ -2,13 +2,17 @@
 This one the the controller that contains trailing and lane change controller.
 """
 import sys
-# path_to_add='C:\\Users\\A490243\\Desktop\\Master_Thesis'
-# sys.path.append(path_to_add)
+import timeit
 from casadi import *
 import numpy as np
+import shutil
+import errno
 from matplotlib import pyplot as plt
 from MPC_tighten_bound import MPC_tighten_bound
+from acados_template import *
 from utils import *
+import scipy.linalg
+
 class makeController:   
     """
     #! Creates a MPC based on current vehicle, traffic and scenario
@@ -259,6 +263,176 @@ class makeController:
             self.opti.debug()
             return None, None, None
         
+        
+        
+
+def safe_mkdir_recursive(directory, overwrite=False):
+    if not os.path.exists(directory):
+        try:
+            os.makedirs(directory)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(directory):
+                pass
+            else:
+                raise
+    else:
+        if overwrite:
+            try:
+                shutil.rmtree(directory)
+            except:
+                print('Error while removing directory {}'.format(directory))     
+        
+        
+class makeControllerAcados:
+    """
+    #! Creates a MPC using acados based on current vehicle, traffic and scenario
+    """
+    """
+    ██████╗  ██████╗ ██████╗      ██████╗ ██╗     ███████╗███████╗███████╗    ███╗   ███╗██████╗  ██████╗            
+    ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
+    ██║  ███╗██║   ██║██║  ██║    ██████╔╝██║     █████╗  ███████╗███████╗    ██╔████╔██║██████╔╝██║                 
+    ██║   ██║██║   ██║██║  ██║    ██╔══██╗██║     ██╔══╝  ╚════██║╚════██║    ██║╚██╔╝██║██╔═══╝ ██║                 
+    ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗            
+     ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
+    """
+    
+    def __init__(self, vehicle,traffic,scenario,N,opts,dt):
+        self.vehicle = vehicle
+        self.traffic = traffic
+        self.scenario = scenario
+        self.opts = opts 
+        
+        # Get constraints and road information
+        self.N = N
+        #! for now comment this
+        # self.Nveh = self.traffic.getNveh() # here, get the number of vehicles of the traffic scenario
+        # self.laneWidth = self.traffic.get_laneWidth()
+
+        
+        #! acados model
+        model = self.vehicle.getAcadosModel()
+        print(model)
+        # Ensure current working directory is current folder
+        os.chdir(os.path.dirname(os.path.realpath(__file__)))
+        self.acados_models_dir = './acados_models'
+        safe_mkdir_recursive(os.path.join(os.getcwd(), self.acados_models_dir))
+        acados_source_path = os.environ['ACADOS_SOURCE_DIR']
+        sys.path.insert(0, acados_source_path)
+        self.nx = model.x.size()[0]
+        print(self.nx)
+        self.nu = model.u.size()[0]
+        print(self.nu)
+        self.ny = self.nx + self.nu
+        print(self.ny)
+        n_params = len(model.p)
+        print(n_params)
+        
+        #!create acados ocp
+        ocp = AcadosOcp()
+        ocp.acados_include_path = acados_source_path + '/include'
+        ocp.acados_lib_path = acados_source_path + '/lib'
+        ocp.model = model
+        ocp.dims.N = self.N
+        ocp.solver_options.tf = self.N*dt
+        
+        #! initialize parameters
+        ocp.dims.np = n_params
+        ocp.parameter_values = np.zeros(n_params)
+        
+        #! cost type
+        ocp.cost.cost_type = 'LINEAR_LS'
+        ocp.cost.cost_type_e = 'LINEAR_LS'
+        Q = np.diag(self.vehicle.Q)
+        R = np.diag(self.vehicle.R)
+        print(Q)
+        print(R)
+        ocp.cost.W = scipy.linalg.block_diag(Q, R)
+        print(ocp.cost.W)
+        ocp.cost.W_e = Q
+        ocp.cost.Vx = np.zeros((self.ny, self.nx))
+        ocp.cost.Vx[:self.nx, :self.nx] = np.eye(self.nx)
+        print(ocp.cost.Vx)
+        ocp.cost.Vu = np.zeros((self.ny, self.nu))
+        ocp.cost.Vu[-self.nu:, -self.nu:] = np.eye(self.nu)
+        print(ocp.cost.Vu)
+        ocp.cost.Vx_e = np.eye(self.nx)
+        
+        #! set constraints
+        #! for now, all of them are infinity
+        ocp.constraints.lbu = -10 * np.ones((self.nu, 1))
+        ocp.constraints.ubu = 10 * np.ones((self.nu, 1))
+        ocp.constraints.lbx = -1000 * np.ones((self.nx, 1))
+        ocp.constraints.ubx = 1000* np.ones((self.nx, 1))
+        print("INFO: lbu is:", ocp.constraints.lbu)
+        print("INFO: ubu is:", ocp.constraints.ubu)
+        ocp.constraints.idxbu = np.array(range(self.nu))
+        ocp.constraints.idxbx = np.array(range(self.nx))
+        print("INFO: idxbu is:", ocp.constraints.idxbu)
+        print("INFO: idxbx is:", ocp.constraints.idxbx)
+        
+        
+        x_ref = np.zeros(self.nx)
+        u_ref = np.zeros(self.nu)
+        # initial state
+        ocp.constraints.x0 = x_ref
+        ocp.cost.yref = np.concatenate((x_ref, u_ref))
+        ocp.cost.yref_e = x_ref
+        
+        
+        # solver options
+        ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+        ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+        # explicit Runge-Kutta integrator
+        ocp.solver_options.integrator_type = 'ERK'
+        ocp.solver_options.print_level = 0
+        ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+        
+        # compile acados ocp
+        json_file = os.path.join('./'+model.name+'_acados_ocp.json')
+        self.solver = AcadosOcpSolver(ocp, json_file=json_file)
+        self.integrator = AcadosSimSolver(ocp, json_file=json_file)
+        
+    def simulation(self, x0, xs):
+        simX = np.zeros((self.N+1, self.nx))
+        simU = np.zeros((self.N, self.nu))
+        x_current = x0
+        simX[0, :] = x0.reshape(1, -1)
+        xs_between = np.concatenate((xs, np.zeros(2)))
+        time_record = np.zeros(self.N)
+
+        # closed loop
+        self.solver.set(self.N, 'yref', xs)
+        for i in range(self.N):
+            self.solver.set(i, 'yref', xs_between)
+
+        for i in range(self.N):
+            # solve ocp
+            start = timeit.default_timer()
+            ##  set inertial (stage 0)
+            self.solver.set(0, 'lbx', x_current)
+            self.solver.set(0, 'ubx', x_current)
+            status = self.solver.solve()
+
+            if status != 0 :
+                raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
+
+            simU[i, :] = self.solver.get(0, 'u')
+            time_record[i] =  timeit.default_timer() - start
+            # simulate system
+            self.integrator.set('x', x_current)
+            self.integrator.set('u', simU[i, :])
+
+            status_s = self.integrator.solve()
+            if status_s != 0:
+                raise Exception('acados integrator returned status {}. Exiting.'.format(status))
+
+            # update
+            x_current = self.integrator.get('x')
+            simX[i+1, :] = x_current
+
+        print("average estimation time is {}".format(time_record.mean()))
+        print("max estimation time is {}".format(time_record.max()))
+        print("min estimation time is {}".format(time_record.min()))
         
 class makeDecisionMaster:
     """

@@ -19,7 +19,7 @@ from agents.navigation.controller import VehiclePIDController
 # command = (
 #     r'python3 /mnt/c/Users/A490243/CARLA/CARLA_Latest/WindowsNoEditor/PythonAPI/util/config.py --map Town06')
 # subprocess.run(command, shell=True)
-# print('gi')
+# print('INFO:  map change successfully!!!!!!!!!!!!!')
 # exit()
 # #  Run the command
 
