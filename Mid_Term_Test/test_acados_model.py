@@ -256,21 +256,22 @@ class makeControllerAcados:
         # large_value = 5000
         ocp.constraints.lbu = -np.array([np.pi/4, 0.5*9.8])
         ocp.constraints.ubu = 1 * np.array([np.pi/4, 0.5*9.8])
-        original_ubx_2 = 5  # Original upper bound before softening
+        original_ubx_2 = 6  # Original upper bound before softening
         ocp.constraints.lbx = -1 * np.ones((self.nx, ))
         ocp.constraints.ubx = np.array([2000, 2000, original_ubx_2, 1])
         #! add penalty to the slack
         # TODO: add slack variables
-        slack = SX.sym('slack', self.N)
-        slack_weight = np.array([1e5]) # define the weight of the slack
-        ocp.cost.Zl = slack_weight
-        ocp.cost.Zu = slack_weight
-        ocp.cost.zl = slack_weight
-        ocp.cost.zu = slack_weight
-        slack_bounds = np.array([3]) # defien the bound to voliate
-        ocp.constraints.lsbx = -slack_bounds
-        ocp.constraints.usbx = slack_bounds
-        ocp.constraints.idxsbx = np.array([2])
+        nx = self.nx
+        ocp.constraints.idxsbx = np.array(range(nx))
+        ns = nx
+        penalty_utils = 1e5
+        ocp.cost.zl = penalty_utils * np.ones((ns,))
+        ocp.cost.zu = penalty_utils * np.ones((ns,))
+        ocp.cost.Zl = 1e0 * np.ones((ns,))
+        ocp.cost.Zu = 1e0 * np.ones((ns,))
+        # ocp.constraints.lsbx = -slack_bounds
+        # ocp.constraints.usbx = slack_bounds
+        # ocp.constraints.idxsbx = np.array([2])
 
 
 
@@ -280,10 +281,7 @@ class makeControllerAcados:
         ocp.constraints.idxbu = np.array([0, 1])
         ocp.constraints.idxbx = np.array([0, 1, 2, 3])
         
-        
-
-        slack_penalty_weight = 1e5
-        ocp.cost.cost_expr = sum1(slack**2) * slack_penalty_weight
+    
 
         
         x_ref = np.zeros(self.nx)
@@ -329,8 +327,8 @@ class makeControllerAcados:
             # solve ocp
             start = timeit.default_timer()
             ##  set inertial (stage 0)
-            self.solver.set(0, 'lbx', x_current)
-            self.solver.set(0, 'ubx', x_current)
+            self.solver.constraints_set(0, 'lbx', x_current)
+            self.solver.constraints_set(0, 'ubx', x_current)
             
             
             status = self.solver.solve()

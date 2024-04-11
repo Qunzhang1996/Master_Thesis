@@ -35,7 +35,10 @@
         ],
         "idxsbu": [],
         "idxsbx": [
-            2
+            0,
+            1,
+            2,
+            3
         ],
         "idxsbx_e": [],
         "idxsg": [],
@@ -73,7 +76,10 @@
         "lphi_e": [],
         "lsbu": [],
         "lsbx": [
-            -3
+            0.0,
+            0.0,
+            0.0,
+            0.0
         ],
         "lsbx_e": [],
         "lsg": [],
@@ -91,7 +97,7 @@
         "ubx": [
             2000,
             2000,
-            5,
+            6,
             1
         ],
         "ubx_0": [
@@ -111,7 +117,10 @@
         "uphi_e": [],
         "usbu": [],
         "usbx": [
-            3
+            0.0,
+            0.0,
+            0.0,
+            0.0
         ],
         "usbx_e": [],
         "usg": [],
@@ -511,16 +520,21 @@
             ]
         ],
         "Zl": [
-            100000.0
+            1.0,
+            1.0,
+            1.0,
+            1.0
         ],
         "Zl_0": [],
         "Zl_e": [],
         "Zu": [
-            100000.0
+            1.0,
+            1.0,
+            1.0,
+            1.0
         ],
         "Zu_0": [],
         "Zu_e": [],
-        "cost_expr": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegfaaaaaaaaaaaaaaabaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaajgakgibaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfadeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfbdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfcdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfddeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfedeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpffdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfgdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfhdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfideglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaadhmgbgdglgpfjdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdadeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdbdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdcdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdddeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdedeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdfdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdgdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdhdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdideglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfbdjdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdadeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdbdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdcdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdddeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdedeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdfdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdgdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdhdeglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdideglaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaaiaaaaaaadhmgbgdglgpfcdjd",
         "cost_ext_fun_type": "casadi",
         "cost_ext_fun_type_0": "casadi",
         "cost_ext_fun_type_e": "casadi",
@@ -554,11 +568,17 @@
             0.0
         ],
         "zl": [
+            100000.0,
+            100000.0,
+            100000.0,
             100000.0
         ],
         "zl_0": [],
         "zl_e": [],
         "zu": [
+            100000.0,
+            100000.0,
+            100000.0,
             100000.0
         ],
         "zu_0": [],
@@ -587,11 +607,11 @@
         "nr": 0,
         "nr_0": 0,
         "nr_e": 0,
-        "ns": 1,
+        "ns": 4,
         "ns_0": 0,
         "ns_e": 0,
         "nsbu": 0,
-        "nsbx": 1,
+        "nsbx": 4,
         "nsbx_e": 0,
         "nsg": 0,
         "nsg_e": 0,

@@ -501,10 +501,22 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     double* zl = zlumem+NS*2;
     double* zu = zlumem+NS*3;
     // change only the non-zero elements:
-    Zl[0] = 100000;
-    Zu[0] = 100000;
+    Zl[0] = 1;
+    Zl[1] = 1;
+    Zl[2] = 1;
+    Zl[3] = 1;
+    Zu[0] = 1;
+    Zu[1] = 1;
+    Zu[2] = 1;
+    Zu[3] = 1;
     zl[0] = 100000;
+    zl[1] = 100000;
+    zl[2] = 100000;
+    zl[3] = 100000;
     zu[0] = 100000;
+    zu[1] = 100000;
+    zu[2] = 100000;
+    zu[3] = 100000;
 
     for (int i = 1; i < N; i++)
     {
@@ -562,13 +574,14 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
 
     // soft bounds on x
     int* idxsbx = malloc(NSBX * sizeof(int));
-    idxsbx[0] = 2;
+    idxsbx[0] = 0;
+    idxsbx[1] = 1;
+    idxsbx[2] = 2;
+    idxsbx[3] = 3;
 
     double* lusbx = calloc(2*NSBX, sizeof(double));
     double* lsbx = lusbx;
     double* usbx = lusbx + NSBX;
-    lsbx[0] = -3;
-    usbx[0] = 3;
 
     for (int i = 1; i < N; i++)
     {
@@ -624,7 +637,7 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     lbx[1] = -1;
     ubx[1] = 2000;
     lbx[2] = -1;
-    ubx[2] = 5;
+    ubx[2] = 6;
     lbx[3] = -1;
     ubx[3] = 1;
 
