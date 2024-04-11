@@ -43,7 +43,7 @@
 #define TRUCK_BICYCLE_NBX    4
 #define TRUCK_BICYCLE_NBX0   4
 #define TRUCK_BICYCLE_NBU    2
-#define TRUCK_BICYCLE_NSBX   0
+#define TRUCK_BICYCLE_NSBX   1
 #define TRUCK_BICYCLE_NSBU   0
 #define TRUCK_BICYCLE_NSH    0
 #define TRUCK_BICYCLE_NSH0   0
@@ -54,14 +54,14 @@
 #define TRUCK_BICYCLE_NSPHIN 0
 #define TRUCK_BICYCLE_NSPHI0 0
 #define TRUCK_BICYCLE_NSBXN  0
-#define TRUCK_BICYCLE_NS     0
+#define TRUCK_BICYCLE_NS     1
 #define TRUCK_BICYCLE_NS0    0
 #define TRUCK_BICYCLE_NSN    0
 #define TRUCK_BICYCLE_NG     0
 #define TRUCK_BICYCLE_NBXN   0
 #define TRUCK_BICYCLE_NGN    0
-#define TRUCK_BICYCLE_NY0    6
-#define TRUCK_BICYCLE_NY     6
+#define TRUCK_BICYCLE_NY0    8
+#define TRUCK_BICYCLE_NY     8
 #define TRUCK_BICYCLE_NYN    4
 #define TRUCK_BICYCLE_N      30
 #define TRUCK_BICYCLE_NH     0
@@ -96,9 +96,8 @@ typedef struct Truck_bicycle_solver_capsule
     /* external functions */
     // dynamics
 
-    external_function_param_casadi *impl_dae_fun;
-    external_function_param_casadi *impl_dae_fun_jac_x_xdot_z;
-    external_function_param_casadi *impl_dae_jac_x_xdot_u_z;
+    external_function_param_casadi *forw_vde_casadi;
+    external_function_param_casadi *expl_ode_fun;
 
 
 

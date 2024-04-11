@@ -228,45 +228,71 @@ class makeControllerAcados:
         ocp.cost.cost_type_e = 'LINEAR_LS'
         Q = np.diag(self.vehicle.Q)
         R = np.diag(self.vehicle.R)
+        R_du = 1e2*np.diag(self.vehicle.R)
         # print(Q)
         # print(R)
-        ocp.cost.W = np.block([[Q, np.zeros((self.nx, self.nu))], [np.zeros((self.nu, self.nx)), R]])
+        # ocp.cost.W = np.block([[Q, np.zeros((self.nx, self.nu))], [np.zeros((self.nu, self.nx)), R]])
+        ocp.cost.W = np.block([
+                    [Q, np.zeros((self.nx, self.nu)), np.zeros((self.nx, self.nu))], 
+                    [np.zeros((self.nu, self.nx)), R, np.zeros((self.nu, self.nu))],
+                    [np.zeros((self.nu, self.nx)), np.zeros((self.nu, self.nu)), R_du]])
+        print(ocp.cost.W)
+
         ocp.cost.W_e = Q
         
-        ocp.cost.Vx = np.zeros((self.ny, self.nx))
+        ocp.cost.Vx = np.zeros((self.ny+self.nu, self.nx))
         matrix_Q = np.eye(self.nx)
         # matrix_Q[0, 0] = 0
         ocp.cost.Vx[:self.nx, :self.nx] = matrix_Q
         print(ocp.cost.Vx)
-        ocp.cost.Vu = np.zeros((self.ny, self.nu))
-        ocp.cost.Vu[-self.nu:, -self.nu:] = np.eye(self.nu)
+        ocp.cost.Vu = np.zeros((self.ny+self.nu, self.nu))
+        ocp.cost.Vu[self.nx:self.nx+self.nu, :self.nu] = np.eye(self.nu)
         print(ocp.cost.Vu)
         ocp.cost.Vx_e = np.eye(self.nx)
         
         #! set constraints
+        
         #! for now, all of them are infinity
         # large_value = 5000
         ocp.constraints.lbu = -np.array([np.pi/4, 0.5*9.8])
         ocp.constraints.ubu = 1 * np.array([np.pi/4, 0.5*9.8])
-        ocp.constraints.lbx = -1* np.array([1, 1, 1, 1])
-        print(ocp.constraints.lbx)
-        ocp.constraints.ubx = 2000 * np.array([1, 1,1,1])
+        original_ubx_2 = 5  # Original upper bound before softening
+        ocp.constraints.lbx = -1 * np.ones((self.nx, ))
+        ocp.constraints.ubx = np.array([2000, 2000, original_ubx_2, 1])
+        #! add penalty to the slack
+        # TODO: add slack variables
+        slack = SX.sym('slack', self.N)
+        slack_weight = np.array([1e5]) # define the weight of the slack
+        ocp.cost.Zl = slack_weight
+        ocp.cost.Zu = slack_weight
+        ocp.cost.zl = slack_weight
+        ocp.cost.zu = slack_weight
+        slack_bounds = np.array([3]) # defien the bound to voliate
+        ocp.constraints.lsbx = -slack_bounds
+        ocp.constraints.usbx = slack_bounds
+        ocp.constraints.idxsbx = np.array([2])
 
-        # print("INFO: lbu is:", ocp.constraints.lbu)
-        # print("INFO: ubu is:", ocp.constraints.ubu)
+
+
+        
+        print(ocp.constraints.ubx)
+
         ocp.constraints.idxbu = np.array([0, 1])
         ocp.constraints.idxbx = np.array([0, 1, 2, 3])
-        # print("INFO: idxbu is:", ocp.constraints.idxbu)
-        # print("INFO: idxbx is:", ocp.constraints.idxbx)
         
+        
+
+        slack_penalty_weight = 1e5
+        ocp.cost.cost_expr = sum1(slack**2) * slack_penalty_weight
+
         
         x_ref = np.zeros(self.nx)
         u_ref = np.zeros(self.nu)
         # initial state
         ocp.constraints.x0 = x_ref
-        ocp.cost.yref = np.concatenate((x_ref, u_ref))
+        # ocp.cost.yref = np.concatenate((x_ref, u_ref))
+        ocp.cost.yref = np.concatenate((x_ref, u_ref, np.zeros(self.nu)))
         ocp.cost.yref_e = x_ref
-        
         
         # solver options
         ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
@@ -291,7 +317,7 @@ class makeControllerAcados:
         x_current = x0
         print("x0 is:", x_current)
         simX[0, :] = x0.reshape(1, -1)
-        xs_between = np.concatenate((xs, np.zeros(2)))
+        xs_between = np.concatenate((xs, np.zeros(4)))
         time_record = np.zeros(self.N)
 
         # closed loop
@@ -314,7 +340,11 @@ class makeControllerAcados:
 
             simU[i, :] = self.solver.get(0, 'u')
             # print("simU is:", simU[i, :])
+            cost_value = self.solver.get_cost()
+            print("Optimization cost:", cost_value)
             time_record[i] =  timeit.default_timer() - start
+            
+            
             # simulate system
             self.integrator.set('x', x_current)
             self.integrator.set('u', simU[i, :])
@@ -325,7 +355,7 @@ class makeControllerAcados:
 
             # update
             x_current = self.integrator.get('x')
-            print("X_current is:", i, x_current)
+            # print("X_current is:", i, x_current)
             
             simX[i+1, :] = x_current
         print(simX)

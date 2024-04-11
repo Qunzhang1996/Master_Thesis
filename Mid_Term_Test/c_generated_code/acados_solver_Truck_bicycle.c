@@ -158,7 +158,7 @@ void Truck_bicycle_acados_create_1_set_plan(ocp_nlp_plan_t* nlp_solver_plan, con
     for (int i = 0; i < N; i++)
     {
         nlp_solver_plan->nlp_dynamics[i] = CONTINUOUS_MODEL;
-        nlp_solver_plan->sim_solver_plan[i].sim_solver = IRK;
+        nlp_solver_plan->sim_solver_plan[i].sim_solver = ERK;
     }
 
     nlp_solver_plan->nlp_constraints[0] = BGH;
@@ -327,21 +327,17 @@ void Truck_bicycle_acados_create_3_create_and_set_functions(Truck_bicycle_solver
     } while(false)
 
 
-    // implicit dae
-    capsule->impl_dae_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    // explicit ode
+    capsule->forw_vde_casadi = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
     for (int i = 0; i < N; i++) {
-        MAP_CASADI_FNC(impl_dae_fun[i], Truck_bicycle_impl_dae_fun);
+        MAP_CASADI_FNC(forw_vde_casadi[i], Truck_bicycle_expl_vde_forw);
     }
 
-    capsule->impl_dae_fun_jac_x_xdot_z = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    capsule->expl_ode_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
     for (int i = 0; i < N; i++) {
-        MAP_CASADI_FNC(impl_dae_fun_jac_x_xdot_z[i], Truck_bicycle_impl_dae_fun_jac_x_xdot_z);
+        MAP_CASADI_FNC(expl_ode_fun[i], Truck_bicycle_expl_ode_fun);
     }
 
-    capsule->impl_dae_jac_x_xdot_u_z = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
-    for (int i = 0; i < N; i++) {
-        MAP_CASADI_FNC(impl_dae_jac_x_xdot_u_z[i], Truck_bicycle_impl_dae_jac_x_xdot_u_z);
-    }
 
 
 #undef MAP_CASADI_FNC
@@ -392,11 +388,8 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     /**** Dynamics ****/
     for (int i = 0; i < N; i++)
     {
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "impl_dae_fun", &capsule->impl_dae_fun[i]);
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i,
-                                   "impl_dae_fun_jac_x_xdot_z", &capsule->impl_dae_fun_jac_x_xdot_z[i]);
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i,
-                                   "impl_dae_jac_x_xdot_u", &capsule->impl_dae_jac_x_xdot_u_z[i]);
+        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_vde_forw", &capsule->forw_vde_casadi[i]);
+        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_ode_fun", &capsule->expl_ode_fun[i]);
     }
 
     /**** Cost ****/
@@ -412,6 +405,8 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     W_0[3+(NY0) * 3] = 5;
     W_0[4+(NY0) * 4] = 5;
     W_0[5+(NY0) * 5] = 5;
+    W_0[6+(NY0) * 6] = 500;
+    W_0[7+(NY0) * 7] = 500;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -443,6 +438,8 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     W[3+(NY) * 3] = 5;
     W[4+(NY) * 4] = 5;
     W[5+(NY) * 5] = 5;
+    W[6+(NY) * 6] = 500;
+    W[7+(NY) * 7] = 500;
 
     for (int i = 1; i < N; i++)
     {
@@ -497,6 +494,26 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
 
 
 
+    // slacks
+    double* zlumem = calloc(4*NS, sizeof(double));
+    double* Zl = zlumem+NS*0;
+    double* Zu = zlumem+NS*1;
+    double* zl = zlumem+NS*2;
+    double* zu = zlumem+NS*3;
+    // change only the non-zero elements:
+    Zl[0] = 100000;
+    Zu[0] = 100000;
+    zl[0] = 100000;
+    zu[0] = 100000;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Zl", Zl);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Zu", Zu);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "zl", zl);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "zu", zu);
+    }
+    free(zlumem);
 
 
 
@@ -538,6 +555,29 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
 
 
     /* constraints that are the same for initial and intermediate */
+
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxsbx", idxsbx);
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "lsbx", lsbx);
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "usbx", usbx);
+
+    // soft bounds on x
+    int* idxsbx = malloc(NSBX * sizeof(int));
+    idxsbx[0] = 2;
+
+    double* lusbx = calloc(2*NSBX, sizeof(double));
+    double* lsbx = lusbx;
+    double* usbx = lusbx + NSBX;
+    lsbx[0] = -3;
+    usbx[0] = 3;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, i, "idxsbx", idxsbx);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, i, "lsbx", lsbx);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, i, "usbx", usbx);
+    }
+    free(idxsbx);
+    free(lusbx);
     // u
     int* idxbu = malloc(NBU * sizeof(int));
     
@@ -584,9 +624,9 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     lbx[1] = -1;
     ubx[1] = 2000;
     lbx[2] = -1;
-    ubx[2] = 2000;
+    ubx[2] = 5;
     lbx[3] = -1;
-    ubx[3] = 2000;
+    ubx[3] = 1;
 
     for (int i = 1; i < N; i++)
     {
@@ -871,8 +911,6 @@ int Truck_bicycle_acados_reset(Truck_bicycle_solver_capsule* capsule, int reset_
         if (i<N)
         {
             ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "pi", buffer);
-            ocp_nlp_set(nlp_config, nlp_solver, i, "xdot_guess", buffer);
-            ocp_nlp_set(nlp_config, nlp_solver, i, "z_guess", buffer);
         }
     }
     // get qp_status: if NaN -> reset memory
@@ -905,9 +943,8 @@ int Truck_bicycle_acados_update_params(Truck_bicycle_solver_capsule* capsule, in
     const int N = capsule->nlp_solver_plan->N;
     if (stage < N && stage >= 0)
     {
-        capsule->impl_dae_fun[stage].set_param(capsule->impl_dae_fun+stage, p);
-        capsule->impl_dae_fun_jac_x_xdot_z[stage].set_param(capsule->impl_dae_fun_jac_x_xdot_z+stage, p);
-        capsule->impl_dae_jac_x_xdot_u_z[stage].set_param(capsule->impl_dae_jac_x_xdot_u_z+stage, p);
+        capsule->forw_vde_casadi[stage].set_param(capsule->forw_vde_casadi+stage, p);
+        capsule->expl_ode_fun[stage].set_param(capsule->expl_ode_fun+stage, p);
 
         // constraints
         if (stage == 0)
@@ -987,13 +1024,11 @@ int Truck_bicycle_acados_free(Truck_bicycle_solver_capsule* capsule)
     // dynamics
     for (int i = 0; i < N; i++)
     {
-        external_function_param_casadi_free(&capsule->impl_dae_fun[i]);
-        external_function_param_casadi_free(&capsule->impl_dae_fun_jac_x_xdot_z[i]);
-        external_function_param_casadi_free(&capsule->impl_dae_jac_x_xdot_u_z[i]);
+        external_function_param_casadi_free(&capsule->forw_vde_casadi[i]);
+        external_function_param_casadi_free(&capsule->expl_ode_fun[i]);
     }
-    free(capsule->impl_dae_fun);
-    free(capsule->impl_dae_fun_jac_x_xdot_z);
-    free(capsule->impl_dae_jac_x_xdot_u_z);
+    free(capsule->forw_vde_casadi);
+    free(capsule->expl_ode_fun);
 
     // cost
 
