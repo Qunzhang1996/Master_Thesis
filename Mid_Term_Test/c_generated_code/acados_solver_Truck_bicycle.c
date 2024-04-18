@@ -637,7 +637,7 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     lbx[1] = -1;
     ubx[1] = 2000;
     lbx[2] = -1;
-    ubx[2] = 6;
+    ubx[2] = 20;
     lbx[3] = -1;
     ubx[3] = 1;
 
@@ -750,7 +750,7 @@ int fixed_hess = 0;
     int rti_log_residuals = 0;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_log_residuals", &rti_log_residuals);
 
-    int qp_solver_iter_max = 50;
+    int qp_solver_iter_max = 100;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_iter_max", &qp_solver_iter_max);
 
 
@@ -1059,7 +1059,7 @@ void Truck_bicycle_acados_print_stats(Truck_bicycle_solver_capsule* capsule)
     ocp_nlp_get(capsule->nlp_config, capsule->nlp_solver, "stat_m", &stat_m);
 
     
-    double stat[1200];
+    double stat[4800];
     ocp_nlp_get(capsule->nlp_config, capsule->nlp_solver, "statistics", stat);
 
     int nrow = sqp_iter+1 < stat_m ? sqp_iter+1 : stat_m;

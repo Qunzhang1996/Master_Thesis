@@ -105,7 +105,7 @@ class trailing:
                     closestDistance = distance
                     leadVehicleIdx = [idx]  # Store the index of the closest vehicle
         
-        print("INFO: Lead vehicle index is: ", leadVehicleIdx)
+        print("INFO:  Lead vehicle index is: ", leadVehicleIdx)
         return leadVehicleIdx
 
     def slackCost(self,q):

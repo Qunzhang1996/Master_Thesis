@@ -104,19 +104,6 @@ class car_VehicleModel(vehBicycleKinematic):
         """
         define the model for acados
         """
-        
-        # dp_xb = self.x[2] *cos(self.x[3])
-        # dp_yb = self.x[2] * sin(self.x[3])
-        # dv_x = self.u[1] 
-        # dtheta = self.x[2] / self.length* tan(self.u[0]) 
-        # # dx = vertcat(dp_xb,dp_yb,dv_x,dtheta)
-        # dx = vertcat(dp_xb,dp_yb,dv_x,dtheta)
-        
-        # self.dx = dx
-        
-        # states = vertcat(self.x[0],self.x[1],self.x[2],self.x[3])
-        # controls = vertcat(self.u[0],self.u[1])
-        
         x = SX.sym('x')
         y = SX.sym('y')
         v = SX.sym('v')
@@ -125,15 +112,16 @@ class car_VehicleModel(vehBicycleKinematic):
         a = SX.sym('a')
         delta = SX.sym('delta')
         controls = vertcat(delta,a)
-        rhs = vertcat(v*cos(theta),v*sin(theta),a,v*tan(delta)/self.length)
-        
-        
-        
-        
+        # rhs = [v*cos(theta),v*sin(theta),a,v*tan(delta)/self.length]
+        lr = self.lr
+        lf = self.lf
+        beta = atan(lr/(lr+lf)*tan(delta))
+        rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr]
+
         #function
-        f = Function('f', [states, controls], [rhs], ['state', 'control_input'], ['rhs'])
+        f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
         #acasdo model
-        x_dot = SX.sym('x_dot', self.nx)
+        x_dot = SX.sym('x_dot', len(rhs))
         f_impl = x_dot - f(states, controls)
         
         model = AcadosModel()
@@ -145,8 +133,7 @@ class car_VehicleModel(vehBicycleKinematic):
         model.p = []
         model.name = self.name
         self.model = model
-        print(model.f_expl_expr)
-        return f
+        return self.model
     
     def getAcadosModel(self):
         self.model_acados()
@@ -308,7 +295,7 @@ class car_VehicleModel(vehBicycleKinematic):
     
     
     def calculate_Dlqr(self):
-        A, B, g = self.vehicle_linear_discrete_model()
+        A, B, g = self.calculate_AB_cog()
         Q= np.diag(self.Q)
         R= np.diag(self.R)
         P= solve_discrete_are(A, B, Q, R)
@@ -432,5 +419,9 @@ class car_VehicleModel(vehBicycleKinematic):
         temp_x, tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
         return temp_x, tempt_y
     
+    
+    def setAcadosSlack(self,penalty_utils = 1e5):
+        self.penalty_utils = penalty_utils
+        return self.penalty_utils
     
 

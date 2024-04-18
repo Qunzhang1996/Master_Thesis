@@ -55,20 +55,28 @@ static const casadi_int casadi_s2[3] = {0, 0, 0};
 
 /* Truck_bicycle_expl_ode_fun:(i0[4],i1[2],i2[])->(o0[4]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real a0, a1, a2;
+  casadi_real a0, a1, a2, a3;
   a0=arg[0]? arg[0][2] : 0;
-  a1=arg[0]? arg[0][3] : 0;
-  a2=cos(a1);
+  a1=5.0000000000000000e-01;
+  a2=arg[1]? arg[1][0] : 0;
+  a2=tan(a2);
+  a1=(a1*a2);
+  a1=atan(a1);
+  a2=arg[0]? arg[0][3] : 0;
+  a3=(a1+a2);
+  a3=cos(a3);
+  a3=(a0*a3);
+  if (res[0]!=0) res[0][0]=a3;
+  a2=(a1+a2);
+  a2=sin(a2);
   a2=(a0*a2);
-  if (res[0]!=0) res[0][0]=a2;
+  if (res[0]!=0) res[0][1]=a2;
+  a2=arg[1]? arg[1][1] : 0;
+  if (res[0]!=0) res[0][2]=a2;
   a1=sin(a1);
-  a1=(a0*a1);
-  if (res[0]!=0) res[0][1]=a1;
-  a1=arg[1]? arg[1][1] : 0;
-  if (res[0]!=0) res[0][2]=a1;
-  a1=arg[1]? arg[1][0] : 0;
-  a1=tan(a1);
   a0=(a0*a1);
+  a1=4.;
+  a0=(a0/a1);
   if (res[0]!=0) res[0][3]=a0;
   return 0;
 }

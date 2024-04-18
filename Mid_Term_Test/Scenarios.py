@@ -96,7 +96,7 @@ class trailing:
             self.egoLane = 1
         else:
             self.egoLane = 0
-        print("INFO: Current Lane is:", [self.egoLane])
+        print("INFO:  Current Lane is:", [self.egoLane])
             
 
     def getLeadVehicle(self, traffic):
@@ -117,7 +117,7 @@ class trailing:
                     closestDistance = distance
                     leadVehicleIdx = [idx]  # Store the index of the closest vehicle
         
-        print("INFO: Lead vehicle index is: ", leadVehicleIdx)
+        print("INFO:  Lead vehicle index is: ", leadVehicleIdx)
         return leadVehicleIdx
 
     def slackCost(self,q):
@@ -128,6 +128,10 @@ class trailing:
         
     def getSlackCost(self):
         return self.Ls
+    
+    
+    
+    
     
 class simpleOvertake:
     '''

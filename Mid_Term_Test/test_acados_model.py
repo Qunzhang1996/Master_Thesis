@@ -29,6 +29,8 @@ export ACADOS_SOURCE_DIR="/mnt/c/Users/A490243/acados"
 
 
 
+
+
 ## ! --------------------------------------System initialization--------------------------------------------
 dt = 0.02               # Simulation time step (Impacts traffic model accuracy)
 desired_interval = dt
@@ -116,21 +118,7 @@ vehicleADV.setStochasticMPCParams(P0, Q_0, possibility)
 #! -----------------------------------------------------------------
 
 
-def safe_mkdir_recursive(directory, overwrite=False):
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(directory):
-                pass
-            else:
-                raise
-    else:
-        if overwrite:
-            try:
-                shutil.rmtree(directory)
-            except:
-                print('Error while removing directory {}'.format(directory))     
+
 
 
 class model_acados(object):
@@ -149,7 +137,14 @@ class model_acados(object):
             a = SX.sym('a')
             delta = SX.sym('delta')
             controls = vertcat(delta,a)
-            rhs = [v*cos(theta),v*sin(theta),a,v*tan(delta)/self.length]
+            # rhs = [v*cos(theta),v*sin(theta),a,v*tan(delta)/self.length]
+            #! DEFINE COG KINEMATIC MODEL
+            lr = 8.46/2
+            lf = 8.46/2
+            beta = atan(lr/(lf+lr)*tan(delta))
+            #! define the state function
+            rhs = vertcat(v*cos(theta+beta),v*sin(theta+beta),a,v*sin(beta)/lr)
+            
 
             #function
             f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
@@ -163,7 +158,10 @@ class model_acados(object):
             model.x = states
             model.u = controls
             model.xdot = x_dot
-            model.p = []
+            number_of_parameters=30
+            model.np = number_of_parameters
+            model.sym_p = SX.sym('p', number_of_parameters)
+            
             model.name = self.name
             self.model = model
 
@@ -192,16 +190,18 @@ class makeControllerAcados:
         # self.Nveh = self.traffic.getNveh() # here, get the number of vehicles of the traffic scenario
         # self.laneWidth = self.traffic.get_laneWidth()
 
-        
         #! acados model
-        m_model = model_acados()
-        model = m_model.model
+        # m_model = model_acados()
+        # model = m_model.model
+        m_model = self.vehicle.model_acados()
+        model = m_model
         # Ensure current working directory is current folder
         os.chdir(os.path.dirname(os.path.realpath(__file__)))
         self.acados_models_dir = './acados_models'
-        safe_mkdir_recursive(os.path.join(os.getcwd(), self.acados_models_dir))
+        self.safe_mkdir_recursive(os.path.join(os.getcwd(), self.acados_models_dir))
         acados_source_path = os.environ['ACADOS_SOURCE_DIR']
         sys.path.insert(0, acados_source_path)
+        
         self.nx = model.x.size()[0]
         print(self.nx)
         self.nu = model.u.size()[0]
@@ -218,11 +218,9 @@ class makeControllerAcados:
         ocp.model = model
         ocp.dims.N = self.N
         ocp.solver_options.tf = self.N*dt
-        
         #! initialize parameters
         ocp.dims.np = n_params
         ocp.parameter_values = np.zeros(n_params)
-        
         #! cost type
         ocp.cost.cost_type = 'LINEAR_LS'
         ocp.cost.cost_type_e = 'LINEAR_LS'
@@ -254,11 +252,32 @@ class makeControllerAcados:
         
         #! for now, all of them are infinity
         # large_value = 5000
+        ocp.constraints.constr_type = 'BGH'
         ocp.constraints.lbu = -np.array([np.pi/4, 0.5*9.8])
+        print(ocp.constraints.lbu.shape)
         ocp.constraints.ubu = 1 * np.array([np.pi/4, 0.5*9.8])
-        original_ubx_2 = 6  # Original upper bound before softening
+        original_ubx_2 = 20  # Original upper bound before softening
+        
+        
+        # p_lb = cs.SX.sym('p_lb')
+        
+        # ocp.constraints.lb = [1, 1, p_lb, 1]
+        # ocp.constraints.ub = [5, 5, p_ub, 5]
+        # ocp.model.parameter = cs.vertcat([p_lb, p_ub])
+        # ...
+
+        # # set parameter p_lb and p_ub in control cycle
+        self.param_values = [n for n in range(N+10)]
+        print("param_values is:", self.param_values)
+
+        # # set parameter values (which define constraints for x2) for each node
+        # for n in range(N):
+        # ocp_solver.set(n, 'p', param_values[n])
+        
+        default_p_ub = 20
+        
         ocp.constraints.lbx = -1 * np.ones((self.nx, ))
-        ocp.constraints.ubx = np.array([2000, 2000, original_ubx_2, 1])
+        ocp.constraints.ubx = np.array([2000, 2000, default_p_ub, 1])
         #! add penalty to the slack
         # TODO: add slack variables
         nx = self.nx
@@ -293,10 +312,17 @@ class makeControllerAcados:
         ocp.cost.yref_e = x_ref
         
         # solver options
-        ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-        ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+        # integrator option
         ocp.solver_options.integrator_type = 'ERK'
+        
+        # nlp solver options
+        ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+        ocp.solver_options.nlp_solver_max_iter = 400 
+        
+        # qp solver options
+        ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+        ocp.solver_options.qp_solver_iter_max = 100  
         ocp.solver_options.print_level = 0
                 
         # compile acados ocp
@@ -308,6 +334,22 @@ class makeControllerAcados:
         # status_s = self.integrator.solve()
         # x_current = self.integrator.get('x')
         # print("!!!!!!!!!!!x_current is:", x_current)
+        
+    def safe_mkdir_recursive(self,directory, overwrite=False):
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory)
+            except OSError as exc:
+                if exc.errno == errno.EEXIST and os.path.isdir(directory):
+                    pass
+                else:
+                    raise
+        else:
+            if overwrite:
+                try:
+                    shutil.rmtree(directory)
+                except:
+                    print('Error while removing directory {}'.format(directory))        
         
     def simulation(self, x0, xs):
         simX = np.zeros((self.N+1, self.nx))
@@ -322,27 +364,39 @@ class makeControllerAcados:
         self.solver.set(self.N, 'yref', xs)
         for i in range(self.N):
             self.solver.set(i, 'yref', xs_between)
+            
+
+                
         #! print the cost setting
         for i in range(self.N):
             # solve ocp
             start = timeit.default_timer()
-            ##  set inertial (stage 0)
             self.solver.constraints_set(0, 'lbx', x_current)
             self.solver.constraints_set(0, 'ubx', x_current)
             
             
+            #! set dynamic constraints from j= 1
+            for j in range(1, self.N):
+                self.solver.constraints_set(j, 'ubx', np.array([2000, 2000, 0.01*j, 1]))
+                print("ubx is:", j, np.array([2000, 2000, 0.01*j, 1]))
+                # self.solver.constraints_set(j, 'lbx', np.array([0, 0, 0, 0]))
+
+
             status = self.solver.solve()
 
             if status != 0 :
                 raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
 
             simU[i, :] = self.solver.get(0, 'u')
-            # print("simU is:", simU[i, :])
+            #! get total X
+            for j in range(self.N):
+                simX[j+1, :] = self.solver.get(j, 'x')
+            print("simX is:", simX)
+            exit()
             cost_value = self.solver.get_cost()
             print("Optimization cost:", cost_value)
             time_record[i] =  timeit.default_timer() - start
-            
-            
+
             # simulate system
             self.integrator.set('x', x_current)
             self.integrator.set('u', simU[i, :])
@@ -351,7 +405,7 @@ class makeControllerAcados:
             if status_s != 0:
                 raise Exception('acados integrator returned status {}. Exiting.'.format(status))
 
-            # update
+            # updated
             x_current = self.integrator.get('x')
             # print("X_current is:", i, x_current)
             
