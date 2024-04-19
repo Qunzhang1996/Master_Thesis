@@ -74,7 +74,7 @@ int Truck_bicycle_acados_sim_create(Truck_bicycle_sim_solver_capsule * capsule)
     bool tmp_bool;
 
     
-    double Tsim = 0.2;
+    double Tsim = 0.3;
 
     
     // explicit ode

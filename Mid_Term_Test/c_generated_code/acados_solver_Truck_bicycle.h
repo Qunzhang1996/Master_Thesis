@@ -63,7 +63,7 @@
 #define TRUCK_BICYCLE_NY0    8
 #define TRUCK_BICYCLE_NY     8
 #define TRUCK_BICYCLE_NYN    4
-#define TRUCK_BICYCLE_N      30
+#define TRUCK_BICYCLE_N      12
 #define TRUCK_BICYCLE_NH     0
 #define TRUCK_BICYCLE_NHN    0
 #define TRUCK_BICYCLE_NH0    0

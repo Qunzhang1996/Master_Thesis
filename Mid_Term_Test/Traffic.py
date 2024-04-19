@@ -1,8 +1,6 @@
 
 #! here is the class that receive the carla and return the trajectory
-import sys
 import numpy as np
-sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis')
 from util.utils import *
 
 class surroundVehicle:

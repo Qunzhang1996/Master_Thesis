@@ -186,7 +186,7 @@ class car_VehicleModel(vehBicycleKinematic):
         # 10000 arbitrarilly large number
         inf = 50000
         lower = [0,-inf,0,-3.14/8]
-        upper = [inf,inf,inf,3.14/8]
+        upper = [inf,inf,30,3.14/8]
         return lower, upper
     
     #! this is the function to calculate the linear and discrete time dynamic model using casadi symbolic

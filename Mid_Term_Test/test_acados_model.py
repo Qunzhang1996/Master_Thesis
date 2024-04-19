@@ -283,7 +283,7 @@ class makeControllerAcados:
         nx = self.nx
         ocp.constraints.idxsbx = np.array(range(nx))
         ns = nx
-        penalty_utils = 1e5
+        penalty_utils = 1e2
         ocp.cost.zl = penalty_utils * np.ones((ns,))
         ocp.cost.zu = penalty_utils * np.ones((ns,))
         ocp.cost.Zl = 1e0 * np.ones((ns,))
@@ -377,8 +377,8 @@ class makeControllerAcados:
             
             #! set dynamic constraints from j= 1
             for j in range(1, self.N):
-                self.solver.constraints_set(j, 'ubx', np.array([2000, 2000, 0.01*j, 1]))
-                print("ubx is:", j, np.array([2000, 2000, 0.01*j, 1]))
+                self.solver.constraints_set(j, 'ubx', np.array([2000, 2000, 2, 1]))
+                print("ubx is:", j, np.array([2000, 2000, 2, 1]))
                 # self.solver.constraints_set(j, 'lbx', np.array([0, 0, 0, 0]))
 
 
@@ -392,6 +392,19 @@ class makeControllerAcados:
             for j in range(self.N):
                 simX[j+1, :] = self.solver.get(j, 'x')
             print("simX is:", simX)
+            
+            # sl_values = self.solver.get(1, "sl")
+            # su_values = self.solver.get(1, "su")
+            # print("slack values is:", su_values)
+            # calculate the slack cost
+            sum_slack =0
+            for k in range(1, self.N):
+                sl_values = self.solver.get(k, "sl")
+                su_values = self.solver.get(k, "su")
+                sum_slack += 1e2*(sl_values.T@sl_values+su_values.T@su_values)
+            print("This is the slack cost",sum_slack)
+            cost_value = self.solver.get_cost()
+            print("Optimization cost:", cost_value)
             exit()
             cost_value = self.solver.get_cost()
             print("Optimization cost:", cost_value)

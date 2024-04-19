@@ -27,9 +27,13 @@ class makeController:
     """
     
     def __init__(self, vehicle,traffic,scenario,N,opts,dt,controller_type="casadi"):
+        self.controller_type = controller_type  #! casadi or acados
         self.vehicle = vehicle
         self.traffic = traffic
         self.scenario = scenario
+        if opts["version"] == "trailing":
+            self.scenario.setEgoLane(self.traffic)
+            self.scenario.getLeadVehicle(self.traffic)
         # ! Get constraints and road information
         self.N = N
         self.Nveh = self.traffic.getNveh() # here, get the number of vehicles of the traffic scenario
@@ -92,7 +96,38 @@ class makeController:
             p_opts = dict(print_time=False, verbose=False)
             s_opts = dict(print_level=0)
             self.opti.solver(self.opts["solver"], p_opts,s_opts)
+            
+            
+            
+            
         elif controller_type == "acados":
+            
+
+            #! using opti.parameter to set the parameters
+            self.opts = opts 
+            self.opti = Opti()
+            # # Initialize opti stack
+            self.x = self.opti.variable(self.nx,self.N+1)
+            # # Initialize opti stack
+            # self.u = self.opti.variable(self.nu,self.N)
+            self.refx = self.opti.parameter(self.nrefx,self.N+1)
+            self.refu = self.opti.parameter(self.nrefu,self.N)
+            self.x0 = self.opti.parameter(self.nx,1)
+            
+            #! turn on/off the stochastic MPC
+            self.stochasticMPC=1
+
+            # ! change this according to the LC_MPC AND TRAILING_MPC
+            if opts["version"] == "trailing":
+                self.lead = self.opti.parameter(1,self.N+1)
+            else:
+                self.lead = self.opti.parameter(self.Nveh,self.N+1)
+                self.traffic_x = self.opti.parameter(self.Nveh,self.N+1)
+                self.traffic_y = self.opti.parameter(self.Nveh,self.N+1)
+                self.traffic_sign = self.opti.parameter(self.Nveh,self.N+1)
+                self.traffic_shift = self.opti.parameter(self.Nveh,self.N+1)
+                self.traffic_flip = self.opti.parameter(self.Nveh,self.N+1)
+            
             self.N = N
             #! acados model
             m_model = self.vehicle.model_acados()
@@ -177,6 +212,7 @@ class makeController:
             ocp.cost.yref = np.concatenate((x_ref, u_ref, np.zeros(self.nu)))
             ocp.cost.yref_e = x_ref
             
+            
             #! solver options
             # integrator option
             ocp.solver_options.integrator_type = 'ERK'
@@ -198,13 +234,7 @@ class makeController:
             print("INFO:  acados controller is created")
             
             
-        
-            
-            
-            
-            
-
-    
+##################################################################################################
         
     def setStateEqconstraints(self):
         """
@@ -220,6 +250,21 @@ class makeController:
         #! check withe ERIK
         # for i in range(self.N):
         #     self.opti.subject_to(self.u[:,i] == self.LQR_K @ self.x[:,i] + self.mu[:,i])
+        
+    def setStateEqconstraints_acados(self):
+        """
+        Set state equation constraints, using the ACAODS model
+        """
+        
+        #TODO:CHANGE THIS LATER
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # self.opti.set_value(self.x0, np.zeros((self.nx,1)))
+        x_current = self.opti.value(self.x0)
+        print(x_current)
+        print(x_current.shape)
+        print("###################################################")
+        self.solver.set(0, 'lbx', x_current)
+        self.solver.set(0, 'ubx', x_current)
 
     def setInEqConstraints_val(self, H_up=None, upb=None, H_low=None, lwb=None):
         """
@@ -231,6 +276,68 @@ class makeController:
         
         self.H_low = H_low if H_low is not None else [np.array([[-1], [0], [0], [0]]), np.array([[0], [-1], [0], [0]]), np.array([[0], [0], [-1], [0]]), np.array([[0], [0], [0], [-1]])]
         self.lwb = lwb if lwb is not None else np.array([[5000], [5000], [0], [3.14/8]])
+        
+        
+        
+#################################################        setInEqConstraints           #################################################
+
+
+    def setInEqConstraints(self):
+        """
+        Set inequality constraints, only for default constraints and tihgtened  default  constraints
+        
+        """
+        lbx,ubx = self.vehicle.xConstraints()
+        # ! element in lbx and ubx should be positive
+        lbx = [abs(x) for x in lbx]
+        self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
+        lbu,ubu = self.vehicle.uConstraints()
+        self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
+        self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
+        
+        for i in range(self.N+1):
+            self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
+            self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1))) 
+        # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
+        #! set the constraints for the INPUT
+        self.opti.subject_to(self.opti.bounded(lbu, self.u, ubu))
+        #! extra constraints for the V_MAX
+        self.opti.subject_to(self.opti.bounded(0,self.x[2,:],self.scenario.vmax))
+        
+        
+    def setInEqConstraints_acados(self):
+        """
+        Set inequality constraints, only for default constraints and tihgtened  default  constraints
+        
+        """
+        lbx,ubx = self.vehicle.xConstraints()   
+        # ! element in lbx and ubx should be positive
+        lbx = [abs(x) for x in lbx]
+        self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
+        lbu,ubu = self.vehicle.uConstraints()
+        self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
+        print("INFO:  tightened_bound_N_list_up is:", self.tightened_bound_N_list_up)
+        self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
+        #! create a np array for store the v and delta constraints
+        
+        self.constraintStore = np.zeros((self.N,2*self.nx))  #(lbx, ubx) for each step
+        
+        for i in range(1, self.N):
+            #! lbx and ubx  shape  should be the (nx,)
+            lbx_array = np.array(self.tightened_bound_N_list_lw[i]).reshape(4,)
+            self.constraintStore[i, :self.nx] = lbx_array
+            # self.solver.constraints_set(i, 'lbx', lbx_array)
+            ubx_array = np.array(self.tightened_bound_N_list_up[i]).reshape(4,)
+            # self.solver.constraints_set(i, 'ubx', ubx_array)
+            self.constraintStore[i, self.nx:] = ubx_array
+            
+            
+            # print("INFO: lbx_array is:", lbx_array)
+            # print("INFO: ubx_array is:", ubx_array)
+        # print("INFO:  setInEqConstraints_acados is done")
+        # print("constraintStore is:", self.constraintStore)
+
+##################################################          setTrafficConstraints            ################################################
 
     def setTrafficConstraints(self):
         
@@ -251,9 +358,7 @@ class makeController:
                 self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
                                     >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
                                         self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
-            #TODO: BE CAREFUL ABOUT THE SHIFT "143.318146 -self.laneWidth/2" -- self.init_bound, IT IS DEFINED IN THE SCENERIO
-            # ! ASK ERIK, TOO STRICT CONSTRAINTS
-            #TODO: DO The Tighten Finally
+
             # Set default road boundries, given that there is a "phantom vehicle" in the lane we can not enter
             d_lat_spread =  self.L_trail* np.tan(self.egoTheta_max)
             d_lat_spread = 0
@@ -261,7 +366,7 @@ class makeController:
                 self.y_lanes = [self.init_bound + self.vehWidth/3+d_lat_spread, self.init_bound + 2*self.laneWidth-self.vehWidth/3-d_lat_spread]
             elif self.opts["version"] == "rightChange":
                 self.y_lanes = [self.init_bound -self.laneWidth + self.vehWidth/3+d_lat_spread, self.init_bound + self.laneWidth-self.vehWidth/3-d_lat_spread]
-            #! self.vehWidth/2 is  too strict, to be self.vehWidth/3
+            # self.vehWidth/2 is  too strict, to be self.vehWidth/3
             # self.opti.subject_to(self.opti.bounded(self.y_lanes[0],self.x[1,:],self.y_lanes[1]))
 
         elif self.scenario.name == 'trailing':
@@ -270,34 +375,59 @@ class makeController:
             self.scenario.getLeadVehicle(self.traffic)
             self.IDM_constraint_list = self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:]
             self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
-            # ! tighten the TRAILING CONSTRAINTS  
-            # self.tightened_bound_N_IDM_list, _ = self.MPC_tighten_bound.tighten_bound_N_IDM(self.IDM_constraint_list, self.N)
-            # for i in range(self.N+1):
-            #     self.opti.subject_to(self.x[0,i] <= self.tightened_bound_N_IDM_list[i].item())
+            # tighten the TRAILING CONSTRAINTS  
+            
+            
+    
+    #TODO: set the traffic constraints for the acados carefully
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!       
+    def setTrafficConstraints_acados(self):
+        """
+        Set the traffic constraints for the acados
+        #! Saving the minimal boundary into the self.constraintStore as the constraints of the solver!
+        """
+        if self.stochasticMPC:
+            self.temp_x, self.tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
+            # print("INFO: temp_x is:", self.temp_x)
+            # print("INFO: temp_y is:", self.tempt_y)
+            self.S =self.scenario.constrain_tightened(self.traffic,self.opts,self.temp_x, self.tempt_y)
+        else:
+            self.S = self.scenario.constraint(self.traffic,self.opts)
+        
+        if self.scenario.name == 'simpleOvertake':
+            
+            #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
+            for i in range(self.Nveh):
+                if i ==1: continue #! avoid putting the ego vehicle in the list
+                constraintDirection = np.sign(self.opti.value(self.traffic_flip[i,:]))  #! 1 or -1
+                for j in range(1,self.N):
+                    if constraintDirection > 0:
+                        self.constraintStore[j,1] = max(self.constraintStore[j,1], self.opti.value(self.S[i](self.x[0,j], self.traffic_x[i,j], self.traffic_y[i,j], self.traffic_sign[i,j], self.traffic_shift[i,j])) )
+                    elif constraintDirection < 0:
+                        self.constraintStore[j,5] = min(self.constraintStore[j,0], self.opti.value(self.S[i](self.x[0,j], self.traffic_x[i,j], self.traffic_y[i,j], self.traffic_sign[i,j], self.traffic_shift[i,j])) )
+               
+               
+         #TODO: FIND SOME WAY TO APPROACH THIS SELF.X  ISSUE!!!!!!!!!!!!       SELF.X IS OPTI.VARIABLE!!!!!!!!!!!!!!!!!!!
+                
+        elif self.scenario.name == 'trailing':
+            T = self.scenario.Time_headway
+            self.scenario.setEgoLane(self.traffic)
+            self.scenario.getLeadVehicle(self.traffic)
+            
 
-    def setInEqConstraints(self):
-        """
-        Set inequality constraints, only for default constraints and tihgtened  default  constraints
+            for i in range(1, self.N):
+                tempConstraintX = self.opti.value(self.S(self.lead) -T * self.x[2,:])
+                # ubx x is tempConstraintX
+                self.constraintStore[i, 4] = tempConstraintX
+                
+
+
+
         
-        """
-        lbx,ubx = self.vehicle.xConstraints()
-        # ! element in lbx and ubx should be positive
-        lbx = [abs(x) for x in lbx]
-        self.setInEqConstraints_val(H_up=None, upb=np.array(ubx).reshape(4,1), H_low=None, lwb=np.array(lbx).reshape(4,1))  # Set default constraints
-        lbu,ubu = self.vehicle.uConstraints()
-        self.tightened_bound_N_list_up = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_up, self.upb, self.N, 1)
-        self.tightened_bound_N_list_lw = self.MPC_tighten_bound.tighten_bound_N(self.P0, self.H_low, self.lwb, self.N, 0)
-        
-        for i in range(self.N+1):
-            # print(DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
-            # print(DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1)))
-            self.opti.subject_to(self.x[:, i] <= DM(self.tightened_bound_N_list_up[i].reshape(-1, 1)))
-            self.opti.subject_to(self.x[:, i] >= DM(self.tightened_bound_N_list_lw[i].reshape(-1, 1))) 
-        # set the constraints for the input  [-3.14/8,-0.7*9.81],[3.14/8,0.05*9.81]
-        #! set the constraints for the INPUT
-        self.opti.subject_to(self.opti.bounded(lbu, self.u, ubu))
-        #! extra constraints for the V_MAX
-        self.opti.subject_to(self.opti.bounded(0,self.x[2,:],self.scenario.vmax))
+
+
+############################################            COST            ######################################################
+    
         
     def setCost(self):
         L,Lf = self.vehicle.getCost()
@@ -306,6 +436,19 @@ class makeController:
         self.costSlack = getSlackCost(Ls,self.traffic_slack)
         self.total_cost = self.costMain + self.costSlack
         self.opti.minimize(self.total_cost)    
+        
+    def setCost_acados(self):
+        """
+        Set the cost function for the acados
+        #! for now, no need to set the cost function.....it is defined in the initialization
+        """
+        
+        pass
+ 
+ 
+ ###############################################################################################################
+ 
+ 
  
     def setController(self):
         """
@@ -318,7 +461,32 @@ class makeController:
 
         # Cost
         self.setCost()
+    
+    def setController_acados(self):
+        """
+        Sets all constraints
+        """
+        #TODO: becareful about the constraints!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.setStateEqconstraints_acados()
+        self.setInEqConstraints_acados()
+        self.setTrafficConstraints_acados()  #! execute the function sequentially!!!!!!!!!!!!!
         
+        
+        #use self.constraintStore to set the constraints
+        print("INFO:  self.constraintStore", self.constraintStore)
+        for i in range(1, self.N):
+            self.solver.constraints_set(i, 'lbx', self.constraintStore[i, :self.nx])
+            self.solver.constraints_set(i, 'ubx', self.constraintStore[i, self.nx:])
+        
+        print("INFO:  setConstraints_acados is done")
+        pass
+    
+    
+    
+##################################################################################################
+    
+    
+    
     def solve(self, *args, **kwargs):
         """
         Solve the optimization problem with flexible inputs based on configuration in self.opts.
@@ -359,8 +527,70 @@ class makeController:
             print(f"An error occurred: {e}")
             self.opti.debug()
             return None, None, None
+    
+    
+    
+    def solve_acados(self, *args, **kwargs):
+        """
+        Solve the optimization problem with flexible inputs based on configuration in self.opts.
+        """
+        simX = np.zeros((self.nx, self.N+1))
+        simU = np.zeros((self.nu,self.N))
+        
+        if self.opts["version"] == "trailing":
+            x_iter, refxT_out, refu_out, x_traffic = args[:4]
+            self.opti.set_value(self.x0, x_iter)
+            self.opti.set_value(self.refx, refxT_out)
+            self.opti.set_value(self.refu, refu_out) 
+            self.opti.set_value(self.lead, x_traffic)
+        else:
+            '''
+            used for the overtake issue
+            '''
+            x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
+            self.opti.set_value(self.x0, x_iter)
+            self.opti.set_value(self.refx, refx_out)
+            self.opti.set_value(self.refu, refu_out)
+            self.opti.set_value(self.traffic_x, traffic_x)
+            self.opti.set_value(self.traffic_y, traffic_y)
+            self.opti.set_value(self.traffic_sign, traffic_sign) 
+            self.opti.set_value(self.traffic_shift, traffic_shift)
+            self.opti.set_value(self.traffic_flip, traffic_flip)
+            
+        
+        #! set constraints
+        ##########################################################
+        self.setController_acados()
+        exit()
+        ##########################################################
+        
+            
+        xs = self.opti.value(self.refx)
+        xs_between = np.concatenate((xs, np.zeros(4)))
+        
+        #close loop
+        self.solver.set(self.N, 'yref', xs)
+        for i in range(self.N):
+            self.solver.set(i, 'yref', xs_between)
+            
+            
+        status = self.solver.solve()
+
+        if status != 0 :
+            raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
+        
+        #! save total X and U
+        for i in range(self.N):
+            simX[:,i] = self.solver.get(i, 'x')
+            simU[:,i] = self.solver.get(i, 'u')
+        cost_value = self.solver.get_cost()
+        
+        return simU, simX, cost_value
         
         
+        
+##################################################################################################
+      
     def safe_mkdir_recursive(self,directory, overwrite=False):
         if not os.path.exists(directory):
             try:
@@ -377,176 +607,7 @@ class makeController:
                 except:
                     print('Error while removing directory {}'.format(directory))       
         
-        
 
-# def safe_mkdir_recursive(directory, overwrite=False):
-#     if not os.path.exists(directory):
-#         try:
-#             os.makedirs(directory)
-#         except OSError as exc:
-#             if exc.errno == errno.EEXIST and os.path.isdir(directory):
-#                 pass
-#             else:
-#                 raise
-#     else:
-#         if overwrite:
-#             try:
-#                 shutil.rmtree(directory)
-#             except:
-#                 print('Error while removing directory {}'.format(directory))     
-        
-        
-# class makeControllerAcados:
-#     """
-#     #! Creates a MPC using acados based on current vehicle, traffic and scenario
-#     """
-#     """
-#     ██████╗  ██████╗ ██████╗      ██████╗ ██╗     ███████╗███████╗███████╗    ███╗   ███╗██████╗  ██████╗            
-#     ██╔════╝ ██╔═══██╗██╔══██╗    ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝    ████╗ ████║██╔══██╗██╔════╝            
-#     ██║  ███╗██║   ██║██║  ██║    ██████╔╝██║     █████╗  ███████╗███████╗    ██╔████╔██║██████╔╝██║                 
-#     ██║   ██║██║   ██║██║  ██║    ██╔══██╗██║     ██╔══╝  ╚════██║╚════██║    ██║╚██╔╝██║██╔═══╝ ██║                 
-#     ╚██████╔╝╚██████╔╝██████╔╝    ██████╔╝███████╗███████╗███████║███████║    ██║ ╚═╝ ██║██║     ╚██████╗            
-#      ╚═════╝  ╚═════╝ ╚═════╝     ╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝      ╚═════╝                                                                                                                                                                                                            
-#     """
-    
-#     def __init__(self, vehicle,traffic,scenario,N,opts,dt):
-#         self.vehicle = vehicle
-#         self.traffic = traffic
-#         self.scenario = scenario
-#         self.opts = opts 
-        
-#         # Get constraints and road information
-#         self.N = N
-#         #! for now comment this
-#         # self.Nveh = self.traffic.getNveh() # here, get the number of vehicles of the traffic scenario
-#         # self.laneWidth = self.traffic.get_laneWidth()
-
-        
-#         #! acados model
-#         model = self.vehicle.getAcadosModel()
-#         print(model)
-#         # Ensure current working directory is current folder
-#         os.chdir(os.path.dirname(os.path.realpath(__file__)))
-#         self.acados_models_dir = './acados_models'
-#         safe_mkdir_recursive(os.path.join(os.getcwd(), self.acados_models_dir))
-#         acados_source_path = os.environ['ACADOS_SOURCE_DIR']
-#         sys.path.insert(0, acados_source_path)
-#         self.nx = model.x.size()[0]
-#         print(self.nx)
-#         self.nu = model.u.size()[0]
-#         print(self.nu)
-#         self.ny = self.nx + self.nu
-#         print(self.ny)
-#         n_params = len(model.p)
-#         print(n_params)
-        
-#         #!create acados ocp
-#         ocp = AcadosOcp()
-#         ocp.acados_include_path = acados_source_path + '/include'
-#         ocp.acados_lib_path = acados_source_path + '/lib'
-#         ocp.model = model
-#         ocp.dims.N = self.N
-#         ocp.solver_options.tf = self.N*dt
-        
-#         #! initialize parameters
-#         ocp.dims.np = n_params
-#         ocp.parameter_values = np.zeros(n_params)
-        
-#         #! cost type
-#         ocp.cost.cost_type = 'LINEAR_LS'
-#         ocp.cost.cost_type_e = 'LINEAR_LS'
-#         Q = np.diag(self.vehicle.Q)
-#         R = np.diag(self.vehicle.R)
-#         print(Q)
-#         print(R)
-#         ocp.cost.W = scipy.linalg.block_diag(Q, R)
-#         print(ocp.cost.W)
-#         ocp.cost.W_e = Q
-#         ocp.cost.Vx = np.zeros((self.ny, self.nx))
-#         ocp.cost.Vx[:self.nx, :self.nx] = np.eye(self.nx)
-#         print(ocp.cost.Vx)
-#         ocp.cost.Vu = np.zeros((self.ny, self.nu))
-#         ocp.cost.Vu[-self.nu:, -self.nu:] = np.eye(self.nu)
-#         print(ocp.cost.Vu)
-#         ocp.cost.Vx_e = np.eye(self.nx)
-        
-#         #! set constraints
-#         #! for now, all of them are infinity
-#         ocp.constraints.lbu = -10 * np.ones((self.nu, 1))
-#         ocp.constraints.ubu = 10 * np.ones((self.nu, 1))
-#         ocp.constraints.lbx = -1000 * np.ones((self.nx, 1))
-#         ocp.constraints.ubx = 1000* np.ones((self.nx, 1))
-#         print("INFO: lbu is:", ocp.constraints.lbu)
-#         print("INFO: ubu is:", ocp.constraints.ubu)
-#         ocp.constraints.idxbu = np.array(range(self.nu))
-#         ocp.constraints.idxbx = np.array(range(self.nx))
-#         print("INFO: idxbu is:", ocp.constraints.idxbu)
-#         print("INFO: idxbx is:", ocp.constraints.idxbx)
-        
-        
-#         x_ref = np.zeros(self.nx)
-#         u_ref = np.zeros(self.nu)
-#         # initial state
-#         ocp.constraints.x0 = x_ref
-#         ocp.cost.yref = np.concatenate((x_ref, u_ref))
-#         ocp.cost.yref_e = x_ref
-        
-        
-#         # solver options
-#         ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-#         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
-#         # explicit Runge-Kutta integrator
-#         ocp.solver_options.integrator_type = 'ERK'
-#         ocp.solver_options.print_level = 0
-#         ocp.solver_options.nlp_solver_type = 'SQP_RTI'
-        
-#         # compile acados ocp
-#         json_file = os.path.join('./'+model.name+'_acados_ocp.json')
-#         self.solver = AcadosOcpSolver(ocp, json_file=json_file)
-#         self.integrator = AcadosSimSolver(ocp, json_file=json_file)
-        
-#     def simulation(self, x0, xs):
-#         simX = np.zeros((self.N+1, self.nx))
-#         simU = np.zeros((self.N, self.nu))
-#         x_current = x0
-#         simX[0, :] = x0.reshape(1, -1)
-#         xs_between = np.concatenate((xs, np.zeros(2)))
-#         time_record = np.zeros(self.N)
-
-#         # closed loop
-#         self.solver.set(self.N, 'yref', xs)
-#         for i in range(self.N):
-#             self.solver.set(i, 'yref', xs_between)
-
-#         for i in range(self.N):
-#             # solve ocp
-#             start = timeit.default_timer()
-#             ##  set inertial (stage 0)
-#             self.solver.set(0, 'lbx', x_current)
-#             self.solver.set(0, 'ubx', x_current)
-#             status = self.solver.solve()
-
-#             if status != 0 :
-#                 raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
-
-#             simU[i, :] = self.solver.get(0, 'u')
-#             time_record[i] =  timeit.default_timer() - start
-#             # simulate system
-#             self.integrator.set('x', x_current)
-#             self.integrator.set('u', simU[i, :])
-
-#             status_s = self.integrator.solve()
-#             if status_s != 0:
-#                 raise Exception('acados integrator returned status {}. Exiting.'.format(status))
-
-#             # update
-#             x_current = self.integrator.get('x')
-#             simX[i+1, :] = x_current
-
-#         print("average estimation time is {}".format(time_record.mean()))
-#         print("max estimation time is {}".format(time_record.max()))
-#         print("min estimation time is {}".format(time_record.min()))
-        
 class makeDecisionMaster:
     """
     #! This is the Decision Master used for decision making
@@ -857,23 +918,36 @@ class makeDecisionMaster:
                 
             # print(self.Nveh)
             self.paramLog[0,:,idx,2] = x_traffic.full()
-            u_testT, x_testT, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+            if self.MPCs[2].controller_type == "casadi":
+                u_testT, x_testT, costT, costT_slack=self.MPCs[2].solve(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
+            elif self.MPCs[2].controller_type == "acados":
+                u_testT, x_testT, costT=self.MPCs[2].solve_acados(self.x_iter, self.refxT_out, self.refu_out, x_traffic)
             
         if self.doLeft:
             self.setControllerParameters(self.controllers[0].opts["version"])
             self.paramLog[:,:,:,0] = self.traffic_state
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxL_out
-            u_testL, x_testL, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
-                                            self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
-                                            self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+            if self.MPCs[0].controller_type == "casadi":
+                u_testL, x_testL, costL, costL_slack=self.MPCs[0].solve(self.x_iter, self.refxL_out , self.refu_out, \
+                                                self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
+                                                self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+            elif self.MPCs[0].controller_type == "acados":
+                u_testL, x_testL, costL=self.MPCs[0].solve_acados(self.x_iter, self.refxL_out , self.refu_out, \
+                                                self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
+                                                self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
             
         if self.doRight:
             self.setControllerParameters(self.controllers[1].opts["version"])
             self.paramLog[:,:,:,1] = self.traffic_state
             # x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip  self.refxR_out
-            u_testR, x_testR, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
-                                            self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
-                                            self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+            if self.MPCs[1].controller_type == "casadi":
+                u_testR, x_testR, costR, costR_slack=self.MPCs[1].solve(self.x_iter, self.refxR_out , self.refu_out, \
+                                                self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
+                                                self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
+            elif self.MPCs[1].controller_type == "acados":
+                u_testR, x_testR, costR=self.MPCs[1].solve_acados(self.x_iter, self.refxR_out , self.refu_out, \
+                                                self.traffic_state[0,:,:].T,self.traffic_state[1,:,:].T,self.traffic_state[2,:,:].T,
+                                                self.traffic_state[3,:,:].T,self.traffic_state[4,:,:].T)
             
         #TODO: SIMPLE CHOICE OF THE CONTROLLER BASED ON THE COST
         # print("this is x_iter in controller", self.x_iter)

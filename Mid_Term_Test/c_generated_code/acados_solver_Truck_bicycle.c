@@ -377,7 +377,7 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
         Truck_bicycle_acados_update_time_steps(capsule, N, new_time_steps);
     }
     else
-    {double time_step = 0.2;
+    {double time_step = 0.3;
         for (int i = 0; i < N; i++)
         {
             ocp_nlp_in_set(nlp_config, nlp_dims, nlp_in, i, "Ts", &time_step);
@@ -400,7 +400,7 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
 
    double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[1+(NY0) * 1] = 40;
+    W_0[1+(NY0) * 1] = 80;
     W_0[2+(NY0) * 2] = 300;
     W_0[3+(NY0) * 3] = 5;
     W_0[4+(NY0) * 4] = 5;
@@ -433,7 +433,7 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     free(yref);
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
-    W[1+(NY) * 1] = 40;
+    W[1+(NY) * 1] = 80;
     W[2+(NY) * 2] = 300;
     W[3+(NY) * 3] = 5;
     W[4+(NY) * 4] = 5;
@@ -477,7 +477,7 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
 
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
-    W_e[1+(NYN) * 1] = 40;
+    W_e[1+(NYN) * 1] = 80;
     W_e[2+(NYN) * 2] = 300;
     W_e[3+(NYN) * 3] = 5;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
@@ -600,10 +600,10 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     double* lbu = lubu;
     double* ubu = lubu + NBU;
     
-    lbu[0] = -0.7853981633974483;
-    ubu[0] = 0.7853981633974483;
-    lbu[1] = -4.9;
-    ubu[1] = 4.9;
+    lbu[0] = -0.3925;
+    ubu[0] = 0.3925;
+    lbu[1] = -4.905;
+    ubu[1] = 4.905;
 
     for (int i = 0; i < N; i++)
     {
@@ -632,14 +632,12 @@ void Truck_bicycle_acados_create_5_set_nlp_in(Truck_bicycle_solver_capsule* caps
     double* lbx = lubx;
     double* ubx = lubx + NBX;
     
-    lbx[0] = -1;
-    ubx[0] = 2000;
-    lbx[1] = -1;
-    ubx[1] = 2000;
-    lbx[2] = -1;
-    ubx[2] = 20;
-    lbx[3] = -1;
-    ubx[3] = 1;
+    ubx[0] = 50000;
+    lbx[1] = -50000;
+    ubx[1] = 50000;
+    ubx[2] = 30;
+    lbx[3] = -0.3925;
+    ubx[3] = 0.3925;
 
     for (int i = 1; i < N; i++)
     {
