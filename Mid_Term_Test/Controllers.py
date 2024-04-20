@@ -107,7 +107,7 @@ class makeController:
             self.opts = opts 
             self.opti = Opti()
             # # Initialize opti stack
-            self.x = self.opti.variable(self.nx,self.N+1)
+            
             # # Initialize opti stack
             # self.u = self.opti.variable(self.nu,self.N)
             self.refx = self.opti.parameter(self.nrefx,self.N+1)
@@ -130,7 +130,7 @@ class makeController:
             
             self.N = N
             #! acados model
-            m_model = self.vehicle.model_acados()
+            m_model = self.vehicle.model_acados(opts, self.Nveh)
             model = m_model
             #! ensure current working directory is current folder
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -152,6 +152,22 @@ class makeController:
             ocp.acados_include_path = acados_source_path + '/include'
             ocp.acados_lib_path = acados_source_path + '/lib'
             ocp.model = model
+            
+            
+            #! becareful! this is the defination of the dynamics
+            self.px_acados = model.x
+            self.py_acados = model.x[1]
+            self.v_acados = model.x[2]
+            self.theta_acados = model.x[3]
+            
+            print("INFO:  px_acados is:", self.px_acados)
+            # print("INFO:  py_acados is:", self.py_acados)
+            # print("INFO:  v_acados is:", self.v_acados)
+            # print("INFO:  theta_acados is:", self.theta_acados)
+            
+            
+            # self.x = self.opti.variable(self.nx,self.N+1)
+            
             ocp.dims.N = self.N
             ocp.solver_options.tf = self.N*dt
             #! cost type
@@ -381,6 +397,10 @@ class makeController:
     
     #TODO: set the traffic constraints for the acados carefully
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!       
+    
+    #! adding the change of it as states
+    #! 1. the state of the model should have two part: trailing and lane change
+    #! 2. the constraints should be set for the trailing and lane change
     def setTrafficConstraints_acados(self):
         """
         Set the traffic constraints for the acados
@@ -396,9 +416,39 @@ class makeController:
         
         if self.scenario.name == 'simpleOvertake':
             
+            
+            
+            
             #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
             for i in range(self.Nveh):
                 if i ==1: continue #! avoid putting the ego vehicle in the list
+                self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
+                                    >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
+                                        self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
+            
+            
+            
+            #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
+            for i in range(self.Nveh):
+                #constr_h should be Nveh-1 vertcat
+                constr_h_container = []
+                if i ==1: continue #! avoid putting the ego vehicle in the list
+                # constr_h_container.append(self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
+                #                         self.traffic_sign[i,:], self.traffic_shift[i,:]) -self.traffic_flip[i,:] * self.x[1,:] )
+                
+            # h_max = np.zeros((self.Nveh-1))
+            # h_min = np.zeros((self.Nveh-1))
+            
+            
+                
+                
+                
+                
+                
+                
+                
+                
+                
                 constraintDirection = np.sign(self.opti.value(self.traffic_flip[i,:]))  #! 1 or -1
                 for j in range(1,self.N):
                     if constraintDirection > 0:
@@ -502,6 +552,13 @@ class makeController:
             used for the overtake issue
             '''
             x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
+            # print("this is traffic_x", traffic_x)
+            # print("this is traffic_y", traffic_y)
+            # print("this is traffic_sign", traffic_sign)
+            # print("this is traffic_shift", traffic_shift)
+            
+
+            
             self.opti.set_value(self.x0, x_iter)
             self.opti.set_value(self.refx, refx_out)
             self.opti.set_value(self.refu, refu_out)
@@ -548,6 +605,7 @@ class makeController:
             used for the overtake issue
             '''
             x_iter, refx_out, refu_out, traffic_x, traffic_y, traffic_sign, traffic_shift, traffic_flip = args
+            
             self.opti.set_value(self.x0, x_iter)
             self.opti.set_value(self.refx, refx_out)
             self.opti.set_value(self.refu, refu_out)

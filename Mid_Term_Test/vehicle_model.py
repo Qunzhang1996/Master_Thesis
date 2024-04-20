@@ -100,30 +100,71 @@ class car_VehicleModel(vehBicycleKinematic):
         self.dx = dx
         return {'x':self.x,'p':self.u,'ode':dx}
     
-    def model_acados(self):
+    def model_acados(self, opts=None, Nveh=None):
         """
         define the model for acados
         """
+        self.opts = opts
+        self.Nveh = Nveh
         x = SX.sym('x')
         y = SX.sym('y')
         v = SX.sym('v')
         theta = SX.sym('theta')
-        states = vertcat(x,y,v,theta)
         a = SX.sym('a')
         delta = SX.sym('delta')
-        controls = vertcat(delta,a)
         # rhs = [v*cos(theta),v*sin(theta),a,v*tan(delta)/self.length]
         lr = self.lr
         lf = self.lf
         beta = atan(lr/(lr+lf)*tan(delta))
-        rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr]
-
-        #function
-        f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
-        #acasdo model
-        x_dot = SX.sym('x_dot', len(rhs))
-        f_impl = x_dot - f(states, controls)
         
+        if self.opts == None:
+            states = vertcat(x,y,v,theta)
+            controls = vertcat(delta,a)
+            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr]
+            #function
+            f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
+            #acasdo model
+            x_dot = SX.sym('x_dot', len(rhs))
+            f_impl = x_dot - f(states, controls)
+        elif self.opts["version"] == "trailing":
+            x_lead = SX.sym('x_lead') 
+            v_lead = SX.sym('v_lead')
+            states = vertcat(x, y, v, theta, x_lead)
+            controls = vertcat(delta, a, v_lead)
+            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr, v_lead]
+            # function
+            f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
+            # acasdo model
+            x_dot = SX.sym('x_dot', len(rhs))
+            f_impl = x_dot - f(states, controls)
+
+        elif self.opts["version"] == "rightChange" or self.opts["version"] == "leftChange":
+            states_surrounding = []
+            controls_surrounding = []
+            for i in range(self.Nveh):
+                if i == 1: continue
+                x_sur = SX.sym(f'x_sur{i}')
+                y_sur = SX.sym(f'y_sur{i}')
+                v_sur = SX.sym(f'v_sur{i}')
+                
+                states_surrounding.extend([x_sur, y_sur])
+                controls_surrounding.extend([v_sur])
+            #! put extended states and controls into the states and controls
+            states = vertcat(x, y, v, theta, *states_surrounding)
+            controls = vertcat(delta, a, *controls_surrounding)
+            
+            rhs_sur = []
+            for i, v_sur in enumerate(controls_surrounding):  # loop through the surrounding vehicles
+                rhs_sur.extend([v_sur, 0])
+            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr, *rhs_sur]
+            # function
+            f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
+            # acasdo model
+            x_dot = SX.sym('x_dot', len(rhs))
+            f_impl = x_dot - f(states, controls)
+        else:
+            raise ValueError(f"INFO:  Unsupported version: {self.opts['version']}")
+
         model = AcadosModel()
         model.f_expl_expr = f(states, controls)
         model.f_impl_expr = f_impl
@@ -133,6 +174,7 @@ class car_VehicleModel(vehBicycleKinematic):
         model.p = []
         model.name = self.name
         self.model = model
+        print("INFO:  Acados model is created successfully!")
         return self.model
     
     def getAcadosModel(self):
