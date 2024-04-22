@@ -150,10 +150,10 @@ class makeController:
             
             
             #!create acados ocp
-            ocp = AcadosOcp()
-            ocp.acados_include_path = acados_source_path + '/include'
-            ocp.acados_lib_path = acados_source_path + '/lib'
-            ocp.model = self.model
+            self.ocp = AcadosOcp()
+            self.ocp.acados_include_path = acados_source_path + '/include'
+            self.ocp.acados_lib_path = acados_source_path + '/lib'
+            self.ocp.model = self.model
             
             
             #! becareful! this is the defination of the dynamics
@@ -178,8 +178,8 @@ class makeController:
 
 
             
-            ocp.dims.N = self.N
-            ocp.solver_options.tf = self.N*dt
+            self.ocp.dims.N = self.N
+            self.ocp.solver_options.tf = self.N*dt
             #! cost type
  
             #! get len of x and u of the acados model
@@ -213,20 +213,20 @@ class makeController:
             # print(W)
             #! cost matrix finished!
 
-            ocp.cost.W = W
+            self.ocp.cost.W = W
             
-            ocp.cost.W_e = Q_reduced  # For the terminal cost
+            self.ocp.cost.W_e = Q_reduced  # For the terminal cost
 
-            ocp.cost.Vx = np.zeros((self.nx_acados+2*self.nu_acados, self.nx_acados))
-            ocp.cost.Vx[:self.nx, :self.nx] = np.eye(self.nx)  # Map only the first four states
+            self.ocp.cost.Vx = np.zeros((self.nx_acados+2*self.nu_acados, self.nx_acados))
+            self.ocp.cost.Vx[:self.nx, :self.nx] = np.eye(self.nx)  # Map only the first four states
             
             
             
-            ocp.cost.Vu = np.zeros((self.nx_acados+2*self.nu_acados, self.nu_acados))
-            ocp.cost.Vu[self.nx_acados:self.nx_acados+self.nu, :self.nu] = np.eye(self.nu)
+            self.ocp.cost.Vu = np.zeros((self.nx_acados+2*self.nu_acados, self.nu_acados))
+            self.ocp.cost.Vu[self.nx_acados:self.nx_acados+self.nu, :self.nu] = np.eye(self.nu)
             
-            ocp.cost.Vx_e = np.zeros((self.nx_acados, self.nx_acados))
-            ocp.cost.Vx_e[:self.nx, :self.nx] = np.eye(self.nx)  # Map only the first four states
+            self.ocp.cost.Vx_e = np.zeros((self.nx_acados, self.nx_acados))
+            self.ocp.cost.Vx_e[:self.nx, :self.nx] = np.eye(self.nx)  # Map only the first four states
             
 
 
@@ -260,54 +260,54 @@ class makeController:
             
             
             
-            ocp.constraints.lbu = np.array(lbu_full)
-            ocp.constraints.ubu = np.array(ubu_full)
-            ocp.constraints.lbx = np.array(lbx_full)
-            ocp.constraints.ubx = np.array(ubx_full)
+            self.ocp.constraints.lbu = np.array(lbu_full)
+            self.ocp.constraints.ubu = np.array(ubu_full)
+            self.ocp.constraints.lbx = np.array(lbx_full)
+            self.ocp.constraints.ubx = np.array(ubx_full)
             # print("INFO: lbu is:", ocp.constraints.lbu.shape)
             # print("INFO: ubu is:", ocp.constraints.ubu)
             #! add penalty for the slack variable
             ns = self.nx_acados
-            ocp.constraints.idxsbx = np.array(range(self.nx_acados))
+            self.ocp.constraints.idxsbx = np.array(range(self.nx_acados))
             
             penalty_utils = self.vehicle.setAcadosSlack()
-            ocp.cost.zl = penalty_utils * np.ones((ns,))
-            ocp.cost.zu = penalty_utils * np.ones((ns,))
-            ocp.cost.Zl = 1e0 * np.ones((ns,))
-            ocp.cost.Zu = 1e0 * np.ones((ns,))
+            self.ocp.cost.zl = penalty_utils * np.ones((ns,))
+            self.ocp.cost.zu = penalty_utils * np.ones((ns,))
+            self.ocp.cost.Zl = 1e0 * np.ones((ns,))
+            self.ocp.cost.Zu = 1e0 * np.ones((ns,))
             
             # idxbu =  np.array([0,1,2,.....i]) for i in range(self.nu_acados)
-            ocp.constraints.idxbu = np.array(range(self.nu_acados))
-            ocp.constraints.idxbx = np.array(range(self.nx_acados))
+            self.ocp.constraints.idxbu = np.array(range(self.nu_acados))
+            self.ocp.constraints.idxbx = np.array(range(self.nx_acados))
             
             
             #! define the reference
             x_ref = np.zeros(self.nx_acados)
             u_ref = np.zeros(self.nu_acados)
             # initial state
-            ocp.constraints.x0 = x_ref
-            ocp.cost.yref = np.concatenate((x_ref, u_ref, np.zeros(self.nu_acados)))
-            ocp.cost.yref_e = x_ref
+            self.ocp.constraints.x0 = x_ref
+            self.ocp.cost.yref = np.concatenate((x_ref, u_ref, np.zeros(self.nu_acados)))
+            self.ocp.cost.yref_e = x_ref
             
             
             #! solver options
             # integrator option
-            ocp.solver_options.integrator_type = 'ERK'
+            self.ocp.solver_options.integrator_type = 'ERK'
         
             # nlp solver options
-            ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
-            ocp.solver_options.nlp_solver_type = 'SQP_RTI'
-            ocp.solver_options.nlp_solver_max_iter = 400 
+            self.ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+            self.ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+            self.ocp.solver_options.nlp_solver_max_iter = 400 
             
             # qp solver options
-            ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-            ocp.solver_options.qp_solver_iter_max = 100  
-            ocp.solver_options.print_level = 0
+            self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+            self.ocp.solver_options.qp_solver_iter_max = 100  
+            self.ocp.solver_options.print_level = 0
                     
             # compile acados ocp
             json_file = os.path.join('./'+m_model.name+'_acados_ocp.json')
-            self.solver = AcadosOcpSolver(ocp, json_file=json_file)
-            self.integrator = AcadosSimSolver(ocp, json_file=json_file)
+            self.solver = AcadosOcpSolver(self.ocp, json_file=json_file)
+            self.integrator = AcadosSimSolver(self.ocp, json_file=json_file)
             print("INFO:  Acados Controller is created !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             
             #! Here finised temporarily  TO Check Later
@@ -461,23 +461,28 @@ class makeController:
     #TODO: set the traffic constraints for the acados carefully
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!       
     
-    #! adding the change of it as states
+    #! Adding the change of it as states
     #! 1. the state of the model should have two part: trailing and lane change
     #! 2. the constraints should be set for the trailing and lane change
+    
+    
+    
     def setTrafficConstraints_acados(self):
         """
         Set the traffic constraints for the acados
         #! Saving the minimal boundary into the self.constraintStore as the constraints of the solver!
         """
-        if self.stochasticMPC:
-            self.temp_x, self.tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
-            # print("INFO: temp_x is:", self.temp_x)
-            # print("INFO: temp_y is:", self.tempt_y)
-            self.S =self.scenario.constrain_tightened(self.traffic,self.opts,self.temp_x, self.tempt_y)
-        else:
-            self.S = self.scenario.constraint(self.traffic,self.opts)
+        # if self.stochasticMPC:
+        #     self.temp_x, self.tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
+        #     # print("INFO: temp_x is:", self.temp_x)
+        #     # print("INFO: temp_y is:", self.tempt_y)
+        #     self.S =self.scenario.constrain_tightened(self.traffic,self.opts,self.temp_x, self.tempt_y)
+        # else:
+        #     self.S = self.scenario.constraint(self.traffic,self.opts)
         
         if self.scenario.name == 'simpleOvertake':
+            
+            
             
             
             
@@ -521,25 +526,55 @@ class makeController:
          #TODO: FIND SOME WAY TO APPROACH THIS SELF.X  ISSUE!!!!!!!!!!!!       SELF.X IS OPTI.VARIABLE!!!!!!!!!!!!!!!!!!!
                 
         elif self.scenario.name == 'trailing':
+            # self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
+            
             T = self.scenario.Time_headway
             self.scenario.setEgoLane(self.traffic)
             self.scenario.getLeadVehicle(self.traffic)
+
+            self.min_distx = self.scenario.min_distx
+            leadWidth, leadLength = self.traffic.getVehicles()[0].getSize()
+            self.L_tract = self.scenario.L_tract
             
-            constr_h = self
-            # for i in range(1, self.N):
-            #     tempConstraintX = self.opti.value(self.S(self.lead) -T * self.x[2,:])
-            #     # ubx x is tempConstraintX
-            #     self.constraintStore[i, 4] = tempConstraintX
+            safeDist = self.min_distx + leadLength + self.L_tract + self.temptX_acados
+            S_func = self.x_lead_acados - safeDist
+            constr_h = self.x_acados - S_func + T * self.v_acados   
+
+            self.ocp.model.con_h_expr = constr_h
+
+            lh =-1e3*np.ones((1,1))
+            uh =np.zeros((1,1))
             
-            # lead_constraints = vertcat()
-            # ocp.model.con_h_expr
+            self.ocp.constraints.lh = lh
+            self.ocp.constraints.uh = uh
             
-            
-            #TODO:!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            #! using statespace to update the temptX, temptY
-            
-            #TODO: to simplify, find a function to update the temp_x and temp_y
-                
+    def OverTakeConstraints(self, px, v0_i, traffic_x, traffic_y, traffic_sign, traffic_shift):
+        """
+        Set the constraints for the overtake issue
+        """
+        # v0_i = traffic.getVehicles()[i].v0
+        # traffic.getVehicles
+        
+        L_tract = 8.46  
+        leadWidth = 2.032
+        T = self.scenario.Time_headway
+        l_front,l_rear = 4.78536/2 , 4.78536/2
+        self.min_distx = self.scenario.min_distx
+        init_bound = self.vehicle.getInitBound()
+
+        # Define vehicle specific constants
+        alpha_0 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift)+leadWidth/2)
+        alpha_1 = l_front+ L_tract/2 + v0_i * self.scenario.Time_headway + self.min_distx 
+        alpha_2 = l_rear + L_tract/2+ v0_i * self.scenario.Time_headway+ self.min_distx 
+        alpha_3 = traffic_shift
+        d_w_e = (self.vehWidth/2)*traffic_sign
+        # Construct function
+        func1 = alpha_0 / 2 * tanh(px - traffic_x + alpha_1)+alpha_3/2
+        func2 = alpha_0 / 2 * tanh(traffic_x - px + alpha_2)+alpha_3/2
+        S = func1+func2 + d_w_e
+        # !SHIFT ACCORDING TO THE INIT_BOUND
+        S = S + init_bound 
+        pass
 
 
 
@@ -587,7 +622,8 @@ class makeController:
         Sets all constraints
         """
         #TODO: becareful about the constraints!!!!!!!!!!!!!!!!!!!!!!!!!
-        self.setStateEqconstraints_acados()
+        #! add equality constraints later
+        # self.setStateEqconstraints_acados()
         self.setInEqConstraints_acados()
         self.setTrafficConstraints_acados()  #! execute the function sequentially!!!!!!!!!!!!!
         
@@ -1011,9 +1047,7 @@ class makeDecisionMaster:
 
         # Revoke controller usage if initialized unfeasible
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self.doTrailing = 1
-        self.doLeft = 1
-        self.doRight = 1
+        
         
         
         self.doTrailing = 1
@@ -1026,6 +1060,11 @@ class makeDecisionMaster:
         elif self.egoLane == -1:
             self.doLeft = 0
             self.doRight = 1
+            
+            
+        self.doTrailing = 1
+        self.doLeft = 0
+        self.doRight = 0
 
         self.paramLog = np.zeros((5,self.N+1,self.Nveh,3))
         # Initialize costs as very large number
