@@ -49,11 +49,11 @@ extern "C" {
   #endif
 #endif
 
-static const casadi_int casadi_s0[8] = {4, 1, 0, 4, 0, 1, 2, 3};
-static const casadi_int casadi_s1[6] = {2, 1, 0, 2, 0, 1};
+static const casadi_int casadi_s0[10] = {6, 1, 0, 6, 0, 1, 2, 3, 4, 5};
+static const casadi_int casadi_s1[7] = {3, 1, 0, 3, 0, 1, 2};
 static const casadi_int casadi_s2[3] = {0, 0, 0};
 
-/* Truck_bicycle_expl_ode_fun:(i0[4],i1[2],i2[])->(o0[4]) */
+/* Truck_bicycle_expl_ode_fun:(i0[6],i1[3],i2[])->(o0[6]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3;
   a0=arg[0]? arg[0][2] : 0;
@@ -78,6 +78,14 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a1=4.;
   a0=(a0/a1);
   if (res[0]!=0) res[0][3]=a0;
+  a0=arg[1]? arg[1][2] : 0;
+  if (res[0]!=0) res[0][4]=a0;
+  a0=-6.4870000000000005e-01;
+  a1=arg[0]? arg[0][5] : 0;
+  a0=(a0*a1);
+  a1=2.2896999999999998e+00;
+  a0=(a0+a1);
+  if (res[0]!=0) res[0][5]=a0;
   return 0;
 }
 

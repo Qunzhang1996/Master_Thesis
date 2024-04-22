@@ -117,6 +117,14 @@ class car_VehicleModel(vehBicycleKinematic):
         lf = self.lf
         beta = atan(lr/(lr+lf)*tan(delta))
         
+        
+        # Perform linear regression to find coefficients a and b for temptx and tempty
+        #! temptX: y = 0.8054x + 0.6869
+        #! temptY: y = 0.2729x + 0.3904
+        
+        #! dot_tempX = -0.6487* tempX + 2.2897
+        #! dot_tempY = −2.424*tempY + 1.301
+
         if self.opts == None:
             states = vertcat(x,y,v,theta)
             controls = vertcat(delta,a)
@@ -129,9 +137,10 @@ class car_VehicleModel(vehBicycleKinematic):
         elif self.opts["version"] == "trailing":
             x_lead = SX.sym('x_lead') 
             v_lead = SX.sym('v_lead')
-            states = vertcat(x, y, v, theta, x_lead)
+            temptX = SX.sym('temptX')
+            states = vertcat(x, y, v, theta, x_lead, temptX)
             controls = vertcat(delta, a, v_lead)
-            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr, v_lead]
+            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr, v_lead, -0.6487 * temptX + 2.2897]
             # function
             f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
             # acasdo model
@@ -139,6 +148,8 @@ class car_VehicleModel(vehBicycleKinematic):
             f_impl = x_dot - f(states, controls)
 
         elif self.opts["version"] == "rightChange" or self.opts["version"] == "leftChange":
+            temptX = SX.sym('temptX')
+            temptY = SX.sym('temptY')
             states_surrounding = []
             controls_surrounding = []
             for i in range(self.Nveh):
@@ -150,13 +161,13 @@ class car_VehicleModel(vehBicycleKinematic):
                 states_surrounding.extend([x_sur, y_sur])
                 controls_surrounding.extend([v_sur])
             #! put extended states and controls into the states and controls
-            states = vertcat(x, y, v, theta, *states_surrounding)
+            states = vertcat(x, y, v, theta, *states_surrounding,temptX,temptY)
             controls = vertcat(delta, a, *controls_surrounding)
             
             rhs_sur = []
             for i, v_sur in enumerate(controls_surrounding):  # loop through the surrounding vehicles
                 rhs_sur.extend([v_sur, 0])
-            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr, *rhs_sur]
+            rhs = [v*cos(beta+theta),v*sin(beta+theta),a,v*sin(beta)/lr, *rhs_sur, -0.6487 * temptX + 2.2897, -2.424*temptY + 1.301]
             # function
             f = Function('f', [states, controls], [vcat(rhs)], ['state', 'control_input'], ['rhs'])
             # acasdo model
@@ -466,4 +477,7 @@ class car_VehicleModel(vehBicycleKinematic):
         self.penalty_utils = penalty_utils
         return self.penalty_utils
     
+    def setAcadosPenal(self,penalty=1e2):
+        self.penalty = penalty
+        return self.penalty
 

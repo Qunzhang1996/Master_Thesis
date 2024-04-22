@@ -124,7 +124,7 @@ def main_casadi():
     MPC_trailing.setController()
 
 
-    print("INFO:  Initilization succesful.")               
+    print("INFO:  Initilization succesful!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")               
 
                                                                                             
     #! -----------------------------------------Initilize Decision Master-----------------------------------------
@@ -309,7 +309,7 @@ def main_casadi():
         borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
 
 def main_acados():
-    print("INFO:  Using ACADOS")
+    print("INFO:  Using ACADOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     ## ! -----------------------------------initialize the VehicleModel-----------------------------------------
     vehicleADV = car_VehicleModel(dt,N)
     vehWidth,vehLength,L_tract,L_trail = vehicleADV.getSize()
@@ -368,7 +368,7 @@ def main_acados():
     MPC_trailing= makeController(vehicleADV,traffic,scenarioTrailADV,N,opts3,dt,controller_type)
 
 
-    print("INFO:  Initilization succesful.")               
+    print("INFO:  Initilization succesful!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")              
 
                                                                                             
     #! -----------------------------------------Initilize Decision Master-----------------------------------------

@@ -36,14 +36,14 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define TRUCK_BICYCLE_NX     4
+#define TRUCK_BICYCLE_NX     6
 #define TRUCK_BICYCLE_NZ     0
-#define TRUCK_BICYCLE_NU     2
+#define TRUCK_BICYCLE_NU     3
 #define TRUCK_BICYCLE_NP     0
-#define TRUCK_BICYCLE_NBX    4
-#define TRUCK_BICYCLE_NBX0   4
-#define TRUCK_BICYCLE_NBU    2
-#define TRUCK_BICYCLE_NSBX   4
+#define TRUCK_BICYCLE_NBX    6
+#define TRUCK_BICYCLE_NBX0   6
+#define TRUCK_BICYCLE_NBU    3
+#define TRUCK_BICYCLE_NSBX   6
 #define TRUCK_BICYCLE_NSBU   0
 #define TRUCK_BICYCLE_NSH    0
 #define TRUCK_BICYCLE_NSH0   0
@@ -54,15 +54,15 @@
 #define TRUCK_BICYCLE_NSPHIN 0
 #define TRUCK_BICYCLE_NSPHI0 0
 #define TRUCK_BICYCLE_NSBXN  0
-#define TRUCK_BICYCLE_NS     4
+#define TRUCK_BICYCLE_NS     6
 #define TRUCK_BICYCLE_NS0    0
 #define TRUCK_BICYCLE_NSN    0
 #define TRUCK_BICYCLE_NG     0
 #define TRUCK_BICYCLE_NBXN   0
 #define TRUCK_BICYCLE_NGN    0
-#define TRUCK_BICYCLE_NY0    8
-#define TRUCK_BICYCLE_NY     8
-#define TRUCK_BICYCLE_NYN    4
+#define TRUCK_BICYCLE_NY0    12
+#define TRUCK_BICYCLE_NY     12
+#define TRUCK_BICYCLE_NYN    6
 #define TRUCK_BICYCLE_N      12
 #define TRUCK_BICYCLE_NH     0
 #define TRUCK_BICYCLE_NHN    0

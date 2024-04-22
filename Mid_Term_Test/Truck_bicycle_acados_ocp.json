@@ -12,33 +12,42 @@
         "has_x0": true,
         "idxbu": [
             0,
-            1
+            1,
+            2
         ],
         "idxbx": [
             0,
             1,
             2,
-            3
+            3,
+            4,
+            5
         ],
         "idxbx_0": [
             0,
             1,
             2,
-            3
+            3,
+            4,
+            5
         ],
         "idxbx_e": [],
         "idxbxe_0": [
             0,
             1,
             2,
-            3
+            3,
+            4,
+            5
         ],
         "idxsbu": [],
         "idxsbx": [
             0,
             1,
             2,
-            3
+            3,
+            4,
+            5
         ],
         "idxsbx_e": [],
         "idxsg": [],
@@ -51,15 +60,20 @@
         "idxsphi_e": [],
         "lbu": [
             -0.3925,
-            -4.905
+            -4.905,
+            -10000000000.0
         ],
         "lbx": [
             0.0,
             -50000.0,
             0.0,
-            -0.3925
+            -0.3925,
+            -10000000000.0,
+            -10000000000.0
         ],
         "lbx_0": [
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -79,6 +93,8 @@
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
             0.0
         ],
         "lsbx_e": [],
@@ -92,15 +108,20 @@
         "lsphi_e": [],
         "ubu": [
             0.3925,
-            4.905
+            4.905,
+            10000000000.0
         ],
         "ubx": [
             50000.0,
             50000.0,
             30.0,
-            0.3925
+            0.3925,
+            10000000000.0,
+            10000000000.0
         ],
         "ubx_0": [
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -120,6 +141,8 @@
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
             0.0
         ],
         "usbx_e": [],
@@ -136,33 +159,61 @@
         "Vu": [
             [
                 0.0,
-                0.0
-            ],
-            [
                 0.0,
                 0.0
             ],
             [
                 0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
                 0.0,
                 0.0
             ],
             [
                 1.0,
-                0.0
-            ],
-            [
-                0.0,
-                1.0
-            ],
-            [
                 0.0,
                 0.0
             ],
             [
+                0.0,
+                1.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
                 0.0,
                 0.0
             ]
@@ -170,33 +221,61 @@
         "Vu_0": [
             [
                 0.0,
-                0.0
-            ],
-            [
                 0.0,
                 0.0
             ],
             [
                 0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
                 0.0,
                 0.0
             ],
             [
                 1.0,
-                0.0
-            ],
-            [
-                0.0,
-                1.0
-            ],
-            [
                 0.0,
                 0.0
             ],
             [
+                0.0,
+                1.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
                 0.0,
                 0.0
             ]
@@ -206,9 +285,29 @@
                 1.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
                 0.0,
                 1.0,
                 0.0,
@@ -217,16 +316,6 @@
             [
                 0.0,
                 0.0,
-                1.0,
-                0.0
-            ],
-            [
-                0.0,
-                0.0,
-                0.0,
-                1.0
-            ],
-            [
                 0.0,
                 0.0,
                 0.0,
@@ -236,15 +325,53 @@
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -256,9 +383,29 @@
                 1.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
                 0.0,
                 1.0,
                 0.0,
@@ -267,16 +414,6 @@
             [
                 0.0,
                 0.0,
-                1.0,
-                0.0
-            ],
-            [
-                0.0,
-                0.0,
-                0.0,
-                1.0
-            ],
-            [
                 0.0,
                 0.0,
                 0.0,
@@ -286,15 +423,53 @@
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -306,9 +481,29 @@
                 1.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
                 0.0,
                 1.0,
                 0.0,
@@ -317,14 +512,18 @@
             [
                 0.0,
                 0.0,
-                1.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 0.0,
                 0.0,
-                1.0
+                0.0,
+                0.0,
+                0.0
             ]
         ],
         "Vz": [],
@@ -338,11 +537,19 @@
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 80.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -358,9 +565,73 @@
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0,
+                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -375,7 +646,11 @@
                 0.0,
                 0.0,
                 0.0,
-                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0
@@ -386,11 +661,19 @@
                 0.0,
                 0.0,
                 0.0,
-                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                500.0,
                 0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -408,7 +691,11 @@
                 0.0,
                 0.0,
                 0.0,
-                500.0
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
             ]
         ],
         "W_0": [
@@ -420,11 +707,19 @@
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 80.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -440,9 +735,73 @@
                 0.0,
                 0.0,
                 0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0,
+                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -457,7 +816,11 @@
                 0.0,
                 0.0,
                 0.0,
-                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0
@@ -468,11 +831,19 @@
                 0.0,
                 0.0,
                 0.0,
-                5.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                500.0,
                 0.0,
                 0.0
             ],
             [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -490,11 +861,17 @@
                 0.0,
                 0.0,
                 0.0,
-                500.0
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
             ]
         ],
         "W_e": [
             [
+                0.0,
+                0.0,
                 0.0,
                 0.0,
                 0.0,
@@ -504,22 +881,46 @@
                 0.0,
                 80.0,
                 0.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 0.0,
                 300.0,
+                0.0,
+                0.0,
                 0.0
             ],
             [
                 0.0,
                 0.0,
                 0.0,
-                5.0
+                5.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
             ]
         ],
         "Zl": [
+            1.0,
+            1.0,
             1.0,
             1.0,
             1.0,
@@ -528,6 +929,8 @@
         "Zl_0": [],
         "Zl_e": [],
         "Zu": [
+            1.0,
+            1.0,
             1.0,
             1.0,
             1.0,
@@ -549,9 +952,17 @@
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             0.0
         ],
         "yref_0": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -565,9 +976,13 @@
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
             0.0
         ],
         "zl": [
+            100000.0,
+            100000.0,
             100000.0,
             100000.0,
             100000.0,
@@ -576,6 +991,8 @@
         "zl_0": [],
         "zl_e": [],
         "zu": [
+            100000.0,
+            100000.0,
             100000.0,
             100000.0,
             100000.0,
@@ -590,11 +1007,11 @@
     ],
     "dims": {
         "N": 12,
-        "nbu": 2,
-        "nbx": 4,
-        "nbx_0": 4,
+        "nbu": 3,
+        "nbx": 6,
+        "nbx_0": 6,
         "nbx_e": 0,
-        "nbxe_0": 4,
+        "nbxe_0": 6,
         "ng": 0,
         "ng_e": 0,
         "nh": 0,
@@ -607,11 +1024,11 @@
         "nr": 0,
         "nr_0": 0,
         "nr_e": 0,
-        "ns": 4,
+        "ns": 6,
         "ns_0": 0,
         "ns_e": 0,
         "nsbu": 0,
-        "nsbx": 4,
+        "nsbx": 6,
         "nsbx_e": 0,
         "nsg": 0,
         "nsg_e": 0,
@@ -621,11 +1038,11 @@
         "nsphi": 0,
         "nsphi_0": 0,
         "nsphi_e": 0,
-        "nu": 2,
-        "nx": 4,
-        "ny": 8,
-        "ny_0": 8,
-        "ny_e": 4,
+        "nu": 3,
+        "nx": 6,
+        "ny": 12,
+        "ny_0": 12,
+        "ny_e": 6,
         "nz": 0
     },
     "json_file": "./Truck_bicycle_acados_ocp.json",
@@ -666,8 +1083,8 @@
         "dyn_disc_fun_jac_hess": null,
         "dyn_ext_fun_type": "casadi",
         "dyn_generic_source": null,
-        "f_expl_expr": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegiaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaaghegoaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegcbaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaachaaaaaaaaaaaaaopdegpaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaafaaaaaaaegfgmgehbgegpcaaaaaaaaaaaaaafaaaaaaaehigfgehbgegdaaaaaaaaaaaaaaachbaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaachgaaaaaaaaaaaaaaachhaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaabgegeaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaachbaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaachgaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaajgeaaaaaaa",
-        "f_impl_expr": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegiaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfadegdaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaaghegoaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegcbaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaachaaaaaaaaaaaaaopdegpaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaafaaaaaaaegfgmgehbgegpcaaaaaaaaaaaaaafaaaaaaaehigfgehbgegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfbdegdaaaaaaaaaaaaaaachcaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaachhaaaaaaaaaaaaaaachiaaaaaaaaaaaaaaaegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfcdegpcaaaaaaaaaaaaaabaaaaaaabgegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfddegeaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaachcaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaachhaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaajgeaaaaaaa",
+        "f_expl_expr": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegkaaaaaaaaaaaaaaagaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaafaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaaghegoaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegcbaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaachaaaaaaaaaaaaaopdegpaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaafaaaaaaaegfgmgehbgegpcaaaaaaaaaaaaaafaaaaaaaehigfgehbgegdaaaaaaaaaaaaaaachbaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaachgaaaaaaaaaaaaaaachhaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaabgegeaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaachbaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaachgaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaajgeaaaaaaaegpcaaaaaaaaaaaaaagaaaaaaaghpfmgfgbgegegbaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaachcfjenjaigccmeoplegpcaaaaaaaaaaaaaagaaaaaaaehfgngahehifegmcaaaaaaaaaaaaaachikfdnmldoebfcaae",
+        "f_impl_expr": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegkaaaaaaaaaaaaaaagaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaafaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfadegdaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaaghegoaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaaegcbaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaachaaaaaaaaaaaaaopdegpaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaafaaaaaaaegfgmgehbgegpcaaaaaaaaaaaaaafaaaaaaaehigfgehbgegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfbdegdaaaaaaaaaaaaaaachcaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaaegbaaaaaaaaaaaaaaachhaaaaaaaaaaaaaaachiaaaaaaaaaaaaaaaegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfcdegpcaaaaaaaaaaaaaabaaaaaaabgegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfddegeaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaachcaaaaaaaaaaaaaaaegnaaaaaaaaaaaaaaachhaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaajgeaaaaaaaegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfedegpcaaaaaaaaaaaaaagaaaaaaaghpfmgfgbgegegcaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpffdegbaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaegmcaaaaaaaaaaaaaachcfjenjaigccmeoplegpcaaaaaaaaaaaaaagaaaaaaaehfgngahehifegmcaaaaaaaaaaaaaachikfdnmldoebfcaae",
         "gnsf": {
             "nontrivial_f_LO": 1,
             "purely_linear": 0
@@ -676,9 +1093,9 @@
         "nu_original": null,
         "p": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "t": [],
-        "u": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaeggaaaaaaaaaaaaaaacaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaafaaaaaaaegfgmgehbgegpcaaaaaaaaaaaaaabaaaaaaabg",
-        "x": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegiaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaaihegpcaaaaaaaaaaaaaabaaaaaaajhegpcaaaaaaaaaaaaaabaaaaaaaghegpcaaaaaaaaaaaaaafaaaaaaaehigfgehbg",
-        "xdot": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegiaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfadegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfbdegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfcdegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfdd",
+        "u": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaeghaaaaaaaaaaaaaaadaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaafaaaaaaaegfgmgehbgegpcaaaaaaaaaaaaaabaaaaaaabgegpcaaaaaaaaaaaaaagaaaaaaaghpfmgfgbgeg",
+        "x": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegkaaaaaaaaaaaaaaagaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaafaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaabaaaaaaaihegpcaaaaaaaaaaaaaabaaaaaaajhegpcaaaaaaaaaaaaaabaaaaaaaghegpcaaaaaaaaaaaaaafaaaaaaaehigfgehbgegpcaaaaaaaaaaaaaagaaaaaaaihpfmgfgbgegegpcaaaaaaaaaaaaaagaaaaaaaehfgngahehif",
+        "xdot": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegkaaaaaaaaaaaaaaagaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaacaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaafaaaaaaaaaaaaaaagaaaaaaaaaaaaaaaegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfadegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfbdegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfcdegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfddegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpfedegpcaaaaaaaaaaaaaahaaaaaaaihpfegpgehpffd",
         "z": "jhpnnagiieahaaaadaaaaaaaaaaaaaaaaaegdaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
     "name": "Truck_bicycle",

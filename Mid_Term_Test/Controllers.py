@@ -131,7 +131,9 @@ class makeController:
             self.N = N
             #! acados model
             m_model = self.vehicle.model_acados(opts, self.Nveh)
-            model = m_model
+            self.model = m_model
+            
+                
             #! ensure current working directory is current folder
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
             self.acados_models_dir = './acados_models'
@@ -143,7 +145,7 @@ class makeController:
             
             #! define nx, nu, ny, n_params
             self.ny = self.nx + self.nu
-            n_params = len(model.p)
+            n_params = len(self.model.p)
             
             
             
@@ -151,49 +153,83 @@ class makeController:
             ocp = AcadosOcp()
             ocp.acados_include_path = acados_source_path + '/include'
             ocp.acados_lib_path = acados_source_path + '/lib'
-            ocp.model = model
+            ocp.model = self.model
             
             
             #! becareful! this is the defination of the dynamics
-            self.px_acados = model.x
-            self.py_acados = model.x[1]
-            self.v_acados = model.x[2]
-            self.theta_acados = model.x[3]
-            
-            print("INFO:  px_acados is:", self.px_acados)
-            # print("INFO:  py_acados is:", self.py_acados)
-            # print("INFO:  v_acados is:", self.v_acados)
-            # print("INFO:  theta_acados is:", self.theta_acados)
-            
-            
-            # self.x = self.opti.variable(self.nx,self.N+1)
+            if opts["version"] == "trailing":
+                self.x_acados = self.model.x[0]
+                self.y_acados = self.model.x[1]
+                self.v_acados = self.model.x[2]
+                self.theta_acados = self.model.x[3]
+                self.x_lead_acados = self.model.x[4]
+                self.temptX_acados = self.model.x[5]
+                print("INFO:  x_lead_acados is:", self.model.x)
+            elif opts["version"] == "leftChange" or opts["version"] == "rightChange":
+                self.x_acados = self.model.x[0]
+                self.y_acados = self.model.x[1]
+                self.v_acados = self.model.x[2]
+                self.theta_acados = self.model.x[3]
+                self.surrounding_vehicle_states = self.model.x[4:-2]  # Adjust indices as necessary based on your model's structure
+                self.temptX_acados = self.model.x[-2]  # Second to last state assuming 'temptX' is here
+                self.temptY_acados = self.model.x[-1]  # Last state assuming 'temptY' is here
+                # print("INFO:  x_acados is:", self.model.x)
+                # print("INFO:  u_acados is:", self.model.u)
+
+
             
             ocp.dims.N = self.N
             ocp.solver_options.tf = self.N*dt
             #! cost type
-            ocp.cost.cost_type = 'LINEAR_LS'
-            ocp.cost.cost_type_e = 'LINEAR_LS'
-            Q = np.diag(self.Q)
-            R = np.diag(self.R)
-            R_du = 1e2*np.diag(self.R)
-            ocp.cost.W = np.block([
-                    [Q, np.zeros((self.nx, self.nu)), np.zeros((self.nx, self.nu))], 
-                    [np.zeros((self.nu, self.nx)), R, np.zeros((self.nu, self.nu))],
-                    [np.zeros((self.nu, self.nx)), np.zeros((self.nu, self.nu)), R_du]])
-            # print(ocp.cost.W)
+ 
+            #! get len of x and u of the acados model
+            self.nx_acados = self.model.x.size()[0]
+            self.nu_acados = self.model.u.size()[0]
 
-            ocp.cost.W_e = Q
+
+            Q_reduced = np.zeros((self.nx_acados, self.nx_acados))  # Initialize a zero matrix for Q
+            np.fill_diagonal(Q_reduced[:self.nx, :self.nx], self.Q[:self.nx])  # Fill the diagonal for the first four states
+            #fill the diagonal for the first two inputs
             
-            ocp.cost.Vx = np.zeros((self.ny+self.nu, self.nx))
-            matrix_Q = np.eye(self.nx)
-            # matrix_Q[0, 0] = 0
-            ocp.cost.Vx[:self.nx, :self.nx] = matrix_Q
-            # print(ocp.cost.Vx)
-            ocp.cost.Vu = np.zeros((self.ny+self.nu, self.nu))
-            ocp.cost.Vu[self.nx:self.nx+self.nu, :self.nu] = np.eye(self.nu)
-            # print(ocp.cost.Vu)
-            ocp.cost.Vx_e = np.eye(self.nx)
+            R_reduced = np.zeros((self.nu_acados, self.nu_acados))  # Initialize a zero matrix for R
+            np.fill_diagonal(R_reduced[:self.nu, :self.nu], self.R[:self.nu])  # Fill the diagonal for the first two inputs
+            # print("INFO:  R_reduced is:", R_reduced)
             
+            R_du_reduced = np.zeros((self.nu_acados, self.nu_acados))  # Initialize a zero matrix for R_du
+            np.fill_diagonal(R_du_reduced[:self.nu, :self.nu], self.R[:self.nu])  # Fill the diagonal for the first two inputs
+            du_penalty = self.vehicle.setAcadosPenal()
+            R_du_reduced = du_penalty*R_du_reduced
+            # print("INFO:  R_du_reduced is:", R_du_reduced)
+    
+            # matrix for Q_reduced, R and R_du
+            # w= diag([Q_reduced, R_reduced, R_du_reduced])
+            W = np.block([
+                    [Q_reduced, np.zeros((self.nx_acados, self.nu_acados)), np.zeros((self.nx_acados, self.nu_acados))], 
+                    [np.zeros((self.nu_acados, self.nx_acados)), R_reduced, np.zeros((self.nu_acados, self.nu_acados))],
+                    [np.zeros((self.nu_acados, self.nx_acados)), np.zeros((self.nu_acados, self.nu_acados)), R_du_reduced]])
+
+            # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+            # print("INFO:  ocp.cost.W is:")
+            # print(W)
+            #! cost matrix finished!
+
+            ocp.cost.W = W
+            
+            ocp.cost.W_e = Q_reduced  # For the terminal cost
+
+            ocp.cost.Vx = np.zeros((self.nx_acados+2*self.nu_acados, self.nx_acados))
+            ocp.cost.Vx[:self.nx, :self.nx] = np.eye(self.nx)  # Map only the first four states
+            
+            
+            
+            ocp.cost.Vu = np.zeros((self.nx_acados+2*self.nu_acados, self.nu_acados))
+            ocp.cost.Vu[self.nx_acados:self.nx_acados+self.nu, :self.nu] = np.eye(self.nu)
+            
+            ocp.cost.Vx_e = np.zeros((self.nx_acados, self.nx_acados))
+            ocp.cost.Vx_e[:self.nx, :self.nx] = np.eye(self.nx)  # Map only the first four states
+            
+
+
             #! define initial constraints
             lbx,ubx = self.vehicle.xConstraints()
             lbu,ubu = self.vehicle.uConstraints()
@@ -201,31 +237,56 @@ class makeController:
             # print("INFO: ubx is:", ubx)
             # print("INFO: lbu is:", lbu)
             # print("INFO: ubu is:", ubu)
-            ocp.constraints.lbu = np.array(lbu)
-            ocp.constraints.ubu = np.array(ubu)
-            ocp.constraints.lbx = np.array(lbx)
-            ocp.constraints.ubx = np.array(ubx)
+            lbx_full = np.zeros((self.nx_acados,))
+            lbx_full[:self.nx] = lbx
+            lbx_full[self.nx:] = -1e10
+            
+            # print("INFO: lbx_full is:", lbx_full)
+            
+            ubx_full = np.zeros((self.nx_acados,))
+            ubx_full[:self.nx] = ubx
+            ubx_full[self.nx:] = 1e10
+            
+            lbu_full = np.zeros((self.nu_acados,))
+            lbu_full[:self.nu] = lbu
+            lbu_full[self.nu:] = -1e10
+            
+            ubu_full = np.zeros((self.nu_acados,))
+            ubu_full[:self.nu] = ubu
+            ubu_full[self.nu:] = 1e10
+            
+            
+            # print("INFO: lbx_full is:", lbx_full)
+            
+            
+            
+            ocp.constraints.lbu = np.array(lbu_full)
+            ocp.constraints.ubu = np.array(ubu_full)
+            ocp.constraints.lbx = np.array(lbx_full)
+            ocp.constraints.ubx = np.array(ubx_full)
             # print("INFO: lbu is:", ocp.constraints.lbu.shape)
             # print("INFO: ubu is:", ocp.constraints.ubu)
             #! add penalty for the slack variable
-            ocp.constraints.idxsbx = np.array(range(self.nx))
-            ns = self.nx
+            ns = self.nx_acados
+            ocp.constraints.idxsbx = np.array(range(self.nx_acados))
+            
             penalty_utils = self.vehicle.setAcadosSlack()
             ocp.cost.zl = penalty_utils * np.ones((ns,))
             ocp.cost.zu = penalty_utils * np.ones((ns,))
             ocp.cost.Zl = 1e0 * np.ones((ns,))
             ocp.cost.Zu = 1e0 * np.ones((ns,))
             
-            ocp.constraints.idxbu = np.array([0, 1])
-            ocp.constraints.idxbx = np.array([0, 1, 2, 3])
+            # idxbu =  np.array([0,1,2,.....i]) for i in range(self.nu_acados)
+            ocp.constraints.idxbu = np.array(range(self.nu_acados))
+            ocp.constraints.idxbx = np.array(range(self.nx_acados))
             
             
             #! define the reference
-            x_ref = np.zeros(self.nx)
-            u_ref = np.zeros(self.nu)
+            x_ref = np.zeros(self.nx_acados)
+            u_ref = np.zeros(self.nu_acados)
             # initial state
             ocp.constraints.x0 = x_ref
-            ocp.cost.yref = np.concatenate((x_ref, u_ref, np.zeros(self.nu)))
+            ocp.cost.yref = np.concatenate((x_ref, u_ref, np.zeros(self.nu_acados)))
             ocp.cost.yref_e = x_ref
             
             
@@ -244,10 +305,12 @@ class makeController:
             ocp.solver_options.print_level = 0
                     
             # compile acados ocp
-            json_file = os.path.join('./'+model.name+'_acados_ocp.json')
+            json_file = os.path.join('./'+m_model.name+'_acados_ocp.json')
             self.solver = AcadosOcpSolver(ocp, json_file=json_file)
             self.integrator = AcadosSimSolver(ocp, json_file=json_file)
-            print("INFO:  acados controller is created")
+            print("INFO:  Acados Controller is created !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            
+            #! Here finised temporarily  TO Check Later
             
             
 ##################################################################################################
@@ -428,6 +491,9 @@ class makeController:
             
             
             
+            
+            
+            
             #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
             for i in range(self.Nveh):
                 #constr_h should be Nveh-1 vertcat
@@ -441,12 +507,7 @@ class makeController:
             
             
                 
-                
-                
-                
-                
-                
-                
+
                 
                 
                 constraintDirection = np.sign(self.opti.value(self.traffic_flip[i,:]))  #! 1 or -1
@@ -464,11 +525,20 @@ class makeController:
             self.scenario.setEgoLane(self.traffic)
             self.scenario.getLeadVehicle(self.traffic)
             
-
-            for i in range(1, self.N):
-                tempConstraintX = self.opti.value(self.S(self.lead) -T * self.x[2,:])
-                # ubx x is tempConstraintX
-                self.constraintStore[i, 4] = tempConstraintX
+            constr_h = self
+            # for i in range(1, self.N):
+            #     tempConstraintX = self.opti.value(self.S(self.lead) -T * self.x[2,:])
+            #     # ubx x is tempConstraintX
+            #     self.constraintStore[i, 4] = tempConstraintX
+            
+            # lead_constraints = vertcat()
+            # ocp.model.con_h_expr
+            
+            
+            #TODO:!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            #! using statespace to update the temptX, temptY
+            
+            #TODO: to simplify, find a function to update the temp_x and temp_y
                 
 
 

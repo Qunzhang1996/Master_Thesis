@@ -169,8 +169,8 @@ int Truck_bicycle_acados_sim_create(Truck_bicycle_sim_solver_capsule * capsule)
 
     /* initialize input */
     // x
-    double x0[4];
-    for (int ii = 0; ii < 4; ii++)
+    double x0[6];
+    for (int ii = 0; ii < 6; ii++)
         x0[ii] = 0.0;
 
     sim_in_set(Truck_bicycle_sim_config, Truck_bicycle_sim_dims,
@@ -178,19 +178,19 @@ int Truck_bicycle_acados_sim_create(Truck_bicycle_sim_solver_capsule * capsule)
 
 
     // u
-    double u0[2];
-    for (int ii = 0; ii < 2; ii++)
+    double u0[3];
+    for (int ii = 0; ii < 3; ii++)
         u0[ii] = 0.0;
 
     sim_in_set(Truck_bicycle_sim_config, Truck_bicycle_sim_dims,
                Truck_bicycle_sim_in, "u", u0);
 
     // S_forw
-    double S_forw[24];
-    for (int ii = 0; ii < 24; ii++)
+    double S_forw[54];
+    for (int ii = 0; ii < 54; ii++)
         S_forw[ii] = 0.0;
-    for (int ii = 0; ii < 4; ii++)
-        S_forw[ii + ii * 4 ] = 1.0;
+    for (int ii = 0; ii < 6; ii++)
+        S_forw[ii + ii * 6 ] = 1.0;
 
 
     sim_in_set(Truck_bicycle_sim_config, Truck_bicycle_sim_dims,
