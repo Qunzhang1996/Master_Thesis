@@ -276,9 +276,14 @@ class makeController:
             self.ocp.cost.Zl = 1e0 * np.ones((ns,))
             self.ocp.cost.Zu = 1e0 * np.ones((ns,))
             
+            
+            
             # idxbu =  np.array([0,1,2,.....i]) for i in range(self.nu_acados)
             self.ocp.constraints.idxbu = np.array(range(self.nu_acados))
             self.ocp.constraints.idxbx = np.array(range(self.nx_acados))
+            
+            
+            self.setInEqConstraints_acados()     #! add  tightened  inequality constraints in solver
             
             
             #! define the reference
@@ -362,6 +367,8 @@ class makeController:
 
 
     def setInEqConstraints(self):
+        
+        
         """
         Set inequality constraints, only for default constraints and tihgtened  default  constraints
         
@@ -389,6 +396,7 @@ class makeController:
         Set inequality constraints, only for default constraints and tihgtened  default  constraints
         
         """
+        
         lbx,ubx = self.vehicle.xConstraints()   
         # ! element in lbx and ubx should be positive
         lbx = [abs(x) for x in lbx]
@@ -466,88 +474,6 @@ class makeController:
     #! 2. the constraints should be set for the trailing and lane change
     
     
-    
-    def setTrafficConstraints_acados(self):
-        """
-        Set the traffic constraints for the acados
-        #! Saving the minimal boundary into the self.constraintStore as the constraints of the solver!
-        """
-        # if self.stochasticMPC:
-        #     self.temp_x, self.tempt_y = self.MPC_tighten_bound.getXtemp(self.N ), self.MPC_tighten_bound.getYtemp(self.N )
-        #     # print("INFO: temp_x is:", self.temp_x)
-        #     # print("INFO: temp_y is:", self.tempt_y)
-        #     self.S =self.scenario.constrain_tightened(self.traffic,self.opts,self.temp_x, self.tempt_y)
-        # else:
-        #     self.S = self.scenario.constraint(self.traffic,self.opts)
-        
-        if self.scenario.name == 'simpleOvertake':
-            
-            
-            
-            
-            
-            
-            #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
-            for i in range(self.Nveh):
-                if i ==1: continue #! avoid putting the ego vehicle in the list
-                self.opti.subject_to(self.traffic_flip[i,:] * self.x[1,:] 
-                                    >= self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
-                                        self.traffic_sign[i,:], self.traffic_shift[i,:]) +  self.traffic_slack[i,:])
-            
-            
-            
-            
-            
-            
-            #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
-            for i in range(self.Nveh):
-                #constr_h should be Nveh-1 vertcat
-                constr_h_container = []
-                if i ==1: continue #! avoid putting the ego vehicle in the list
-                # constr_h_container.append(self.traffic_flip[i,:] * self.S[i](self.x[0,:], self.traffic_x[i,:], self.traffic_y[i,:],
-                #                         self.traffic_sign[i,:], self.traffic_shift[i,:]) -self.traffic_flip[i,:] * self.x[1,:] )
-                
-            # h_max = np.zeros((self.Nveh-1))
-            # h_min = np.zeros((self.Nveh-1))
-            
-            
-                
-
-                
-                
-                constraintDirection = np.sign(self.opti.value(self.traffic_flip[i,:]))  #! 1 or -1
-                for j in range(1,self.N):
-                    if constraintDirection > 0:
-                        self.constraintStore[j,1] = max(self.constraintStore[j,1], self.opti.value(self.S[i](self.x[0,j], self.traffic_x[i,j], self.traffic_y[i,j], self.traffic_sign[i,j], self.traffic_shift[i,j])) )
-                    elif constraintDirection < 0:
-                        self.constraintStore[j,5] = min(self.constraintStore[j,0], self.opti.value(self.S[i](self.x[0,j], self.traffic_x[i,j], self.traffic_y[i,j], self.traffic_sign[i,j], self.traffic_shift[i,j])) )
-               
-               
-         #TODO: FIND SOME WAY TO APPROACH THIS SELF.X  ISSUE!!!!!!!!!!!!       SELF.X IS OPTI.VARIABLE!!!!!!!!!!!!!!!!!!!
-                
-        elif self.scenario.name == 'trailing':
-            # self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
-            
-            T = self.scenario.Time_headway
-            self.scenario.setEgoLane(self.traffic)
-            self.scenario.getLeadVehicle(self.traffic)
-
-            self.min_distx = self.scenario.min_distx
-            leadWidth, leadLength = self.traffic.getVehicles()[0].getSize()
-            self.L_tract = self.scenario.L_tract
-            
-            safeDist = self.min_distx + leadLength + self.L_tract + self.temptX_acados
-            S_func = self.x_lead_acados - safeDist
-            constr_h = self.x_acados - S_func + T * self.v_acados   
-
-            self.ocp.model.con_h_expr = constr_h
-
-            lh =-1e3*np.ones((1,1))
-            uh =np.zeros((1,1))
-            
-            self.ocp.constraints.lh = lh
-            self.ocp.constraints.uh = uh
-            
     def OverTakeConstraints(self, px, v0_i, traffic_x, traffic_y, traffic_sign, traffic_shift):
         """
         Set the constraints for the overtake issue
@@ -561,20 +487,90 @@ class makeController:
         l_front,l_rear = 4.78536/2 , 4.78536/2
         self.min_distx = self.scenario.min_distx
         init_bound = self.vehicle.getInitBound()
-
         # Define vehicle specific constants
-        alpha_0 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift)+leadWidth/2)
-        alpha_1 = l_front+ L_tract/2 + v0_i * self.scenario.Time_headway + self.min_distx 
-        alpha_2 = l_rear + L_tract/2+ v0_i * self.scenario.Time_headway+ self.min_distx 
-        alpha_3 = traffic_shift
-        d_w_e = (self.vehWidth/2)*traffic_sign
-        # Construct function
-        func1 = alpha_0 / 2 * tanh(px - traffic_x + alpha_1)+alpha_3/2
-        func2 = alpha_0 / 2 * tanh(traffic_x - px + alpha_2)+alpha_3/2
+        if self.stochasticMPC ==1:
+            alpha_0 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift)+leadWidth/2 + self.temptY_acados)
+            alpha_1 = l_front+ L_tract/2 + v0_i * self.scenario.Time_headway + self.min_distx 
+            alpha_2 = l_rear + L_tract/2+ v0_i * self.scenario.Time_headway+ self.min_distx 
+            alpha_3 = traffic_shift
+            d_w_e = (self.vehWidth/2)*traffic_sign
+            # Construct function
+            func1 = alpha_0 / 2 * tanh(px - traffic_x + alpha_1 + self.temptX_acados)+alpha_3/2
+            func2 = alpha_0 / 2 * tanh(traffic_x - px + alpha_2 + self.temptX_acados)+alpha_3/2
+        else:
+            alpha_0 = traffic_sign * (traffic_sign*(traffic_y-traffic_shift)+leadWidth/2)
+            alpha_1 = l_front+ L_tract/2 + v0_i * self.scenario.Time_headway + self.min_distx 
+            alpha_2 = l_rear + L_tract/2+ v0_i * self.scenario.Time_headway+ self.min_distx 
+            alpha_3 = traffic_shift
+            d_w_e = (self.vehWidth/2)*traffic_sign
+            # Construct function
+            func1 = alpha_0 / 2 * tanh(px - traffic_x + alpha_1)+alpha_3/2
+            func2 = alpha_0 / 2 * tanh(traffic_x - px + alpha_2)+alpha_3/2
+            
         S = func1+func2 + d_w_e
         # !SHIFT ACCORDING TO THE INIT_BOUND
         S = S + init_bound 
-        pass
+    
+    
+    
+    def setTrafficConstraints_acados(self):
+        """
+        Set the traffic constraints for the acados
+        #! Saving the minimal boundary into the self.constraintStore as the constraints of the solver!
+        """
+
+        if self.scenario.name == 'simpleOvertake':
+            
+            constr_h_container = []
+            #! DO NOT TAKE EGO VEHICLE INTO ACCOUNT
+            j = 0  # Index for accessing surrounding_vehicle_states
+            for i in range(self.Nveh): #! avoid putting the ego vehicle in the list
+                if i ==1: continue
+                index = j*2
+                surrounding_vehicle_px = self.surrounding_vehicle_states[index]
+                surrounding_vehicle_py = self.surrounding_vehicle_states[index + 1]
+                
+                S_func = self.OverTakeConstraints(self.x_acados, self.traffic.getVehicles()[i].v0, surrounding_vehicle_px, 
+                                                  surrounding_vehicle_py, self.traffic_sign[i,:], self.traffic_shift[i,:])
+                constr_h_func = self.traffic_flip[i,:] * S_func - self.traffic_flip[i,:] * self.y_acados
+                constr_h_container.append(constr_h_func)         
+                j+=1
+                
+            constr_h = vertcat(*constr_h_container)
+            self.ocp.model.con_h_expr = constr_h
+
+            lh =-1e3*np.ones((self.Nveh-1,1))
+            uh =np.zeros((self.Nveh-1,1))
+            self.ocp.constraints.lh = lh
+            self.ocp.constraints.uh = uh    
+           
+                
+        elif self.scenario.name == 'trailing':
+            # self.opti.subject_to(self.x[0,:]  <= self.S(self.lead) + self.traffic_slack[0,:]-T * self.x[2,:])
+            
+            T = self.scenario.Time_headway
+            self.scenario.setEgoLane(self.traffic)
+            self.scenario.getLeadVehicle(self.traffic)
+
+            self.min_distx = self.scenario.min_distx
+            leadWidth, leadLength = self.traffic.getVehicles()[0].getSize()
+            self.L_tract = self.scenario.L_tract
+            if self.stochasticMPC:
+                safeDist = self.min_distx + leadLength + self.L_tract + self.temptX_acados
+            else:
+                safeDist = self.min_distx + leadLength + self.L_tract
+            S_func = self.x_lead_acados - safeDist
+            constr_h = self.x_acados - S_func + T * self.v_acados   
+
+            self.ocp.model.con_h_expr = constr_h
+
+            lh =-1e3*np.ones((1,1))
+            uh =np.zeros((1,1))
+            
+            self.ocp.constraints.lh = lh
+            self.ocp.constraints.uh = uh
+            
+    
 
 
 
@@ -622,19 +618,12 @@ class makeController:
         Sets all constraints
         """
         #TODO: becareful about the constraints!!!!!!!!!!!!!!!!!!!!!!!!!
-        #! add equality constraints later
-        # self.setStateEqconstraints_acados()
-        self.setInEqConstraints_acados()
-        self.setTrafficConstraints_acados()  #! execute the function sequentially!!!!!!!!!!!!!
         
         
-        #use self.constraintStore to set the constraints
-        print("INFO:  self.constraintStore", self.constraintStore)
-        for i in range(1, self.N):
-            self.solver.constraints_set(i, 'lbx', self.constraintStore[i, :self.nx])
-            self.solver.constraints_set(i, 'ubx', self.constraintStore[i, self.nx:])
         
+        self.setTrafficConstraints_acados()  
         print("INFO:  setConstraints_acados is done")
+        
         pass
     
     
@@ -723,10 +712,24 @@ class makeController:
             
         
         #! set constraints
+        #########################################################################
+        x_current = self.opti.value(self.x0)
+        print(x_current)
+        print(x_current.shape)
+        print("###################################################")
+        self.solver.set(0, 'lbx', x_current)
+        self.solver.set(0, 'ubx', x_current)
         ##########################################################
-        self.setController_acados()
-        exit()
+        #use self.constraintStore to set the tightened box constraints
+        #TODO: DO THIS IN THE SOLVER!!!!!!!!!!!!!!
+        print("INFO:  self.constraintStore", self.constraintStore)
+        for i in range(1, self.N):
+            self.solver.constraints_set(i, 'lbx', self.constraintStore[i, :self.nx])
+            self.solver.constraints_set(i, 'ubx', self.constraintStore[i, self.nx:])
         ##########################################################
+        #TODO:UPDATE STATES AND INPUTS
+        
+        
         
             
         xs = self.opti.value(self.refx)
