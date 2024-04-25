@@ -126,7 +126,7 @@ for idx, N in enumerate(time_steps):
         #! use cernten point to set the image, and set the size of the image
         # ax.imshow(img, extent=[0, 150, 0, 150], alpha=0.5)
         # ax.add_patch(plt.Rectangle((mean_N[0]-8.46/2, mean_N[1]-2.59/2), 8.46, 2.59, color='r', alpha=0.3))
-        width =5.5
+        width =8.45
         height = 2.59
         left = mean_N[0] - width / 2
         right = mean_N[0] + width / 2
@@ -140,7 +140,7 @@ for idx, N in enumerate(time_steps):
     else:
         scaled_sigma_x_squared_N = P_next_N_list[-1][0, 0]
         scaled_sigma_y_squared_N = P_next_N_list[-1][1, 1]
-        width =5.5
+        width =8.45
         height = 2.59
         left = mean_N[0] - width / 2
         right = mean_N[0] + width / 2
