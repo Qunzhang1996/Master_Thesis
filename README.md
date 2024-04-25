@@ -60,9 +60,20 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 
 ## Simulation in the CARLA Environment
 
-**Decision Making Process:**  
+<!-- **Decision Making Process:**  
 <p align="center">
   <img src="Figure/decision_master.gif" alt="Decision Making Process" width="100%">
+</p> -->
+
+**Simulation in CARLA:**  
+
+```
+Collision Avoidance Success Rate:  99/100 
+(Simulate in CARLA with 100 experiments of randomly generated environment)
+```
+
+<p align="center">
+  <img src="Figure/CARLA_SIM.gif" alt="Decision Making Process" width="100%">
 </p>
 
 **Driving in Heavy Traffic Conditions:**  

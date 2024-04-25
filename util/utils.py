@@ -16,11 +16,86 @@ import matplotlib.animation as animation
 from matplotlib import  transforms
 from matplotlib.patches import Rectangle
 import numpy as np
+import time
 import pandas as pd
 from PIL import Image
 from matplotlib.transforms import Affine2D
 import cv2
+import subprocess
 
+
+
+
+
+
+
+
+def start_carla_low_res():
+    carla_path = r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor'
+    start_command = (
+        f'{carla_path}\\CarlaUE4.exe -ResX=800 -ResY=600 -quality-level=Low')
+    
+    time.sleep(5)
+    
+    map_command = (
+        f'cd {carla_path}\\PythonAPI\\util && '
+        'python config.py --map Town06')
+
+    client_process = subprocess.Popen(start_command, shell=True)
+
+    map_process = subprocess.Popen(map_command, shell=True)
+    map_process.wait()
+
+    print("CARLA has been started in low resolution with Town06 map.")
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+def save_param_log_to_csv(param_log, filename, iteration_number):
+    # 定义标签和行动
+    features = ['traffic_x', 'traffic_y', 'traffic_sign', 'traffic_shift', 'traffic_flip']
+    actions = ['doLeft', 'doRight', 'doTrailing']
+
+    # 展平数组，保留最后的控制器状态维度
+    reshaped_data = param_log.reshape(-1, param_log.shape[-1])
+
+    # 创建DataFrame，其中每一行对应一个控制器的状态
+    df = pd.DataFrame(reshaped_data, columns=actions)
+
+    # 创建索引以标记每个数据点的特征、时间步、车辆ID
+    indices = pd.MultiIndex.from_product([
+        features,
+        range(param_log.shape[1]),  # 时间步
+        range(param_log.shape[2]),  # 车辆数
+    ], names=['Feature', 'Time Step', 'Vehicle ID'])
+
+    df.set_index(indices, inplace=True)
+    df.reset_index(inplace=True)
+
+
+    df['Iteration'] = iteration_number
+
+
+    if not os.path.exists(filename):
+        df.to_csv(filename, mode='w', header=True, index=False)
+    else:
+        df.to_csv(filename, mode='a', header=False, index=False)
+
+    print(f"Data saved for iteration {iteration_number}.")
+
+
+def save_data(param_log, filename='paramLogs.csv', iteration_number='0'):
+    df = pd.DataFrame(param_log.flatten())  # Flatten or process data as needed
+    df['Iteration'] = iteration_number  # Add iteration column
+    df.to_csv(filename, mode='a', header=not os.path.exists(filename), index=False)
 
 class Param:
     """

@@ -3,6 +3,7 @@
 '''
 import time
 import sys
+import json
 from casadi import *
 from Controllers import makeController, makeDecisionMaster
 from vehicle_model import car_VehicleModel
@@ -14,6 +15,7 @@ sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\
 from agents.navigation.controller import VehiclePIDController
 
 # # ------------------------change map to Town06------------------------
+
 # import subprocess
 # # Command to run your script
 # command = (
@@ -24,12 +26,18 @@ from agents.navigation.controller import VehiclePIDController
 # #  Run the command
 
 stochasticMPC = True
-
 makeMovie = True
 directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3.gif"
 
+
+
+
+
+iteration_number = 0
+# def main():
+
 ## ! --------------------------------------System initialization--------------------------------------------
-dt = 0.3                  # Simulation time step (Impacts traffic model accuracy)
+dt = 0.3                 # Simulation time step (Impacts traffic model accuracy)
 desired_interval = dt
 dt_PID = dt/5              # Time step for the PID controller
 f_controller = 10            # Controller update frequency, i.e updates at each t = dt*f_controller
@@ -42,7 +50,7 @@ q_traffic_slack = 1e5
 traffic = Traffic(N,dt)
 velocities = {
         'normal': carla.Vector3D(0.75 * ref_vx, 0, 0),
-        'passive': carla.Vector3D(0.65 * ref_vx, 0, 0),
+        'passive': carla.Vector3D(0.7 * ref_vx, 0, 0),
         'aggressive': carla.Vector3D(0.9*ref_vx, 0, 0),  # Equal to 1.0 * ref_velocity for clarity
         'reference': carla.Vector3D(ref_vx, 0, 0)  # Specifically for the truck
     }
@@ -73,7 +81,7 @@ nx,nu,nrefx,nrefu = vehicleADV.getSystemDim()
 # Set Cost parameters
 Q_ADV = [0,40,3e2,5]                            # State cost, Entries in diagonal matrix
 R_ADV = [5,5]                                   # Input cost, Entries in diagonal matrix
-q_ADV_decision = 100
+q_ADV_decision = 150
 vehicleADV.cost(Q_ADV,R_ADV)
 vehicleADV.costf(Q_ADV)
 L_ADV,Lf_ADV = vehicleADV.getCost()
@@ -136,7 +144,7 @@ MPC_trailing.setController()
 
 print("INFO:  Initilization succesful.")               
 
-                                                                                          
+                                                                                        
 #! -----------------------------------------Initilize Decision Master-----------------------------------------
 decisionMaster = makeDecisionMaster(vehicleADV,traffic,[MPC_LC, MPC_RC, MPC_trailing],
                                 [scenarioTrailADV,scenarioADV])
@@ -193,7 +201,6 @@ truck_y_control = []
 
 #! TEST
 
-
 X_pred = np.zeros((nx,N+1,Nsim))
 X_traffic = np.zeros((nx_traffic,Nsim,Nveh))
 X_traffic_ref = np.zeros((4,Nsim,Nveh))
@@ -201,7 +208,7 @@ X_traffic_ref = np.zeros((4,Nsim,Nveh))
 X_traffic[:,0,:] = traffic.getStates()   
 testPred = traffic.prediction()
 feature_map = np.zeros((8,Nsim,Nveh+1))
- 
+
 
 
 import tqdm
@@ -209,6 +216,7 @@ for i in tqdm.tqdm(range(0,Nsim)):
     iteration_start = time.time()
     x_lead[:,:] = traffic.prediction()[0,:,:].transpose()
     traffic_state[:2,:,] = traffic.prediction()[:2,:,:]
+    
     if i % f_controller == 0:
         count = 0
         print("----------")
@@ -247,6 +255,9 @@ for i in tqdm.tqdm(range(0,Nsim)):
     paramLog[:,i,:] = decisionMaster.getTrafficState()
     decisionLog[i] = decision_i.item()
     
+    # Call to save paramLog at the end of each iteration
+    
+    
     
     #! ------------------------------------------------------------------------------------------------
     car_state = traffic.getStates()[:,2]
@@ -267,6 +278,8 @@ for i in tqdm.tqdm(range(0,Nsim)):
     truck_positions.append((truck_x, truck_y, truck_psi))
     truck_velocities.append(truck_v)
     leading_velocities.append(car_v)
+    
+    print("INFO: The velocity of the truck is: ", [truck_v])
 
     # Calculate acceleration if possible
     if len(timestamps) > 1:
@@ -284,16 +297,23 @@ for i in tqdm.tqdm(range(0,Nsim)):
     else:
         truck_accelerations.append(0)  # Initial acceleration is 0
         truck_jerks.append(0)  # Initial jerk is 0
-        
-        
-    
+
     #! ------------------------------------------------------------------------------------------------
 
     iteration_duration = time.time() - iteration_start
     sleep_duration = max(0.001, desired_interval - iteration_duration)
+    #! open the video writer
+    traffic.camera
     time.sleep(sleep_duration)
 
+
+#! open the video writer
+traffic.close_video_writer()
+    
+# np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Final_Test\Parameters\paramLog_'+str(iteration_number)+'.npy', paramLog)
 print("Simulation finished")
+    
+
 i_crit = i     
                                                 
 figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
@@ -313,19 +333,34 @@ figure_dir = r'C:\Users\A490243\Desktop\Master_Thesis\Figure'
 figure_name = 'CARLA_simulationn_Make_Controller_TEST_ref.png'
 plot_mpc_y_vel(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
-# figure_name = 'CARLA_simulation_compare_ref'
-# create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
+figure_name = 'CARLA_simulation_compare_ref'
+create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_control, figure_dir, figure_name)
 
-#! save X_traffic  paramLog   decisionLog  as npy 
-# if stochasticMPC:
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', X)
-# else:
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy', X_traffic)
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
-#     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
-if False:
+# ! save X_traffic  paramLog   decisionLog  as npy 
+if stochasticMPC:
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic.npy', X_traffic)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog.npy', paramLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog.npy', decisionLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X.npy', X)
+else:
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy', X_traffic)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
+    np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
+if True:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
+
+
+# #! save paramLog to npy, with the name of the iteration number
+# error_count = 0
+# iteration_number = 50
+# for i in range(50):
+#     iteration_number +=1
+#     try:
+#         main()
+#         print("INFO: Iteration_number: ", iteration_number)
+#         print("INFO: Error_count: ", error_count)
+#     except Exception as e:    
+#         error_count += 1
+#         print(f"ERROR: {e}")
+#         print("INFO: Error_count: ", error_count)

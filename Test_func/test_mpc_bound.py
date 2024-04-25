@@ -61,14 +61,19 @@ N=12
 MPC_tighten_bound_=MPC_tighten_bound(A,B,D,Q,R,P0,process_noise,Possibilty)
 tightened_bound_N_list_up=MPC_tighten_bound_.tighten_bound_N(P0,H_up,upb,N,1)
 tightened_bound_N_list_lw=MPC_tighten_bound_.tighten_bound_N(P0,H_low,lwb,N,0)
-# print(tightened_bound_N_list_up)
+print(tightened_bound_N_list_up)
+print(tightened_bound_N_list_lw)
+print("###############################################################################################" )
+print("This is the temptX", MPC_tighten_bound_.getXtemp(N))
+print("###############################################################################################" )
+print("This is the temptY", MPC_tighten_bound_.getYtemp(N))
 
 IDM_constraint_list = []
 for i in range(N+1):
     IDM_constraint_list.append(100+10*i*0.2)
 IDM_constraint_list = np.array(IDM_constraint_list).reshape(-1, 1)
 tightened_bound_N_IDM_list,_=MPC_tighten_bound_.tighten_bound_N_IDM(IDM_constraint_list,N)
-print(tightened_bound_N_IDM_list)
+# print(tightened_bound_N_IDM_list)
 
 
 # #visualize the tightened bound in 4 subplots
