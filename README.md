@@ -59,9 +59,14 @@ To address these issues, we employ Stochastic MPC (SMPC) techniques to tighten s
 <!-- ![MPC Constraint Tightening](Figure/MPC_tighten_bound.jpg)
 ![MPC Constraint Tightening_ACC](Figure/Tightened_trailing.png)
 ![MPC Constraint Tightening_OverTaking](Figure/Tightened_overtake.png) -->  
+**(a)**
+![MPC Constraint Comparison](Figure/IDM_compare.png)
 
+**(b)**
+![MPC Constraint Comparison](Figure/RC_compare.png)
 
-![MPC Constraint Comparison](Figure/comparsion.png)
+**(c)**
+![MPC Constraint Comparison](Figure/LC_compare.png)
 
 **Figure(a),(b),(c) are the initial constraints  and the constraints after the SMPC**   
 
