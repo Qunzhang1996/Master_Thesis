@@ -25,8 +25,8 @@ from agents.navigation.controller import VehiclePIDController
 # exit()
 # #  Run the command
 
-stochasticMPC = True
-makeMovie = True
+stochasticMPC = False
+makeMovie = False
 directory = r"C:\Users\A490243\Desktop\Master_Thesis\Figure\crazy_traffic_mix3.gif"
 
 
@@ -347,7 +347,7 @@ else:
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\paramLog_no_stochastic.npy', paramLog)
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\decisionLog_no_stochastic.npy', decisionLog)
     np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_no_stochastic.npy', X)
-if True:
+if makeMovie:
     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
 
 

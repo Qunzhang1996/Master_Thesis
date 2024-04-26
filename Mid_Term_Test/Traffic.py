@@ -66,7 +66,7 @@ class Traffic:
         self.nx = 4
         self.laneWidth = laneWidth
         self.vehicle_list = []
-        self.video_writer = cv2.VideoWriter('output_video.avi', cv2.VideoWriter_fourcc(*'XVID'), 30.0, (800, 600))
+        # self.video_writer = cv2.VideoWriter('output_video.avi', cv2.VideoWriter_fourcc(*'XVID'), 30.0, (800, 600))
         
         
           
@@ -146,24 +146,24 @@ class Traffic:
             vehicle = self.spawn_vehicle(world, bp, spawn_point)
             self.vehicle_list.append(vehicle)
             
-            
-            if model == 'vehicle.carlamotors.firetruck':
-                # Setup camera sensor
-                self.camera_bp = bp_lib.find('sensor.camera.rgb')
-                self.camera_bp.set_attribute('image_size_x', '800')
-                self.camera_bp.set_attribute('image_size_y', '600')
-                self.camera_bp.set_attribute('fov', '90')
-                self.camera_bp.set_attribute('sensor_tick', '0.033')  # for 30 FPS
+            #! open the camera sensor for the ego vehicle
+            # if model == 'vehicle.carlamotors.firetruck':
+            #     # Setup camera sensor
+            #     self.camera_bp = bp_lib.find('sensor.camera.rgb')
+            #     self.camera_bp.set_attribute('image_size_x', '800')
+            #     self.camera_bp.set_attribute('image_size_y', '600')
+            #     self.camera_bp.set_attribute('fov', '90')
+            #     self.camera_bp.set_attribute('sensor_tick', '0.033')  # for 30 FPS
 
 
-                # Adjust the camera location relative to the vehicle
-                camera_transform = carla.Transform(carla.Location(x=3.0, z=2.7))
-                self.camera = world.spawn_actor(self.camera_bp, camera_transform, attach_to=vehicle)
+            #     # Adjust the camera location relative to the vehicle
+            #     camera_transform = carla.Transform(carla.Location(x=3.0, z=2.7))
+            #     self.camera = world.spawn_actor(self.camera_bp, camera_transform, attach_to=vehicle)
 
-                # Listen to the camera data and display it
+            #     # Listen to the camera data and display it
                 
 
-                self.camera.listen(self.process_image)
+            #     self.camera.listen(self.process_image)
 
         print(f"INFO:  Spawned {len(self.vehicle_list)} vehicles in CARLA Environment.")
         return self.vehicle_list, center_line
@@ -256,7 +256,7 @@ class Traffic:
             ('vehicle.tesla.model3', 80, -self.laneWidth),
             ('vehicle.tesla.model3', 190, ),
             ('vehicle.tesla.model3', 60),
-            ('vehicle.tesla.model3', 150, -self.laneWidth),
+            ('vehicle.tesla.model3', 150, self.laneWidth),
             ('vehicle.tesla.model3', 110, self.laneWidth)
         ]
         center_line = 143.318146
@@ -269,22 +269,23 @@ class Traffic:
             vehicle = self.spawn_vehicle(world, bp, spawn_point)
             self.vehicle_list.append(vehicle)
             
-            if vehicle_info[0] == 'vehicle.carlamotors.firetruck':
-                # Setup camera sensor
-                self.camera_bp = bp_lib.find('sensor.camera.rgb')
-                self.camera_bp.set_attribute('image_size_x', '800')
-                self.camera_bp.set_attribute('image_size_y', '600')
-                self.camera_bp.set_attribute('fov', '90')
-                self.camera_bp.set_attribute('sensor_tick', '0.033')  # for 30 FPS
+            # #! open the camera sensor for the ego vehicle
+            # if vehicle_info[0] == 'vehicle.carlamotors.firetruck':
+            #     # Setup camera sensor
+            #     self.camera_bp = bp_lib.find('sensor.camera.rgb')
+            #     self.camera_bp.set_attribute('image_size_x', '800')
+            #     self.camera_bp.set_attribute('image_size_y', '600')
+            #     self.camera_bp.set_attribute('fov', '90')
+            #     self.camera_bp.set_attribute('sensor_tick', '0.033')  # for 30 FPS
 
-                # Adjust the camera location relative to the vehicle
-                camera_transform = carla.Transform(carla.Location(x=3.0, z=2.7))
-                self.camera = world.spawn_actor(self.camera_bp, camera_transform, attach_to=vehicle)
+            #     # Adjust the camera location relative to the vehicle
+            #     camera_transform = carla.Transform(carla.Location(x=3.0, z=2.7))
+            #     self.camera = world.spawn_actor(self.camera_bp, camera_transform, attach_to=vehicle)
 
-                # Listen to the camera data and display it
+            #     # Listen to the camera data and display it
                 
 
-                self.camera.listen(self.process_image)
+            #     self.camera.listen(self.process_image)
             
             
             
@@ -351,8 +352,8 @@ class Traffic:
             vehicle_state = get_state(vehicle) # x, y, v, psi
             
             #! CHECK THE Velocity of the vehicle, if the velocity is smaller than 5, rasie an error
-            if vehicle_state[2] < 5:
-                raise ValueError("The velocity of the vehicle is smaller than 5 m/s")
+            # if vehicle_state[2] < 5:
+            #     raise ValueError("The velocity of the vehicle is smaller than 5 m/s")
             
             #! predict the N step trajectory, store x and y in np array
             pred_traj = np.zeros((self.nx, self.N+1))

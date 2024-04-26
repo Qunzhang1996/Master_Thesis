@@ -26,13 +26,13 @@ def plot_trajectory(truck_positions, truck_velocity, figure_dir, figure_name):
     # Add color bar with adjusted label size
     cbar = plt.colorbar(lc, ax=ax, label='Velocity (m/s)' )
     # label size = 18
-    cbar.ax.set_ylabel('Velocity (m/s)', fontsize=12)
+    cbar.ax.set_ylabel('Velocity [m/s]', fontsize=12)
     cbar.ax.tick_params(labelsize=12)  # Smaller tick labels
 
     # Set title and labels with appropriate font size
     plt.title('Truck Trajectory with Velocity Coloring', fontsize=12)
-    plt.xlabel('X Position (m)', fontsize=12)
-    plt.ylabel('Y Position (m)', fontsize=12)
+    plt.xlabel('X Position [m]', fontsize=12)
+    plt.ylabel('Y Position [m]', fontsize=12)
 
     # Adjusting tick label size
     ax.tick_params(axis='both', which='major', labelsize=12)
@@ -54,7 +54,7 @@ def plot_trajectory(truck_positions, truck_velocity, figure_dir, figure_name):
         os.makedirs(figure_dir)
     plt.tight_layout()
     plt.savefig(os.path.join(figure_dir, figure_name), format='png', dpi=300)  # High resolution
-    plt.show()
+
     
 def compute_acceleration(positions, sampling_time):
     # Compute velocities
@@ -63,8 +63,7 @@ def compute_acceleration(positions, sampling_time):
     accelerations = np.diff(velocities, axis=0) / sampling_time
     return velocities[:-1], accelerations
     
-    
-    
+
     
 def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sampling_time=0.3):
     g = 9.81  # Gravitational acceleration in m/s^2
@@ -75,8 +74,8 @@ def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sam
     fig, ax = plt.subplots(figsize=(9, 7))  # Adjusted for a typical IEEE single-column width
 
     # Scatter plot ax vs ay colored by velocity
-    sc = ax.scatter(ax_data, ay_data, array=truck_velocity[:-1], cmap='viridis', edgecolor='none', s=100)
-    cbar = plt.colorbar(sc, ax=ax, label='Velocity (m/s)')
+    sc = ax.scatter(ax_data, ay_data, array=truck_velocity[:-1], cmap='viridis', edgecolor='none', s=50)
+    cbar = plt.colorbar(sc, ax=ax, label='Velocity [m/s]')
     cbar.ax.tick_params(labelsize=12)  # Adjust color bar label size
     
     # Steering angle and acceleration limits
@@ -99,8 +98,8 @@ def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sam
     
     # Set axis labels and title
     plt.title('Acceleration Profile', fontsize=12)
-    plt.xlabel('ax (g)', fontsize=12)
-    plt.ylabel('ay (g)', fontsize=12)
+    plt.xlabel('ax [g]', fontsize=12)
+    plt.ylabel('ay [g]', fontsize=12)
     plt.ylim(-1, 1)  # Limit the y-axis to -1 to 1 g
     plt.xlim(-1, 1)  # Limit the x-axis to -1 to 1 g
     ax.legend()
@@ -111,9 +110,12 @@ def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sam
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
     plt.savefig(os.path.join(figure_dir, figure_name), format='png', dpi=300)  # High resolution
-    plt.show()
-# Load data
-X_traffic = np.load(r'C:\Users\86232\Desktop\masterthesis\Master_Thesis\Parameters\X_traffic.npy')
+
+    
+
+    
+#! Load data
+X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_10.npy')
 px_ego = X_traffic[0,:,1]
 py_ego = X_traffic[1,:,1]
 v_ego = X_traffic[2,:,1]
@@ -123,7 +125,9 @@ truck_positions = [(px_ego[i], py_ego[i], psi_ego[i]) for i in range(len(px_ego)
 truck_velocity = v_ego
 
 # Directory and file name for saving the figure
-figure_dir = "C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure"
+# figure_dir = "C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure"
+#C:\Users\A490243\Desktop\Master_Thesis\Figure
+figure_dir ="C:/Users/A490243/Desktop/Master_Thesis/Figure"
 figure_name = "velocity_tracking_layout.png"
 
 plot_trajectory(truck_positions, truck_velocity, figure_dir, figure_name)
@@ -134,7 +138,52 @@ ax_data = accelerations[:, 0]
 ay_data = accelerations[:, 1]
 plot_acceleration(ax_data, ay_data, velocities, figure_dir, "acceleration_profile.png", sampling_time)
 
-X_traffic_nosmpc = np.load(r'C:\Users\86232\Desktop\masterthesis\Master_Thesis\Parameters\X_traffic_no_stochastic.npy')
+
+
+#! load all X_traffic_i.npy files to get the truck positions and velocity
+px_egos = []
+py_egos = []
+v_egos = []
+psi_egos = []
+for i in range(1,10):
+    X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_'+str(i)+'.npy')
+    px_egos.append(X_traffic[0,:,1])
+    py_egos.append(X_traffic[1,:,1])
+    v_egos.append(X_traffic[2,:,1])
+    psi_egos.append(X_traffic[3,:,1])
+
+#calculate the truck positions and velocity for all the scenarios and put them into ax_data, ay_data, velocities
+ax_data = []
+ay_data = []
+velocities = []
+for i in range(9):
+    truck_positions = [(px_egos[i][j], py_egos[i][j], psi_egos[i][j]) for j in range(len(px_egos[i]))]
+    truck_velocity = v_egos[i]
+    sampling_time = 0.3
+    v, a = compute_acceleration(np.array(truck_positions), sampling_time)
+    ax_data.append(a[:, 0])
+    ay_data.append(a[:, 1])
+    velocities.append(v)
+ax_data = np.array(ax_data).flatten()
+ay_data = np.array(ay_data).flatten()
+velocities = np.array(velocities).flatten()
+plot_acceleration(ax_data, ay_data, velocities, figure_dir, "acceleration_profile_all.png", sampling_time)
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+#! Load data
+X_traffic_nosmpc = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic.npy')
 px_ego_nosmpc = X_traffic_nosmpc[0,:,1]
 py_ego_nosmpc = X_traffic_nosmpc[1,:,1]
 v_ego_nosmpc = X_traffic_nosmpc[2,:,1]  
@@ -143,7 +192,9 @@ psi_ego_nosmpc = X_traffic_nosmpc[3,:,1]
 truck_positions_nosmpc = [(px_ego_nosmpc[i], py_ego_nosmpc[i], psi_ego_nosmpc[i]) for i in range(len(px_ego_nosmpc))]
 truck_velocity_nosmpc = v_ego_nosmpc
 
-figure_dir = "C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure"
+# figure_dir = "C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure"
+#C:\Users\A490243\Desktop\Master_Thesis\Figure
+figure_dir ="C:/Users/A490243/Desktop/Master_Thesis/Figure"
 figure_name = "velocity_tracking_layout_nosmpc.png"
 plot_trajectory(truck_positions_nosmpc, truck_velocity_nosmpc, figure_dir, figure_name)
 
@@ -154,7 +205,44 @@ ay_data = accelerations[:, 1]
 plot_acceleration(ax_data, ay_data, velocities, figure_dir, "acceleration_profile_nosmpc.png", sampling_time)
 
 
-X_traffic_EKF = np.load(r'C:\Users\86232\Desktop\masterthesis\Master_Thesis\Parameters\X_traffic_EKF.npy')
+#! load all X_traffic_i.npy files to get the truck positions and velocity
+px_egos = []
+py_egos = []
+v_egos = []
+psi_egos = []
+for i in range(1,10):
+    X_traffic = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_no_stochastic_'+str(i)+'.npy')
+    px_egos.append(X_traffic[0,:,1])
+    py_egos.append(X_traffic[1,:,1])
+    v_egos.append(X_traffic[2,:,1])
+    psi_egos.append(X_traffic[3,:,1])
+
+#calculate the truck positions and velocity for all the scenarios and put them into ax_data, ay_data, velocities
+ax_data = []
+ay_data = []
+velocities = []
+for i in range(9):
+    truck_positions = [(px_egos[i][j], py_egos[i][j], psi_egos[i][j]) for j in range(len(px_egos[i]))]
+    truck_velocity = v_egos[i]
+    sampling_time = 0.3
+    v, a = compute_acceleration(np.array(truck_positions), sampling_time)
+    ax_data.append(a[:, 0])
+    ay_data.append(a[:, 1])
+    velocities.append(v)
+ax_data = np.array(ax_data).flatten()
+ay_data = np.array(ay_data).flatten()
+velocities = np.array(velocities).flatten()
+plot_acceleration(ax_data, ay_data, velocities, figure_dir, "acceleration_profile_all_nosmpc.png", sampling_time)
+
+
+
+
+
+
+
+
+#! Load data
+X_traffic_EKF = np.load(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_traffic_EKF.npy')
 py_ego_EKF = X_traffic_EKF[0,:,1]
 px_ego_EKF = X_traffic_EKF[1,:,1]
 v_ego_EKF = X_traffic_EKF[2,:,1]
@@ -163,7 +251,9 @@ psi_ego_EKF = X_traffic_EKF[3,:,1]
 truck_positions_EKF = [(px_ego_EKF[i], py_ego_EKF[i], psi_ego_EKF[i]) for i in range(len(px_ego_EKF))]
 truck_velocity_EKF = v_ego_EKF
 
-figure_dir = "C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure"
+# figure_dir = "C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure"
+#C:\Users\A490243\Desktop\Master_Thesis\Figure
+figure_dir ="C:/Users/A490243/Desktop/Master_Thesis/Figure"
 figure_name = "velocity_tracking_layout_EKF.png"
 plot_trajectory(truck_positions_EKF, truck_velocity_EKF, figure_dir, figure_name)
 
