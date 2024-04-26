@@ -22,6 +22,10 @@ Our workflow integrates an Extended Kalman Filter (EKF) with a Model Predictive 
 **Workflow Overview:**  
 ![Work Flow Diagram](Figure/Work_flow.png)
 
+**Vehicle Model:**  
+The vehicle model is shown below:  
+![Vehicle Model](Figure/kinematic_model_cog.png)
+
 **Trajectory Propagation:**  
 The difference between the simulated vehicle in CARLA and our nominal model is treated as noise. The figure illustrates how this discrepancy propagates over time.  
 ![Propagation of Trajectory](Figure/propagation_of_trajectory.png)
@@ -29,7 +33,7 @@ The difference between the simulated vehicle in CARLA and our nominal model is t
 
 **Constraint Definitions:**  
 <p align="center">
-  <img src="Figure\Constraint.gif" alt="Constraints Defination" width="100%">
+  <img src="Figure\Constraint.gif" alt="Constraints Defination" width="80%">
 </p>
 
 For detailed constraint definitions, please refer to our supervisor's paper:  
@@ -98,7 +102,15 @@ Collision Avoidance Success Rate:  99/100
 </p>
 
 **Vehicle Trajectory:**  
-The trajectory followed by the vehicle during the tests.
+The comparison of trajectory with mpc and smpc.
 <p align="center">
-  <img src="Figure/CARLA_simulation_Make_Controller_TEST.png" alt="Vehicle Trajectory" width="100%">
+  <img src="Figure/velocity_tracking_layout_nosmpc.png" alt="Vehicle Trajectory" width="100%">
+</p>
+<p align="center">
+  <img src="Figure/velocity_tracking_layout.png" alt="Vehicle Trajectory" width="100%">
+</p>
+
+<p align="center">
+  <img src="Figure/acceleration_profile_nosmpc.png" alt="Vehicle Trajectory" width="49%">
+  <img src="Figure/acceleration_profile.png" alt="acceleration" width="49%">
 </p>
