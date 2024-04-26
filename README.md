@@ -85,6 +85,12 @@ Collision Avoidance Success Rate:  99/100
 (Simulate in CARLA with 100 experiments of randomly generated environment)
 ```
 
+**Complex Scenerio Simulation in CARLA:**  
+
+<p align="center">
+  <img src="Figure/complex_scenerio.png" alt="Complex Scenerio" width="100%">
+</p>
+
 <p align="center">
   <img src="Figure/CARLA_SIM.gif" alt="Decision Making Process" width="100%">
 </p>
