@@ -114,6 +114,13 @@ The comparison of trajectory with mpc and smpc.
 </p>
 
 <p align="center">
-  <img src="Figure/acceleration_profile_nosmpc.png" alt="Vehicle Trajectory" width="49%">
+  <img src="Figure/acceleration_profile_nosmpc.png" alt="Vehicle Trajectory" width="49%"> 
   <img src="Figure/acceleration_profile.png" alt="acceleration" width="49%">
 </p>
+
+
+```
+TODO:
+1. add more data to check the acc
+2. modify the Illustration of the coordinate system
+```

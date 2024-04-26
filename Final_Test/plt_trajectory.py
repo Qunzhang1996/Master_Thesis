@@ -64,6 +64,8 @@ def compute_acceleration(positions, sampling_time):
     return velocities[:-1], accelerations
     
     
+    
+    
 def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sampling_time=0.3):
     g = 9.81  # Gravitational acceleration in m/s^2
     ax_data /= g  # Convert to g
@@ -76,13 +78,32 @@ def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sam
     sc = ax.scatter(ax_data, ay_data, array=truck_velocity[:-1], cmap='viridis', edgecolor='none', s=100)
     cbar = plt.colorbar(sc, ax=ax, label='Velocity (m/s)')
     cbar.ax.tick_params(labelsize=12)  # Adjust color bar label size
+    
+    # Steering angle and acceleration limits
+    delta_min, delta_max = -np.pi/8, np.pi/8
+    ax_min, ax_max = -0.5, 0.5  # Acceleration limits in g
+    
 
+    # Calculate ay limits based on steering angle
+    ay_min = -0.5
+    ay_max = 0.5
+    
+    print(f"ay_min: {ay_min:.2f} g, ay_max: {ay_max:.2f} g")
+
+    # Draw the acceleration limits for ax and ay
+    ax.plot([ax_min, ay_min], [ax_max, ay_max], 'r--')
+    ax.plot([ax_min, ay_max], [ax_max, ay_max], 'r--')
+    ax.plot([ax_min, ay_max], [ax_min, ax_min], 'r--')
+    ax.plot([ay_min, ay_min], [ax_min, ay_max], 'r--')
+    ax.plot([ay_max, ay_max], [ax_min, ax_max], 'r--', label='Acceleration Limits')
+    
     # Set axis labels and title
     plt.title('Acceleration Profile', fontsize=12)
     plt.xlabel('ax (g)', fontsize=12)
     plt.ylabel('ay (g)', fontsize=12)
     plt.ylim(-1, 1)  # Limit the y-axis to -1 to 1 g
     plt.xlim(-1, 1)  # Limit the x-axis to -1 to 1 g
+    ax.legend()
     plt.tight_layout()
     ax.tick_params(axis='both', which='major', labelsize=12)
 
@@ -91,7 +112,6 @@ def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sam
         os.makedirs(figure_dir)
     plt.savefig(os.path.join(figure_dir, figure_name), format='png', dpi=300)  # High resolution
     plt.show()
-
 # Load data
 X_traffic = np.load(r'C:\Users\86232\Desktop\masterthesis\Master_Thesis\Parameters\X_traffic.npy')
 px_ego = X_traffic[0,:,1]
