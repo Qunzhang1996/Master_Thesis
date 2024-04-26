@@ -70,7 +70,7 @@ def plot_acceleration(ax_data, ay_data, velocities, figure_dir, figure_name, sam
     ay_data /= g  # Convert to g
     # Set default font to Times New Roman for IEEE standards
     plt.rc('font', family='Times New Roman')
-    fig, ax = plt.subplots(figsize=(7, 7))  # Adjusted for a typical IEEE single-column width
+    fig, ax = plt.subplots(figsize=(9, 7))  # Adjusted for a typical IEEE single-column width
 
     # Scatter plot ax vs ay colored by velocity
     sc = ax.scatter(ax_data, ay_data, array=truck_velocity[:-1], cmap='viridis', edgecolor='none', s=100)

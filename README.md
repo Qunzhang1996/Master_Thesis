@@ -24,7 +24,10 @@ Our workflow integrates an Extended Kalman Filter (EKF) with a Model Predictive 
 
 **Vehicle Model:**  
 The vehicle model is shown below:  
-![Vehicle Model](Figure/kinematic_model_cog.png)
+<!-- ![Vehicle Model](Figure/kinematic_model_cog.png) -->
+<p align="center">
+  <img src="Figure\kinematic_model_cog.png" alt="kinematic_model_cog" width="50%">
+</p>
 
 **Trajectory Propagation:**  
 The difference between the simulated vehicle in CARLA and our nominal model is treated as noise. The figure illustrates how this discrepancy propagates over time.  
@@ -33,7 +36,7 @@ The difference between the simulated vehicle in CARLA and our nominal model is t
 
 **Constraint Definitions:**  
 <p align="center">
-  <img src="Figure\Constraint.gif" alt="Constraints Defination" width="80%">
+  <img src="Figure\Constraint.gif" alt="Constraints Defination" width="100%">
 </p>
 
 For detailed constraint definitions, please refer to our supervisor's paper:  
