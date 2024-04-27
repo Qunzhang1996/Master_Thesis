@@ -105,13 +105,13 @@ Collision Avoidance Success Rate:  99/100
 **Step 10:**
 
 - **Controller Cost**: 
-  - Base Cost: 931.918
-  - Intermediate Cost: 3585.441
-  - Final Cost: 4.245
+  - leftChange Cost: 931.918
+  - RightChange Cost: 3585.441
+  - trailing Cost: 4.245
 - **Slack**: 
-  - Primary Slack: 3.746e-17
-  - Secondary Slack: 1.309
-  - Tertiary Slack: 1.433e-18
+  - leftChange Slack: 3.746e-17
+  - RightChange Slack: 1.309
+  - trailing Slack: 1.433e-18
 - **Decision**: Trailing
 
 <p align="center">
@@ -121,13 +121,13 @@ Collision Avoidance Success Rate:  99/100
 **Step 20:**
 
 - **Controller Cost**: 
-  - Base Cost: 929.150
-  - Intermediate Cost: 6136.020
+  - leftChange Cost: 929.150
+  - RightChange Cost: 6136.020
   - Final Cost: 33261.869
 - **Slack**: 
-  - Primary Slack: 3.751e-17
-  - Secondary Slack: 12.063
-  - Tertiary Slack: 59.889
+  - leftChange Slack: 3.751e-17
+  - RightChange Slack: 12.063
+  - trailing Slack: 59.889
 - **Decision**: Left Change
 
 <p align="center">
@@ -137,13 +137,13 @@ Collision Avoidance Success Rate:  99/100
 **Step 30:**
 
 - **Controller Cost**: 
-  - Base Cost: 926.382
-  - Intermediate Cost: 8686.598
-  - Final Cost: 66419.494
+  - leftChange Cost: 926.382
+  - RightChange Cost: 8686.598
+  - trailing Cost: 66419.494
 - **Slack**: 
-  - Primary Slack: 3.756e-17
-  - Secondary Slack: 22.817
-  - Tertiary Slack: 118.349
+  - leftChange Slack: 3.756e-17
+  - RightChange Slack: 22.817
+  - trailing Slack: 118.349
 - **Decision**: Left Change
 <p align="center">
   <img src="Figure/Combined_Trajectories_30.png" alt="Combined_Trajectories_30.png" width="100%">
