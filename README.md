@@ -100,6 +100,59 @@ Collision Avoidance Success Rate:  99/100
   <img src="Figure/CARLA_SIM.gif" alt="Decision Making Process" width="100%">
 </p>
 
+
+
+**Step 10:**
+
+- **Controller Cost**: 
+  - Base Cost: 931.918
+  - Intermediate Cost: 3585.441
+  - Final Cost: 4.245
+- **Slack**: 
+  - Primary Slack: 3.746e-17
+  - Secondary Slack: 1.309
+  - Tertiary Slack: 1.433e-18
+- **Decision**: Trailing
+
+<p align="center">
+  <img src="Figure/Combined_Trajectories_10.png" alt="Combined_Trajectories_10.png" width="100%">
+</p>
+
+**Step 20:**
+
+- **Controller Cost**: 
+  - Base Cost: 929.150
+  - Intermediate Cost: 6136.020
+  - Final Cost: 33261.869
+- **Slack**: 
+  - Primary Slack: 3.751e-17
+  - Secondary Slack: 12.063
+  - Tertiary Slack: 59.889
+- **Decision**: Left Change
+
+<p align="center">
+  <img src="Figure/Combined_Trajectories_20.png" alt="Combined_Trajectories_20.png" width="100%">
+</p>
+
+**Step 30:**
+
+- **Controller Cost**: 
+  - Base Cost: 926.382
+  - Intermediate Cost: 8686.598
+  - Final Cost: 66419.494
+- **Slack**: 
+  - Primary Slack: 3.756e-17
+  - Secondary Slack: 22.817
+  - Tertiary Slack: 118.349
+- **Decision**: Left Change
+<p align="center">
+  <img src="Figure/Combined_Trajectories_30.png" alt="Combined_Trajectories_30.png" width="100%">
+</p>
+
+**...........**
+
+
+
 **Driving in Heavy Traffic Conditions:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3.gif" alt="Heavy Traffic Conditions" width="100%">

@@ -14,15 +14,15 @@ from util.utils import *
 sys.path.append(r'C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\carla')
 from agents.navigation.controller import VehiclePIDController
 
-# ------------------------change map to Town06------------------------
-import subprocess
-# Command to run your script
-command = (
-    r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
-    r'python config.py --map Town06')
-subprocess.run(command, shell=True)
-exit()
-#  Run the command
+# # ------------------------change map to Town06------------------------
+# import subprocess
+# # Command to run your script
+# command = (
+#     r'cd C:\Users\A490243\CARLA\CARLA_Latest\WindowsNoEditor\PythonAPI\util && '
+#     r'python config.py --map Town06')
+# subprocess.run(command, shell=True)
+# exit()
+# #  Run the command
 
 
 
@@ -338,5 +338,5 @@ create_gif_with_plot(truck_y_mpc, truck_vel_mpc, truck_y_control, truck_vel_cont
 # np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\X_EKF.npy', X)
 
 
-# if makeMovie:
-#     borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
+if makeMovie:
+    borvePictures(X,X_traffic,X_traffic_ref,paramLog,decisionLog,vehList,X_pred,vehicleADV,scenarioTrailADV,scenarioADV,traffic,i_crit,f_controller,directory)
