@@ -14,7 +14,7 @@ from scipy.linalg import solve_discrete_are
 
 
 ellipse_dimensions = []
-
+plt.rc('font', family='Times New Roman')
 
 class vehicle:
     def __init__(self, WB=6, dt=0.3):
@@ -170,9 +170,9 @@ np.save(r'C:\Users\A490243\Desktop\Master_Thesis\Parameters\ellipse_dimensions.n
 
 # Decorations
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
-plt.title('Propagation of trajectory for different time steps')
-plt.xlabel('X Position')
-plt.ylabel('Y Position')
+# plt.title('Propagation of trajectory for different time steps')
+plt.xlabel('X Position [m]', fontsize=12)
+plt.ylabel('Y Position [m]', fontsize=12)
 plt.legend(loc='upper right')
 
 # Adjusting plot limits based on the maximum extents of the ellipses
