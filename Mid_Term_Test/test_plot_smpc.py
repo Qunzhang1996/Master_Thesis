@@ -30,7 +30,7 @@ adjusted_dist_for_fixed_boundary = stats.norm.pdf(x_range, new_mean_for_adjusted
 # Adjust figure size to fit IEEE column width
 plt.figure(figsize=(12, 8))  # Adjust the size as needed
 
-# plt.plot(x_range, initial_dist, label='Initial Distribution N(0, 1)', color='navy', linewidth=2)
+# plt.plot(x_range, initial_dist, label='Initial Distribution ', color='navy', linewidth=2)
 # plt.fill_between(x_range, initial_dist, alpha=0.2, color='skyblue', label='Initial Probability Mass')
 
 plt.plot(x_range, adjusted_dist_for_fixed_boundary, label='Adjusted Distribution for Fixed Boundary', color='green', linewidth=2)
@@ -39,14 +39,14 @@ plt.fill_between(x_range, adjusted_dist_for_fixed_boundary, alpha=0.2, color='re
 plt.axvline(x=fixed_boundary, color='red', linestyle='--', label=f'Fixed Boundary (x = {fixed_boundary})', linewidth=2)
 
 # Adjust font sizes
-plt.xlabel('Value', fontsize=10)
-plt.ylabel('Probability Density', fontsize=10)
-plt.title('Distribution for Fixed Boundary', fontsize=12)
-plt.legend(fontsize=12, loc='upper right')
+plt.xlabel('Value', fontsize=18)
+plt.ylabel('Probability Density', fontsize=18)
+plt.title('Distribution for Fixed Boundary', fontsize=18)
+plt.legend(fontsize=18, loc='upper right')
 plt.grid(True)
 
 plt.tight_layout()
 
 # Save the figure in a high-quality format
-plt.savefig('C:/Users/A490243/Desktop/Master_Thesis/Figure/adjusted_distribution.png')
+plt.savefig('C:/Users/86232/Desktop/masterthesis/Master_Thesis/Figure/adjusted_distribution.png')
 plt.show()
