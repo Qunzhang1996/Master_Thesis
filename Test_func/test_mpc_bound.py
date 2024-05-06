@@ -1,7 +1,9 @@
 import numpy as np
 from casadi import *
 import sys
-sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis\Controller')
+# sys.path.append(r'C:\Users\A490243\Desktop\Master_Thesis\Controller')
+# C:\Users\86232\Desktop\masterthesis\Master_Thesis\Controller
+sys.path.append(r'C:\Users\86232\Desktop\masterthesis\Master_Thesis\Controller')
 from MPC_tighten_bound import MPC_tighten_bound
 
 #test the function
@@ -85,22 +87,36 @@ import numpy as np
 
 # Font settings for readability
 plt.rcParams.update({'font.size': 12, 'font.family': 'Times New Roman'})
+# use latex for text rendering
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
 # fig, axs = plt.subplots(3, 2, figsize=(12, 8))
 fig, axs = plt.subplots(2, 2, figsize=(12, 8))
 fig.suptitle('Tightened States Constraint', fontsize=14, fontweight='bold')
 
 # Titles for the first 4 subplots
-titles = ['Constraint for x', 'Constraint for y', 'Constraint for v', 'Constraint for phi']
+titles = ['Constraint for x', 'Constraint for y', 'Constraint for v', 'Constraint for $\Psi$']
 for i in range(4):
     row, col = divmod(i, 2)
     axs[row, col].plot(tightened_bound_N_list_up[:, i], '-', label='Tightened Upper Constraint', linewidth=2)  # Enhanced visibility
+    axs[row, col].scatter(range(N+1), tightened_bound_N_list_up[:, i], color='blue', s=10)
     axs[row, col].plot(tightened_bound_N_list_lw[:, i], '-', label='Tightened Lower Constraint', linewidth=2)  
+    axs[row, col].scatter(range(N+1), tightened_bound_N_list_lw[:, i], color='red', s=10)
     axs[row, col].plot(np.ones((N+1, 1))*upb[i], '--', label='Original Upper Constraint', linewidth=1.5)
     axs[row, col].plot(-np.ones((N+1, 1))*lwb[i], '--', label='Original Lower Constraint', linewidth=1.5)
     axs[row, col].legend(loc='upper right', fontsize='small')
     axs[row, col].set_title(titles[i], fontsize=12)
     axs[row, col].set_xticks(range(N))
+    # x axis label time steps
+    axs[row, col].set_xlabel('Time Steps', fontsize=12)
+    # y axis label constraints, for the x and y label is in m, for v is in m/s, for psi is in rad
+    if i == 0 or i == 1:
+        axs[row, col].set_ylabel('Constraints [m]', fontsize=12)
+    elif i == 2:
+        axs[row, col].set_ylabel('Constraints [m/s]', fontsize=12)
+    else:
+        axs[row, col].set_ylabel('Constraints [rad]', fontsize=12)
 
 # plt.delaxes(axs[2, 0]) 
 # plt.delaxes(axs[2, 1]) 
@@ -120,7 +136,7 @@ for i in range(4):
 
 plt.tight_layout()  # Adjust the layout
 
-plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg', dpi=300)  # High resolution
+# plt.savefig('C:\\Users\\A490243\\Desktop\\Master_Thesis\\Figure\\MPC_tighten_bound.jpg', dpi=300)  # High resolution
 plt.show()
 
 

@@ -1,8 +1,8 @@
 import math
-import carla
+# import carla
 import os
 import json
-import imageio
+# import imageio
 import numpy as np
 from enum import IntEnum
 import matplotlib.pyplot as plt
