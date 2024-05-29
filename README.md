@@ -1,8 +1,10 @@
-# MSc Thesis: Robust MPC for Autonomous Vehicles in Uncertain Situations
+# MSc Thesis: Stochastic MPC for Autonomous Vehicles in Uncertain Situations
 
-**Authors:** Qun Zhang, Saeed Salih, Erik Börve   
+**Authors:** Qun Zhang, Saeed Salih, Erik Börve  
 **Emails:** [qunz@chalmers.se](mailto:qunz@chalmers.se), [saeedsal@chalmers.se](mailto:saeedsal@chalmers.se), [borerik@chalmers.se](mailto:borerik@chalmers.se)  
-**Affiliation:** Department of Electrical Engineering, Chalmers University of Technology, Göteborg, Sweden
+**Affiliation:** Department of Electrical Engineering, Chalmers University of Technology, Göteborg, Sweden  
+**Organization:** Volvo Group
+
 
 ## Instruction
 - Overwrite carla in the CARLA path with the folder named carla in the file to use the local controller for this project
@@ -118,3 +120,7 @@ Collision Avoidance Success Rate:  99/100
   <img src="Figure/crazy_traffic_mix3_EKF.gif" alt="Controller Testing in CARLA" width="100%">
 </p>
 
+**Comparison of MPC and SMPC:**  
+<p align="center">
+  <img src="Figure/Result.png" alt="RESULT" width="100%">
+</p>
