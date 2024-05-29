@@ -1,4 +1,0 @@
-casadi
-numpy
-matplotlib
-pandas

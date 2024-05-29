@@ -4,6 +4,12 @@
 **Emails:** [qunz@chalmers.se](mailto:qunz@chalmers.se), [saeedsal@chalmers.se](mailto:saeedsal@chalmers.se), [borerik@chalmers.se](mailto:borerik@chalmers.se)  
 **Affiliation:** Department of Electrical Engineering, Chalmers University of Technology, Göteborg, Sweden
 
+## Instruction
+- Overwrite carla in the CARLA path with the folder named carla in the file to use the local controller for this project
+- Simulations are run via the "main" and "main_EKF" file. This is also where simulations are configured, including e.g., designing traffic scenarios and setting up the optimal controllers.
+- Before running, change map to Town06
+- Notice: Remember to change the path.
+
 ## Purpose
 
 The objectives of this thesis are to:
@@ -102,57 +108,6 @@ Collision Avoidance Success Rate:  99/100
 
 
 
-**Step 10:**
-
-- **Controller Cost**: 
-  - leftChange Cost: 931.918
-  - RightChange Cost: 3585.441
-  - trailing Cost: 4.245
-- **Slack**: 
-  - leftChange Slack: 3.746e-17
-  - RightChange Slack: 1.309
-  - trailing Slack: 1.433e-18
-- **Decision**: Trailing
-
-<p align="center">
-  <img src="Figure/Combined_Trajectories_10.png" alt="Combined_Trajectories_10.png" width="100%">
-</p>
-
-**Step 20:**
-
-- **Controller Cost**: 
-  - leftChange Cost: 929.150
-  - RightChange Cost: 6136.020
-  - Final Cost: 33261.869
-- **Slack**: 
-  - leftChange Slack: 3.751e-17
-  - RightChange Slack: 12.063
-  - trailing Slack: 59.889
-- **Decision**: Left Change
-
-<p align="center">
-  <img src="Figure/Combined_Trajectories_20.png" alt="Combined_Trajectories_20.png" width="100%">
-</p>
-
-**Step 30:**
-
-- **Controller Cost**: 
-  - leftChange Cost: 926.382
-  - RightChange Cost: 8686.598
-  - trailing Cost: 66419.494
-- **Slack**: 
-  - leftChange Slack: 3.756e-17
-  - RightChange Slack: 22.817
-  - trailing Slack: 118.349
-- **Decision**: Left Change
-<p align="center">
-  <img src="Figure/Combined_Trajectories_30.png" alt="Combined_Trajectories_30.png" width="100%">
-</p>
-
-**...........**
-
-
-
 **Driving in Heavy Traffic Conditions:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3.gif" alt="Heavy Traffic Conditions" width="100%">
@@ -161,26 +116,5 @@ Collision Avoidance Success Rate:  99/100
 **Driving in Heavy Traffic Conditions using EKF:**  
 <p align="center">
   <img src="Figure/crazy_traffic_mix3_EKF.gif" alt="Controller Testing in CARLA" width="100%">
-</p>
-
-**Controller Testing in CARLA:**  
-<p align="center">
-  <img src="Figure/CARLA_simulation_compare_ref.gif" alt="Controller Testing in CARLA" width="100%">
-</p>
-
-**Vehicle Trajectory:**  
-The comparison of trajectory with mpc and smpc.
-<p align="center">
-  <img src="Figure/velocity_tracking_layout_nosmpc.png" alt="Vehicle Trajectory" width="100%">
-</p>
-<p align="center">
-  <img src="Figure/velocity_tracking_layout.png" alt="Vehicle Trajectory" width="100%">
-</p>
-
-<p align="center">
-<img src="Figure/acceleration_profile_all_nosmpc.png" alt="Vehicle Trajectory" width="49%"> 
-<img src="Figure/acceleration_profile_all.png" alt="acceleration" width="49%">
-  
-  
 </p>
 
