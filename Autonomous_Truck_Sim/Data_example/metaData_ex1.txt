@@ -1,0 +1,29 @@
+Metadata for provided data sets
+---------------------------------
+Implementation notes: 
+To speed up the RL training it is suitable to create scenarios that force many lane changes
+This is done by creating some vehicle with significantly lower speed.
+This means that these vehicles will quickly be far away from the ego vehicle and essentially become uninteresting to the agent
+To avoid this and further force lane changes, vehicles that are a certain distance behind the ego vehicle will "respawn" ahead in traffic
+This should not impact the result as the respawn distance (+-120m) is further than what might be considered for the truck GNN, 
+but worth to keep in mind when e.g, validating 1-step ahead predictions of the respawning vehicles
+
+Its also possible to alter this distance and even turn of respawning in the simulation loop 
+
+General
+------
+Data is provided in a (N_x,Nveh*N_sim) matrix
+ - Splitting this into (N_x,Nveh,N_sim) tensor seems suitable
+
+class encoding: [0,1,2,3] = [truck,passive,normal,aggressive]
+
+Data is provided in a minimal state representation
+x = [x-position,y-position,x-velocity,steering angle,class]
+
+This dataset
+--------------
+N_x  = 5  (Number of vehicle features)
+Nveh = 6 (Number of vehicles in simulation)
+N_sim = 1000 (Number of samples in time)
+dt_sim = 0.2 (Simulation time steps (sec))
+dt_ctrl = 1 (Controler decision time steps (sec) )
